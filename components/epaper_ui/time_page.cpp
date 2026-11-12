@@ -103,8 +103,10 @@ Layout BuildLayout(int portrait_width, int portrait_height, const TimePageState&
     }
     y = Bottom3(layout.hour, layout.minute, layout.meridiem) + kSectionGap;
 
-    layout.month = TimeInputBounds(page_x, y, state.month, FieldStyle(column));
-    layout.day = TimeInputBounds(column2_x, y, state.day, FieldStyle(column));
+    const int month_x = state.day_first ? column2_x : page_x;
+    const int day_x = state.day_first ? page_x : column2_x;
+    layout.month = TimeInputBounds(month_x, y, state.month, FieldStyle(column));
+    layout.day = TimeInputBounds(day_x, y, state.day, FieldStyle(column));
     layout.year = TimeInputBounds(column3_x, y, state.year, FieldStyle(column));
     y = Bottom3(layout.month, layout.day, layout.year) + kSectionBlockGap;
 

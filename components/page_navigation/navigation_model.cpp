@@ -138,7 +138,7 @@ NavigationModel BuildWifiPageNavigationModel()
     return model;
 }
 
-NavigationModel BuildTimePageNavigationModel(bool include_meridiem)
+NavigationModel BuildTimePageNavigationModel(bool include_meridiem, bool day_first)
 {
     NavigationModel model = {};
     model.scope = NavigationScope::kTime;
@@ -153,8 +153,13 @@ NavigationModel BuildTimePageNavigationModel(bool include_meridiem)
     if (include_meridiem) {
         add(NavigationItemRole::kTimePageMeridiem);
     }
-    add(NavigationItemRole::kTimePageMonth);
-    add(NavigationItemRole::kTimePageDay);
+    if (day_first) {
+        add(NavigationItemRole::kTimePageDay);
+        add(NavigationItemRole::kTimePageMonth);
+    } else {
+        add(NavigationItemRole::kTimePageMonth);
+        add(NavigationItemRole::kTimePageDay);
+    }
     add(NavigationItemRole::kTimePageYear);
     add(NavigationItemRole::kTimePageSave);
     // Reached from the Settings hub's "Time" heading now, not its own footer icon -- Back

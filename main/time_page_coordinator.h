@@ -61,7 +61,8 @@ private:
     void LoadFromSnapshot(const timezone_service::Snapshot& snapshot);
 
     page_navigation::NavigationModel navigation_model_ =
-        page_navigation::BuildTimePageNavigationModel(!i18n::Uses24HourClock());
+        page_navigation::BuildTimePageNavigationModel(!i18n::Uses24HourClock(),
+                                                      i18n::UsesDayFirstDates());
     page_navigation::RovingFocus focus_{navigation_model_.item_count, 0};
 
     std::vector<timezone_service::TimezoneInfo> timezones_ = {};
@@ -71,6 +72,7 @@ private:
     std::string minute_ = {};  // "00".."59"
     bool meridiem_pm_ = false;
     bool uses_24_hour_ = i18n::Uses24HourClock();  // follows the UI language, set on show
+    bool day_first_ = i18n::UsesDayFirstDates();    // likewise
     std::string month_ = {};   // "01".."12"
     std::string day_ = {};     // "01".."31"
     std::string year_ = {};    // "YYYY"

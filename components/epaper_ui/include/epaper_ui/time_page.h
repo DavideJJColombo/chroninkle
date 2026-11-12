@@ -38,6 +38,8 @@ struct TimePageState {
     ButtonState meridiem = {};
     // false for the 24-hour clock: no AM/PM toggle, hour and minute share the row.
     bool show_meridiem = true;
+    // true for day/month/year order (Italian), false for month/day/year.
+    bool day_first = false;
     TimeInputState month = {};
     TimeInputState day = {};
     TimeInputState year = {};

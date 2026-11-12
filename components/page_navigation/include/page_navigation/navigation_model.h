@@ -132,8 +132,9 @@ struct NavigationModel {
 
 NavigationModel BuildSettingsPageNavigationModel();
 NavigationModel BuildWifiPageNavigationModel();
-// include_meridiem = false drops the AM/PM toggle (24-hour clock entry).
-NavigationModel BuildTimePageNavigationModel(bool include_meridiem = true);
+// include_meridiem = false drops the AM/PM toggle (24-hour clock entry); day_first puts the
+// day field before the month (Italian date order), matching the on-screen layout.
+NavigationModel BuildTimePageNavigationModel(bool include_meridiem = true, bool day_first = false);
 NavigationModel BuildSettingsStoragePageNavigationModel();
 NavigationModel BuildSettingsTodosPageNavigationModel();
 NavigationModel BuildSettingsTopicsPageNavigationModel(int topic_count);

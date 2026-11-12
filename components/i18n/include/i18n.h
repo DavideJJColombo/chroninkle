@@ -59,6 +59,12 @@ inline bool Uses24HourClock()
     return IsItalian();
 }
 
+// Italian writes dates day first (GG/MM/AAAA), English month first (MM/DD/YYYY).
+inline bool UsesDayFirstDates()
+{
+    return IsItalian();
+}
+
 std::string FormatClock(int hour24, int minute);  // "2:05 PM" / "14:05"
 std::string FormatLongDate(const std::tm& local);   // "Nov 12, 2026" / "12 nov 2026"
 std::string FormatShortDate(const std::tm& local);  // "Thu Nov 12" / "Gio 12 nov"

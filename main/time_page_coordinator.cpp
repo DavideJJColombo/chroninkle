@@ -133,8 +133,11 @@ void TimePageCoordinator::PrepareForShow()
             }
         }
         uses_24_hour_ = uses_24_hour;
-        navigation_model_ = page_navigation::BuildTimePageNavigationModel(!uses_24_hour_);
     }
+    // Field order (AM/PM toggle, day before month) also follows the language: rebuild the
+    // focus order to match what BuildState() lays out.
+    day_first_ = i18n::UsesDayFirstDates();
+    navigation_model_ = page_navigation::BuildTimePageNavigationModel(!uses_24_hour_, day_first_);
     focus_.Configure(navigation_model_.item_count,
                      navigation_model_.IndexOfRole(NavigationItemRole::kTimePageTimezone));
 }
@@ -272,6 +275,7 @@ epaper_ui::TimePageState TimePageCoordinator::BuildState() const
 
     state.meridiem.label_text = meridiem_pm_ ? "PM" : "AM";
     state.show_meridiem = !uses_24_hour_;
+    state.day_first = day_first_;
     state.meridiem.selected = IsRoleFocused(NavigationItemRole::kTimePageMeridiem);
 
     state.month.value_text = month_;

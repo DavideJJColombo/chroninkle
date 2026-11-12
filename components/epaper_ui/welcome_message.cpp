@@ -1,5 +1,7 @@
 #include "epaper_ui/welcome_message.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <array>
 #include <vector>
@@ -13,6 +15,10 @@ namespace {
 constexpr std::array<const char*, 5> kTitles = {
     "What's on your mind?", "Let's jump back in!", "Got a cool idea?",
     "Capture that thought!", "What's the plan?",
+};
+constexpr std::array<const char*, 5> kTitlesItalian = {
+    "A cosa pensi?", "Ripartiamo!", "Un'idea geniale?",
+    "Fissa quel pensiero!", "Qual è il piano?",
 };
 
 const EmbeddedImageAsset* TitleIcon(const WelcomeMessageStyle& style)
@@ -33,7 +39,8 @@ int WrapWidthForIcon(const WelcomeMessageStyle& style, const EmbeddedImageAsset*
 
 std::string WelcomeMessageTitle(uint32_t seed)
 {
-    return kTitles[seed % kTitles.size()];
+    const size_t slot = seed % kTitles.size();
+    return i18n::Tr(kTitles[slot], kTitlesItalian[slot]);
 }
 
 int WelcomeMessageTitleCount()

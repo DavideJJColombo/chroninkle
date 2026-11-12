@@ -1,5 +1,7 @@
 #include "topic_entries_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 #include "project_assets.h"
@@ -48,7 +50,7 @@ std::vector<TopicEntriesPageCoordinator::TimelineGroup> TopicEntriesPageCoordina
 {
     std::vector<TimelineGroup> groups;
     if (topic_id_.empty()) {
-        groups.push_back({"today", "Today", {}});
+        groups.push_back({"today", i18n::Tr("Today", "Oggi"), {}});
         return groups;
     }
 
@@ -100,13 +102,13 @@ std::vector<TopicEntriesPageCoordinator::TimelineGroup> TopicEntriesPageCoordina
         // Unlike Notes (already filtered to Note+Idea) or Todos (already filtered to Task), this
         // view mixes all three tags, so the per-row tag text is what tells them apart.
         timeline_entry.item.header.tag_text = timeline_format::TagText(entry.metadata.tag);
-        timeline_entry.item.body_text = has_transcription ? transcript : "Audio only.";
+        timeline_entry.item.body_text = has_transcription ? transcript : i18n::Tr("Audio only.", "Solo audio.");
         timeline_entry.item.accessory.kind = epaper_ui::ListItemAccessoryKind::kNone;
         groups[static_cast<size_t>(group_index)].entries.push_back(std::move(timeline_entry));
     }
 
     if (groups.empty()) {
-        groups.push_back({"today", "Today", {}});
+        groups.push_back({"today", i18n::Tr("Today", "Oggi"), {}});
     }
     return groups;
 }
@@ -115,7 +117,7 @@ void TopicEntriesPageCoordinator::Show(const std::vector<RecordingEntry>& record
 {
     if (!pending_topic_id_.empty() || !pending_topic_name_.empty()) {
         topic_id_ = pending_topic_id_;
-        topic_name_ = pending_topic_name_.empty() ? "Topic" : pending_topic_name_;
+        topic_name_ = pending_topic_name_.empty() ? i18n::Tr("Topic", "Argomento") : pending_topic_name_;
         pending_topic_id_.clear();
         pending_topic_name_.clear();
     }
@@ -143,8 +145,8 @@ epaper_ui::TopicEntriesPageState TopicEntriesPageCoordinator::BuildState() const
     state.navigation_focus_index = focus_.focus().index();
 
     epaper_ui::TimelineListState timeline = {};
-    timeline.item_label_plural = "entries";
-    timeline.empty_state_text = "No entries tagged with this topic yet";
+    timeline.item_label_plural = i18n::Tr("entries", "voci");
+    timeline.empty_state_text = i18n::Tr("No entries tagged with this topic yet", "Ancora nessuna voce con questo argomento");
     timeline.empty_state_icon_asset = project_assets::GetIcon(EmbeddedIconId::kIdea);
     timeline.visible_group_index = focus_.VisibleGroupIndex();
     timeline.focused_group_index = focus_.FocusedGroupIndex();
@@ -162,14 +164,14 @@ epaper_ui::TopicEntriesPageState TopicEntriesPageCoordinator::BuildState() const
     }
     state.timeline = std::move(timeline);
 
-    state.back_button.label_text = "Back";
+    state.back_button.label_text = i18n::Tr("Back", "Indietro");
     state.back_button.selected =
         IsRoleFocused(page_navigation::NavigationItemRole::kTopicEntriesBackButton);
 
     state.show_summarize_button =
         navigation_model().IndexOfRole(page_navigation::NavigationItemRole::kTopicEntriesSummarizeButton) >=
         0;
-    state.summarize_button.label_text = "Summarize";
+    state.summarize_button.label_text = i18n::Tr("Summarize", "Riassumi");
     state.summarize_button.selected =
         IsRoleFocused(page_navigation::NavigationItemRole::kTopicEntriesSummarizeButton);
     return state;

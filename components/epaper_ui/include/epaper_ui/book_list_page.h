@@ -2,6 +2,8 @@
 #define EPAPER_UI_BOOK_LIST_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "epaper_ui/global_footer.h"
@@ -12,7 +14,7 @@ namespace epaper_ui {
 
 struct BookListPageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Books";
+    std::string_view title_text = i18n::Tr("Books", "Libri");
     // One row per .txt file in the configured folder (label_text = filename). Picking one
     // opens the reader at that book's saved (or start-of-file) position.
     SelectListState books_list = {};

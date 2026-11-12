@@ -1,5 +1,7 @@
 #include "status_bar_runtime.h"
 
+#include "i18n.h"
+
 #include <mutex>
 
 #include "esp_check.h"
@@ -35,17 +37,13 @@ std::string BuildTimeText()
 {
     const timezone_service::Snapshot snapshot = timezone_service::GetSnapshot();
     const std::string& time24 = snapshot.runtime.current_time;
-    // current_time is "HH:MM" 24-hour; present it as 12-hour with an AM/PM suffix.
+    // current_time is "HH:MM" 24-hour; English shows 12-hour + AM/PM, Italian keeps 24-hour.
     if (time24.size() < 5 || time24[2] != ':') {
         return "--:--";
     }
     const int hour24 = ((time24[0] - '0') * 10) + (time24[1] - '0');
-    const bool pm = hour24 >= 12;
-    int hour12 = hour24 % 12;
-    if (hour12 == 0) {
-        hour12 = 12;
-    }
-    return std::to_string(hour12) + time24.substr(2, 3) + (pm ? " PM" : " AM");
+    const int minute = ((time24[3] - '0') * 10) + (time24[4] - '0');
+    return i18n::FormatClock(hour24, minute);
 }
 
 }  // namespace

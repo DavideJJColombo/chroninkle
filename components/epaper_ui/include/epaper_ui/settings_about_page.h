@@ -2,6 +2,8 @@
 #define EPAPER_UI_SETTINGS_ABOUT_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 #include <string_view>
 
@@ -18,12 +20,14 @@ enum class SettingsAboutPageItemId : uint8_t {
 
 struct SettingsAboutPageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "About";
+    std::string_view title_text = i18n::Tr("About", "Informazioni");
     // e.g. "Version 0.7.0" -- built at BuildState() time from esp_app_get_description().
     std::string version_text;
-    std::string_view acknowledgment_text =
+    std::string_view acknowledgment_text = i18n::Tr(
         "Chroninkle began as a fork of Followup, created by ALXV Labs. Thank you to ALXV for "
-        "the original design and implementation this project builds on.";
+        "the original design and implementation this project builds on.",
+        "Chroninkle è nato come fork di Followup, creato da ALXV Labs. Grazie ad ALXV per il "
+        "design e l'implementazione originali su cui si basa questo progetto.");
     ButtonState back = {};
 };
 

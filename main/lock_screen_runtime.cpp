@@ -1,5 +1,7 @@
 #include "lock_screen_runtime.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <atomic>
 #include <climits>
@@ -74,14 +76,8 @@ bool RebuildDateStateLocked(bool force)
         std::tm local_tm = {};
         localtime_r(&now, &local_tm);
 
-        char weekday_buf[16] = {};
-        char month_buf[8] = {};
-        strftime(weekday_buf, sizeof(weekday_buf), "%A", &local_tm);
-        strftime(month_buf, sizeof(month_buf), "%b", &local_tm);
-
-        weekday_text = weekday_buf;
-        date_text = std::string(month_buf) + " " + std::to_string(local_tm.tm_mday) + ", " +
-                   std::to_string(local_tm.tm_year + 1900);
+        weekday_text = i18n::WeekdayName(local_tm.tm_wday);
+        date_text = i18n::FormatLongDate(local_tm);
     }
 
     const bool changed =
@@ -112,7 +108,7 @@ bool IsPendingTodo(const recording_archive_service::RecordingEntry& entry)
 std::string TodoDisplayText(const recording_archive_service::RecordingEntry& entry)
 {
     const std::string trimmed = timeline_format::TrimTranscript(entry.transcript_text);
-    return entry.metadata.has_transcript && !trimmed.empty() ? trimmed : "Audio only todo.";
+    return entry.metadata.has_transcript && !trimmed.empty() ? trimmed : i18n::Tr("Audio only todo.", "Attività solo audio.");
 }
 
 esp_err_t UpdateDisplayState()

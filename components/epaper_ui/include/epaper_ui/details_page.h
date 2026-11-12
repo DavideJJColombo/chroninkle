@@ -2,6 +2,8 @@
 #define EPAPER_UI_DETAILS_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/button.h"
@@ -15,7 +17,7 @@ namespace epaper_ui {
 
 struct DetailsPageState {
     int navigation_focus_index = -1;
-    std::string title_text = "Details";
+    std::string title_text = i18n::Tr("Details", "Dettagli");
     ListItemHeaderState recording_header = {};
     ScrollContainerState scroll_container = {};
     // Always shown, in its own row above Back/Transcribe -- opens the topic multi-select.

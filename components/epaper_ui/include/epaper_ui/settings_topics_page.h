@@ -2,6 +2,8 @@
 #define EPAPER_UI_SETTINGS_TOPICS_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "epaper_ui/button.h"
@@ -13,7 +15,7 @@ namespace epaper_ui {
 
 struct SettingsTopicsPageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Topics";
+    std::string_view title_text = i18n::Tr("Topics", "Argomenti");
     // One row per topic_service::Topic (label_text = topic name). focused/active both mirror
     // whether roving focus is currently on a topic row -- there is no separate "entered" sub-mode
     // here, unlike the day-grouped timeline lists, since each row is its own top-level roving

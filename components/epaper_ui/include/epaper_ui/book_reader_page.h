@@ -2,6 +2,8 @@
 #define EPAPER_UI_BOOK_READER_PAGE_H_
 
 #include <cstddef>
+
+#include "i18n.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -13,7 +15,7 @@
 namespace epaper_ui {
 
 struct BookReaderPageState {
-    std::string title_text = "Reader";
+    std::string title_text = i18n::Tr("Reader", "Lettura");
     // Pre-wrapped lines for the current page, from PaginateBookText -- this page just draws
     // them rather than re-wrapping.
     std::vector<std::string> page_lines = {};

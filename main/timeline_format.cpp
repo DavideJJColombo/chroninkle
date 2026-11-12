@@ -1,5 +1,7 @@
 #include "timeline_format.h"
 
+#include "i18n.h"
+
 #include <cstdio>
 #include <ctime>
 
@@ -23,7 +25,7 @@ std::string FormatDateLabel(const std::string& created_local_date)
     // is the live "YYYY-MM-DD", so this stops reading "Today" as soon as the date rolls over.
     if (!day_key.empty() &&
         day_key == timezone_service::GetSnapshot().runtime.current_date) {
-        return "Today";
+        return i18n::Tr("Today", "Oggi");
     }
 
     int year = 0;
@@ -38,13 +40,10 @@ std::string FormatDateLabel(const std::string& created_local_date)
         if (stamp != static_cast<std::time_t>(-1)) {
             std::tm local = {};
             localtime_r(&stamp, &local);
-            char buffer[24] = {};
-            if (std::strftime(buffer, sizeof(buffer), "%a %b %d", &local) > 0) {
-                return buffer;
-            }
+            return i18n::FormatShortDate(local);
         }
     }
-    return created_local_date.empty() ? "Today" : created_local_date;
+    return created_local_date.empty() ? std::string(i18n::Tr("Today", "Oggi")) : created_local_date;
 }
 
 std::string FormatTimeLabel(bool time_valid, int64_t created_unix_seconds)
@@ -53,14 +52,7 @@ std::string FormatTimeLabel(bool time_valid, int64_t created_unix_seconds)
         std::time_t stamp = static_cast<std::time_t>(created_unix_seconds);
         std::tm local = {};
         localtime_r(&stamp, &local);
-        char buffer[16] = {};
-        if (std::strftime(buffer, sizeof(buffer), "%I:%M %p", &local) > 0) {
-            std::string text = buffer;
-            if (text.size() > 1 && text.front() == '0') {
-                text.erase(0, 1);
-            }
-            return text;
-        }
+        return i18n::FormatClock(local.tm_hour, local.tm_min);
     }
     return "--:--";
 }
@@ -88,12 +80,12 @@ std::string TagText(RecordingTag tag)
 {
     switch (tag) {
         case RecordingTag::kTask:
-            return "Task";
+            return i18n::Tr("Task", "Da fare");
         case RecordingTag::kIdea:
             return "Idea";
         case RecordingTag::kNote:
         default:
-            return "Note";
+            return i18n::Tr("Note", "Nota");
     }
 }
 

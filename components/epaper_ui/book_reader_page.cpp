@@ -1,5 +1,7 @@
 #include "epaper_ui/book_reader_page.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
@@ -283,7 +285,7 @@ void DrawBookReaderPage(uint8_t* framebuffer,
         line_y += line_height;
     }
 
-    const std::string page_label = "Page " + std::to_string(state.page_number);
+    const std::string page_label = i18n::Tr("Page ", "Pagina ") + std::to_string(state.page_number);
     DrawTypographyText(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                        layout.page_indicator.x, layout.page_indicator.y, page_label,
                        kPageIndicatorRole, design::color::kBlack);

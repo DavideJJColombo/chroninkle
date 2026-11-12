@@ -1,5 +1,7 @@
 #include "settings_topics_page_runtime.h"
 
+#include "i18n.h"
+
 #include <mutex>
 #include <string>
 #include <vector>
@@ -136,7 +138,7 @@ esp_err_t ShowRenameKeyboard(const std::string& topic_id, const std::string& cur
 {
     epaper_ui::KeyboardState keyboard_state = {};
     keyboard_state.visible = true;
-    keyboard_state.input.label_text = "Rename topic";
+    keyboard_state.input.label_text = i18n::Tr("Rename topic", "Rinomina argomento");
     keyboard_state.input.value_text = current_name;
     keyboard_state.input.focused = true;
     keyboard_state.input.active = true;
@@ -270,11 +272,11 @@ bool ShowItemActionsModal()
         s_item_actions_topic_name = snapshot.topics[static_cast<size_t>(index)].name;
         s_item_actions.clear();
         modal.title_text = s_item_actions_topic_name;
-        modal.items.push_back({"Rename"});
+        modal.items.push_back({i18n::Tr("Rename", "Rinomina")});
         s_item_actions.push_back(ItemAction::kRename);
-        modal.items.push_back({"Delete"});
+        modal.items.push_back({i18n::Tr("Delete", "Elimina")});
         s_item_actions.push_back(ItemAction::kDelete);
-        modal.items.push_back({"Close"});
+        modal.items.push_back({i18n::Tr("Close", "Chiudi")});
         s_item_actions.push_back(ItemAction::kClose);
         modal.selected_index = 0;
         s_item_actions_pending = true;
@@ -337,8 +339,8 @@ void HandleNewTopicActivated()
 {
     epaper_ui::KeyboardState keyboard_state = {};
     keyboard_state.visible = true;
-    keyboard_state.input.label_text = "New topic";
-    keyboard_state.input.placeholder_text = "Topic name";
+    keyboard_state.input.label_text = i18n::Tr("New topic", "Nuovo argomento");
+    keyboard_state.input.placeholder_text = i18n::Tr("Topic name", "Nome argomento");
     keyboard_state.input.focused = true;
     keyboard_state.input.active = true;
     keyboard_state.layout = epaper_ui::KeyboardLayoutKind::kLettersLower;

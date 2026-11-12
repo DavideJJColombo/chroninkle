@@ -1,5 +1,7 @@
 #include "todos_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 #include "project_assets.h"
@@ -92,15 +94,15 @@ std::vector<TodosPageCoordinator::TimelineGroup> TodosPageCoordinator::BuildGrou
         timeline_entry.item.header.time_text = timeline_format::FormatTimeLabel(entry.metadata.time_valid, entry.metadata.created_unix_seconds);
         timeline_entry.item.header.minute_seconds_text =
             timeline_format::FormatDurationLabel(entry.metadata.duration_ms);
-        timeline_entry.item.header.tag_text = "Task";
-        timeline_entry.item.body_text = has_transcription ? transcript : "Audio only todo.";
+        timeline_entry.item.header.tag_text = i18n::Tr("Task", "Da fare");
+        timeline_entry.item.body_text = has_transcription ? transcript : i18n::Tr("Audio only todo.", "Attività solo audio.");
         timeline_entry.item.accessory.kind = epaper_ui::ListItemAccessoryKind::kCheckbox;
         timeline_entry.item.accessory.checked = entry.metadata.completed;
         groups[static_cast<size_t>(group_index)].entries.push_back(std::move(timeline_entry));
     }
 
     if (groups.empty()) {
-        groups.push_back({"today", "Today", {}});
+        groups.push_back({"today", i18n::Tr("Today", "Oggi"), {}});
     }
     return groups;
 }
@@ -206,10 +208,10 @@ epaper_ui::TodosPageState TodosPageCoordinator::BuildState() const
     const bool is_archived_view = view_mode_ == TodosPageViewMode::kArchived;
 
     epaper_ui::TodosPageState state = {};
-    state.title_text = "Todos";
+    state.title_text = i18n::Tr("Todos", "Da fare");
     state.navigation_focus_index = focus_.focus().index();
 
-    state.segment_control.labels = {"Current", "Archived", ""};
+    state.segment_control.labels = {i18n::Tr("Current", "In corso"), i18n::Tr("Archived", "Archiviate"), ""};
     state.segment_control.segment_count = epaper_ui::kSegmentControlDefaultSegmentCount;
     state.segment_control.selected_index = is_archived_view ? 1 : 0;
     state.segment_control.focused =
@@ -218,8 +220,8 @@ epaper_ui::TodosPageState TodosPageCoordinator::BuildState() const
     state.segment_control.active = segment_control_active_;
 
     epaper_ui::TimelineListState timeline = {};
-    timeline.item_label_plural = "Todos";
-    timeline.empty_state_text = is_archived_view ? "No archived todos yet" : "No todos available";
+    timeline.item_label_plural = i18n::Tr("Todos", "Da fare");
+    timeline.empty_state_text = is_archived_view ? i18n::Tr("No archived todos yet", "Nessuna attività archiviata") : i18n::Tr("No todos available", "Nessuna attività");
     timeline.empty_state_icon_asset = project_assets::GetIcon(EmbeddedIconId::kTaskStart);
     timeline.visible_group_index = focus_.VisibleGroupIndex();
     timeline.focused_group_index = focus_.FocusedGroupIndex();

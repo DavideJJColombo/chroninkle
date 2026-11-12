@@ -1,5 +1,7 @@
 #include "epaper_ui/lock_screen.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <string>
 #include <string_view>
@@ -405,9 +407,9 @@ void DrawLockScreen(uint8_t* framebuffer,
     cursor_y += design::lock_screen::kDividerHeight + design::lock_screen::kDividerSectionGap;
 
     const int pending_count = std::max(0, state.pending_todo_count);
-    std::string heading = "TO-DO";
+    std::string heading = i18n::Tr("TO-DO", "DA FARE");
     if (pending_count > 0) {
-        heading += " - " + std::to_string(pending_count) + " PENDING";
+        heading += " - " + std::to_string(pending_count) + i18n::Tr(" PENDING", " IN SOSPESO");
     }
     const auto heading_role = design::TypographyRole::kLabelMediumBold;
     DrawTypographyText(framebuffer,
@@ -425,7 +427,7 @@ void DrawLockScreen(uint8_t* framebuffer,
     if (pending_count == 0) {
         const EmbeddedImageAsset* check_icon = project_assets::GetIcon(EmbeddedIconId::kCheck);
         const auto body_role = design::TypographyRole::kBody;
-        const std::string message = "All caught up";
+        const std::string message = i18n::Tr("All caught up", "Tutto fatto");
         int text_x = content_left;
         int text_y = cursor_y;
         if (check_icon != nullptr) {
@@ -476,7 +478,7 @@ void DrawLockScreen(uint8_t* framebuffer,
             cursor_y += design::lock_screen::kRowGap;
             const int more_count = pending_count - static_cast<int>(row_count);
             const std::string more_text =
-                "+" + std::to_string(more_count) + " more pending";
+                "+" + std::to_string(more_count) + i18n::Tr(" more pending", " altre in sospeso");
             DrawTypographyText(framebuffer,
                                raw_width,
                                raw_height,

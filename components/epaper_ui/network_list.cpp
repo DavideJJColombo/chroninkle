@@ -1,5 +1,7 @@
 #include "epaper_ui/network_list.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <cstdio>
 
@@ -161,15 +163,17 @@ std::string StatusText(const NetworkListState& state)
         case NetworkListStatus::kNetworksFound: {
             char buffer[32] = {};
             const int count = static_cast<int>(state.networks.size());
-            std::snprintf(buffer,
-                          sizeof(buffer),
-                          "%d %s found",
-                          count,
-                          count == 1 ? "network" : "networks");
+            if (i18n::IsItalian()) {
+                std::snprintf(buffer, sizeof(buffer), "%d %s", count,
+                              count == 1 ? "rete trovata" : "reti trovate");
+            } else {
+                std::snprintf(buffer, sizeof(buffer), "%d %s found", count,
+                              count == 1 ? "network" : "networks");
+            }
             return std::string(buffer);
         }
         case NetworkListStatus::kNoNetworks:
-            return "No networks found";
+            return i18n::Tr("No networks found", "Nessuna rete trovata");
         case NetworkListStatus::kIdle:
         default:
             return {};
@@ -180,11 +184,11 @@ const char* EmptyStateText(const NetworkListState& state)
 {
     switch (state.status) {
         case NetworkListStatus::kNoNetworks:
-            return "No WiFi networks found";
+            return i18n::Tr("No WiFi networks found", "Nessuna rete Wi-Fi trovata");
         case NetworkListStatus::kIdle:
         case NetworkListStatus::kNetworksFound:
         default:
-            return "Scanning for networks...";
+            return i18n::Tr("Scanning for networks...", "Ricerca reti in corso...");
     }
 }
 

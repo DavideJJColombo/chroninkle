@@ -2,6 +2,8 @@
 #define EPAPER_UI_SETTINGS_STORAGE_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "epaper_ui/button.h"
@@ -20,7 +22,7 @@ enum class SettingsStoragePageItemId : uint8_t {
 
 struct SettingsStoragePageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Storage";
+    std::string_view title_text = i18n::Tr("Storage", "Memoria");
     SdStatusState storage_status = {};
     ButtonState enable_otg_button = {};
     ButtonState format_sd_button = {};

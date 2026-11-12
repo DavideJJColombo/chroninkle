@@ -2,6 +2,8 @@
 #define EPAPER_UI_TODOS_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/global_footer.h"
@@ -14,7 +16,7 @@ namespace epaper_ui {
 
 struct TodosPageState {
     int navigation_focus_index = -1;
-    std::string title_text = "Todos";
+    std::string title_text = i18n::Tr("Todos", "Da fare");
     // Current/Archived switch, drawn below the title -- same widget/placement as the Summarize
     // page's Notes/Todos segment control.
     SegmentControlState segment_control = {};

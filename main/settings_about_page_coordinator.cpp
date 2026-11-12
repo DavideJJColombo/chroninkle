@@ -1,5 +1,7 @@
 #include "settings_about_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <cstdio>
 
 #include "esp_app_desc.h"
@@ -35,12 +37,12 @@ epaper_ui::SettingsAboutPageState SettingsAboutPageCoordinator::BuildState() con
     // + a null terminator needs more than 32 bytes of headroom to avoid a format-truncation
     // warning (treated as an error by this project's build flags).
     char version_buffer[48] = {};
-    std::snprintf(version_buffer, sizeof(version_buffer), "Version %s",
+    std::snprintf(version_buffer, sizeof(version_buffer), (i18n::IsItalian() ? "Versione %s" : "Version %s"),
                  esp_app_get_description()->version);
     state.version_text = version_buffer;
 
     state.back = {
-        .label_text = "Back",
+        .label_text = i18n::Tr("Back", "Indietro"),
         .selected =
             IsRoleFocused(page_navigation::NavigationItemRole::kSettingsAboutBackButton),
     };

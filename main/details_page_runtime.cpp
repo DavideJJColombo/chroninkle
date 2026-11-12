@@ -1,5 +1,7 @@
 #include "details_page_runtime.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <atomic>
 #include <climits>
@@ -30,11 +32,11 @@ DetailsPageCoordinator s_coordinator = {};
 int32_t s_interaction_generation = 1;
 std::atomic<bool> s_pending_back{false};
 
-// State for the "Edit topics" multi-select modal, mirroring the item-actions-pending pattern
+// State for the i18n::Tr("Edit topics", "Modifica argomenti") multi-select modal, mirroring the item-actions-pending pattern
 // used elsewhere (e.g. notes_page_runtime): set when the modal is shown, consumed on submit.
 bool s_edit_topics_pending = false;
 std::string s_edit_topics_recording_id;
-// Parallel to the modal's items (excluding the trailing "Done" row): topic id at index i is
+// Parallel to the modal's items (excluding the trailing i18n::Tr("Done", "Fatto") row): topic id at index i is
 // modal item i, so a submitted checked-items vector can be mapped straight back to ids.
 std::vector<std::string> s_edit_topics_ids;
 
@@ -370,14 +372,14 @@ void ShowEditTopicsModal()
     if (snapshot.topics.empty()) {
         epaper_ui::ToastState toast = {};
         toast.visible = true;
-        toast.body_text = "No topics yet -- add one in Settings";
+        toast.body_text = i18n::Tr("No topics yet -- add one in Settings", "Nessun argomento: aggiungine uno nelle Impostazioni");
         (void)overlay_runtime::ShowToastForDuration(toast, 2500);
         return;
     }
 
     epaper_ui::SelectModalState modal = {};
     modal.multi_select = true;
-    modal.title_text = "Edit topics";
+    modal.title_text = i18n::Tr("Edit topics", "Modifica argomenti");
     std::vector<std::string> topic_id_order;
     topic_id_order.reserve(snapshot.topics.size());
     for (const topic_service::Topic& topic : snapshot.topics) {
@@ -386,7 +388,7 @@ void ShowEditTopicsModal()
         modal.items.push_back({.label_text = topic.name, .checked = checked});
         topic_id_order.push_back(topic.id);
     }
-    modal.items.push_back({.label_text = "Done", .is_submit = true});
+    modal.items.push_back({.label_text = i18n::Tr("Done", "Fatto"), .is_submit = true});
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);

@@ -35,6 +35,17 @@ top). This CLAUDE.md is a condensed map; when the two disagree,
 `docs/app-architecture.md` wins. Board-specific pin/electrical detail also
 lives in `docs/waveshare-epaper-hardware-spec.md`.
 
+## UI language (i18n)
+
+The UI is bilingual (English / Italian). Every user-visible string is written in place as
+`i18n::Tr("English", "Italiano")` (component `components/i18n`), so both versions sit side by
+side; dates and times go through `i18n::WeekdayName`, `FormatLongDate`, `FormatShortDate` and
+`FormatClock` (Italian uses 24-hour time). The language is chosen in Settings > Language, saved
+in NVS (`app_state/language`), with `CONFIG_CHRONINKLE_DEFAULT_LANGUAGE_*` as the default. When
+adding UI text, always add the Italian string too, and keep it short enough for its widget
+(keyboard keys are ~66px wide). Log messages stay English. Fonts cover Windows-1252, so
+accented letters render natively.
+
 ## Commands
 
 This is an ESP-IDF project; there is no on-device unit test suite. Host-side (PC)

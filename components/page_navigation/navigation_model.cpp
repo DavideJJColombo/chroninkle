@@ -69,25 +69,27 @@ NavigationModel BuildSettingsPageNavigationModel()
     NavigationModel model = {};
     model.scope = NavigationScope::kSettings;
 
-    // Settings is a hub: 5 headings that navigate to a dedicated sub-page, plus Manual (replay
-    // onboarding) as a direct action rather than a heading -- it's a one-shot action, not
-    // something to configure.
+    // Settings is a hub: headings that navigate to a dedicated sub-page, Language (toggles the UI
+    // language in place), plus Manual (replay onboarding) as a direct action rather than a
+    // heading -- it's a one-shot action, not something to configure.
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
             NavigationItemRole::kSettingsMenuNetwork, 0);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
             NavigationItemRole::kSettingsMenuTime, 1);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuStorage, 2);
+            NavigationItemRole::kSettingsMenuLanguage, 2);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuTodos, 3);
+            NavigationItemRole::kSettingsMenuStorage, 3);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuTopics, 4);
+            NavigationItemRole::kSettingsMenuTodos, 4);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuAbout, 5);
+            NavigationItemRole::kSettingsMenuTopics, 5);
+    AddItem(model, NavigationItemSection::kSettingsPageMenu,
+            NavigationItemRole::kSettingsMenuAbout, 6);
     AddItem(model,
             NavigationItemSection::kSettingsPageMenu,
             NavigationItemRole::kSettingsManualOnboardingButton,
-            6);
+            7);
     AddFooterItems(model, /*is_home_screen=*/false);
     return model;
 }

@@ -2,6 +2,8 @@
 #define EPAPER_UI_CAROUSEL_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "design_tokens.h"
@@ -35,7 +37,7 @@ struct CarouselStyle {
     uint8_t active_dot_color = design::carousel::kActiveDotColor;
     uint8_t inactive_dot_color = design::carousel::kInactiveDotColor;
     uint8_t disabled_control_color = design::carousel::kDisabledControlColor;
-    std::string_view close_label = "Close";
+    std::string_view close_label = i18n::Tr("Close", "Chiudi");
     // Compact text button (auto-fits the label rather than the wide default min width).
     ButtonStyle close_button = {
         .min_width = 0,

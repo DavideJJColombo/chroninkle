@@ -2,6 +2,8 @@
 #define EPAPER_UI_TIMELINE_LIST_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 #include <vector>
 
@@ -25,7 +27,7 @@ struct TimelineGroupState {
 struct TimelineListState {
     std::vector<TimelineGroupState> groups = {};
     std::string empty_state_text = {};
-    std::string item_label_plural = "Notes";
+    std::string item_label_plural = i18n::Tr("Notes", "Note");
     const EmbeddedImageAsset* empty_state_icon_asset = nullptr;
     int visible_group_index = -1;
     int focused_group_index = -1;

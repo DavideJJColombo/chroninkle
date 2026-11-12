@@ -2,6 +2,8 @@
 #define EPAPER_UI_SETTINGS_TODOS_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "epaper_ui/button.h"
@@ -19,7 +21,7 @@ enum class SettingsTodosPageItemId : uint8_t {
 
 struct SettingsTodosPageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Todos";
+    std::string_view title_text = i18n::Tr("Todos", "Da fare");
     // "Archive todos after" picker: opens a fixed-choice SelectModal, same pattern as the Time
     // page's timezone field.
     SelectInputState archive_after_input = {};

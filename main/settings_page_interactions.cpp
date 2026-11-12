@@ -17,6 +17,8 @@ ActivateResult HandlePrimaryActivate(const SettingsPageCoordinator& coordinator)
         result.intent = ActivateIntent::kShowNetwork;
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuTime)) {
         result.intent = ActivateIntent::kShowTime;
+    } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuLanguage)) {
+        result.intent = ActivateIntent::kToggleLanguage;
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuStorage)) {
         result.intent = ActivateIntent::kShowStorage;
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuTodos)) {
@@ -52,6 +54,11 @@ void ApplyPrimaryActivateResult(const ActivateResult& result, const ActivateCall
         case ActivateIntent::kShowTime:
             if (callbacks.show_time) {
                 callbacks.show_time();
+            }
+            break;
+        case ActivateIntent::kToggleLanguage:
+            if (callbacks.toggle_language) {
+                callbacks.toggle_language();
             }
             break;
         case ActivateIntent::kShowStorage:

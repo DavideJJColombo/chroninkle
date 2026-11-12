@@ -1,5 +1,7 @@
 #include "book_list_page_runtime.h"
 
+#include "i18n.h"
+
 #include <mutex>
 #include <vector>
 
@@ -38,7 +40,7 @@ std::string s_pending_filename;
 bool s_item_actions_pending = false;
 std::string s_item_actions_filename;
 std::vector<ItemAction> s_item_actions;
-// Stashed between the item-actions modal's "Delete" and the confirm modal's "Delete" --
+// Stashed between the item-actions modal's i18n::Tr("Delete", "Elimina") and the confirm modal's i18n::Tr("Delete", "Elimina") --
 // mirrors settings_topics_page_runtime's s_pending_delete_topic_id.
 std::string s_pending_delete_filename;
 
@@ -198,13 +200,13 @@ bool ShowItemActionsModal()
         s_item_actions_filename = s_books[static_cast<size_t>(index)].filename;
         s_item_actions.clear();
         modal.title_text = s_item_actions_filename;
-        modal.items.push_back({"Continue reading"});
+        modal.items.push_back({i18n::Tr("Continue reading", "Continua a leggere")});
         s_item_actions.push_back(ItemAction::kContinueReading);
-        modal.items.push_back({"Start from the beginning"});
+        modal.items.push_back({i18n::Tr("Start from the beginning", "Ricomincia dall'inizio")});
         s_item_actions.push_back(ItemAction::kStartFromBeginning);
-        modal.items.push_back({"Delete"});
+        modal.items.push_back({i18n::Tr("Delete", "Elimina")});
         s_item_actions.push_back(ItemAction::kDelete);
-        modal.items.push_back({"Close"});
+        modal.items.push_back({i18n::Tr("Close", "Chiudi")});
         s_item_actions.push_back(ItemAction::kClose);
         modal.selected_index = 0;
         s_item_actions_pending = true;

@@ -2,6 +2,8 @@
 #define EPAPER_UI_TOPICS_BROWSE_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string_view>
 
 #include "epaper_ui/global_footer.h"
@@ -12,7 +14,7 @@ namespace epaper_ui {
 
 struct TopicsBrowsePageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Topics";
+    std::string_view title_text = i18n::Tr("Topics", "Argomenti");
     // One row per topic_service::Topic (label_text = topic name). Picking one opens a
     // day-grouped timeline of every entry carrying that topic. focused/active both mirror
     // whether roving focus is currently on a topic row -- there is no separate "entered"

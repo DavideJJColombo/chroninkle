@@ -1,5 +1,7 @@
 #include "transcription_retry_service.h"
 
+#include "i18n.h"
+
 #include <atomic>
 #include <mutex>
 #include <string>
@@ -61,7 +63,7 @@ bool RetryOne(const std::string& recording_id)
         ESP_LOGW(kTag, "Skipping retry for %s: transcription service busy", recording_id.c_str());
         recording_archive_service::ClearPendingTranscription(recording_id);
         recording_archive_service::SaveTranscriptionFailure(
-            recording_id, "Transcription was busy with another request");
+            recording_id, i18n::Tr("Transcription was busy with another request", "La trascrizione era occupata con un'altra richiesta"));
         return false;
     }
 
@@ -70,7 +72,7 @@ bool RetryOne(const std::string& recording_id)
         ESP_LOGW(kTag, "Skipping retry for %s: clip load failed", recording_id.c_str());
         recording_archive_service::ClearPendingTranscription(recording_id);
         recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                             "Couldn't read the saved recording");
+                                                             i18n::Tr("Couldn't read the saved recording", "Impossibile leggere la registrazione salvata"));
         return false;
     }
 
@@ -78,7 +80,7 @@ bool RetryOne(const std::string& recording_id)
         ESP_LOGW(kTag, "Skipping retry for %s: BeginTranscription refused", recording_id.c_str());
         recording_archive_service::ClearPendingTranscription(recording_id);
         recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                             "Transcription couldn't start");
+                                                             i18n::Tr("Transcription couldn't start", "Impossibile avviare la trascrizione"));
         return false;
     }
 
@@ -88,7 +90,7 @@ bool RetryOne(const std::string& recording_id)
             ESP_LOGW(kTag, "Retry for %s timed out waiting for transcription", recording_id.c_str());
             recording_archive_service::ClearPendingTranscription(recording_id);
             recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                                 "Transcription timed out");
+                                                                 i18n::Tr("Transcription timed out", "Tempo scaduto per la trascrizione"));
             return false;
         }
         vTaskDelay(pdMS_TO_TICKS(kPollIntervalMs));
@@ -100,7 +102,7 @@ bool RetryOne(const std::string& recording_id)
                  result.last_error_code.empty() ? "<empty transcript>" : result.last_error_code.c_str());
         recording_archive_service::ClearPendingTranscription(recording_id);
         recording_archive_service::SaveTranscriptionFailure(
-            recording_id, result.last_error_message.empty() ? "Transcription failed"
+            recording_id, result.last_error_message.empty() ? i18n::Tr("Transcription failed", "Trascrizione non riuscita")
                                                              : result.last_error_message);
         return false;
     }

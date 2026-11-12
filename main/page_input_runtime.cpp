@@ -1,5 +1,7 @@
 #include "page_input_runtime.h"
 
+#include "i18n.h"
+
 #include "epaper_ui/toast.h"
 
 #include "book_list_page_interactions.h"
@@ -331,7 +333,7 @@ ButtonResult ApplySettingsStorageActivateResult(
                 []() {
                     epaper_ui::ToastState toast = {};
                     toast.visible = true;
-                    toast.body_text = "Finish the recording first";
+                    toast.body_text = i18n::Tr("Finish the recording first", "Prima termina la registrazione");
                     return toast;
                 }(),
                 2000);
@@ -747,6 +749,10 @@ ButtonResult ApplySettingsActivateResult(const settings_page_interactions::Activ
     };
     callbacks.show_time = [&result]() {
         result.footer_item = footer_runtime::FooterFocusItem::kTime;
+    };
+    callbacks.toggle_language = []() {
+        // The repaint is deferred like the sub-page requests below; app_shell polls for it.
+        settings_page_runtime::ToggleLanguage();
     };
     callbacks.show_storage = []() {
         // Deferred so the screen change happens after input dispatch; app_shell polls for it,

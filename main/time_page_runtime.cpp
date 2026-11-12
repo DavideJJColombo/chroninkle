@@ -1,5 +1,7 @@
 #include "time_page_runtime.h"
 
+#include "i18n.h"
+
 #include <climits>
 #include <mutex>
 
@@ -282,7 +284,7 @@ esp_err_t Save()
 
     epaper_ui::ToastState toast = {};
     toast.visible = true;
-    toast.body_text = result.success ? "Time saved" : "Couldn't save time";
+    toast.body_text = result.success ? i18n::Tr("Time saved", "Ora salvata") : i18n::Tr("Couldn't save time", "Impossibile salvare l'ora");
     toast.leading_icon = project_assets::GetIcon(EmbeddedIconId::kTime);
     (void)overlay_runtime::ShowToastForDuration(toast, 2000);
     return result.success ? ESP_OK : ESP_FAIL;
@@ -294,12 +296,12 @@ esp_err_t ShowTimezoneModal()
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         state.visible = true;
-        state.title_text = "Select timezone";
+        state.title_text = i18n::Tr("Select timezone", "Seleziona fuso orario");
         const int selected = s_coordinator.SelectedTimezoneIndex();
         state.selected_index = selected < 0 ? 0 : selected;
         for (const timezone_service::TimezoneInfo& tz : s_coordinator.timezones()) {
             state.items.push_back({
-                .label_text = tz.description.empty() ? tz.name : tz.description,
+                .label_text = LocalizedTimezoneLabel(tz),
             });
         }
         s_timezone_modal_active = true;

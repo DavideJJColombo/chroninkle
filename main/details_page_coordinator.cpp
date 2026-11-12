@@ -1,5 +1,7 @@
 #include "details_page_coordinator.h"
 
+#include "i18n.h"
+
 #include "project_assets.h"
 #include "shared_page_interactions.h"
 #include "timeline_format.h"
@@ -10,7 +12,10 @@ using recording_archive_service::RecordingEntry;
 using page_navigation::NavigationItemRole;
 
 constexpr int kScrollStepPercent = 10;
-constexpr const char* kNoTranscriptMessage = "No transcript available.";
+const char* NoTranscriptMessage()
+{
+    return i18n::Tr("No transcript available.", "Nessuna trascrizione disponibile.");
+}
 
 }  // namespace
 
@@ -31,7 +36,7 @@ void DetailsPageCoordinator::Show(const std::vector<RecordingEntry>& recordings)
 {
     scroll_container_active_ = false;
     ResetScrollPosition();
-    title_text_ = "Details";
+    title_text_ = i18n::Tr("Details", "Dettagli");
     recording_header_ = {};
     transcript_text_.clear();
     has_transcript_ = false;
@@ -56,7 +61,7 @@ void DetailsPageCoordinator::RefreshFromArchive(const std::vector<RecordingEntry
 {
     const RecordingEntry* entry = FindEntry(recordings);
     if (entry == nullptr) {
-        title_text_ = "Details";
+        title_text_ = i18n::Tr("Details", "Dettagli");
         recording_header_ = {};
         transcript_text_.clear();
         has_transcript_ = false;
@@ -72,7 +77,7 @@ void DetailsPageCoordinator::UpdateNavigationModel()
 {
     // The primary action button is present for a recording (Play once a transcript
     // exists, Transcribe otherwise) except when a transcript exists but the audio
-    // itself is gone -- there, "Play" would have nothing to do, so the control slot
+    // itself is gone -- there, i18n::Tr("Play", "Riproduci") would have nothing to do, so the control slot
     // (and its focus target) is dropped entirely, matching show_transcribe_button in
     // BuildState().
     const bool want_primary = !(has_transcript_ && !has_audio_file_);
@@ -143,24 +148,24 @@ epaper_ui::DetailsPageState DetailsPageCoordinator::BuildState() const
         has_transcript_
             ? std::string()
             : (last_transcription_error_.empty()
-                   ? kNoTranscriptMessage
-                   : "Transcription failed: " + last_transcription_error_);
+                   ? NoTranscriptMessage()
+                   : i18n::Tr("Transcription failed: ", "Trascrizione non riuscita: ") + last_transcription_error_);
     state.scroll_container.focused =
         IsRoleFocused(NavigationItemRole::kDetailsPageScrollContainer) || scroll_container_active_;
     state.scroll_container.active = scroll_container_active_;
     state.scroll_container.scroll_position_percent = scroll_position_percent_;
-    state.edit_topics_button.label_text = "Edit topics";
+    state.edit_topics_button.label_text = i18n::Tr("Edit topics", "Modifica argomenti");
     state.edit_topics_button.selected =
         IsRoleFocused(NavigationItemRole::kDetailsPageEditTopicsButton);
-    state.back_button.label_text = "Back";
+    state.back_button.label_text = i18n::Tr("Back", "Indietro");
     state.back_button.selected = IsRoleFocused(NavigationItemRole::kDetailsPageBackButton);
     // The primary action button sits beside Back: it plays the recording once a
     // transcript exists, and otherwise transcribes it. (The reused button/role is
     // still named "transcribe" in the layout; only the label and intent vary.)
     // Hidden when a transcript exists but the audio itself is gone (e.g. removed via
-    // USB-OTG SD access) -- "Play" would otherwise show and silently do nothing.
+    // USB-OTG SD access) -- i18n::Tr("Play", "Riproduci") would otherwise show and silently do nothing.
     state.show_transcribe_button = !(has_transcript_ && !has_audio_file_);
-    state.transcribe_button.label_text = has_transcript_ ? "Play" : "Transcribe";
+    state.transcribe_button.label_text = has_transcript_ ? i18n::Tr("Play", "Riproduci") : i18n::Tr("Transcribe", "Trascrivi");
     state.transcribe_button.selected =
         IsRoleFocused(NavigationItemRole::kDetailsPageTranscribeButton);
     return state;
@@ -188,10 +193,10 @@ void DetailsPageCoordinator::ApplyEntry(const RecordingEntry& entry)
     transcript_text_ = transcript;
     last_transcription_error_ = entry.metadata.last_transcription_error;
     topic_ids_ = entry.metadata.topic_ids;
-    // "Details" (this page's own fallback title) when there's no date at all, rather than
+    // i18n::Tr("Details", "Dettagli") (this page's own fallback title) when there's no date at all, rather than
     // timeline_format::FormatDateLabel's own "Today" fallback for that case.
     title_text_ = entry.metadata.created_local_date.empty()
-                      ? "Details"
+                      ? i18n::Tr("Details", "Dettagli")
                       : timeline_format::FormatDateLabel(entry.metadata.created_local_date);
 
     recording_header_ = {};

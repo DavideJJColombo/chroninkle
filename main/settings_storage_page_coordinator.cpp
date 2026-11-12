@@ -1,5 +1,7 @@
 #include "settings_storage_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <cstdio>
 #include <string>
 
@@ -72,13 +74,13 @@ epaper_ui::SettingsStoragePageState SettingsStoragePageCoordinator::BuildState(
         state.storage_status.used_percent = storage_stats.used_percent;
     }
 
-    std::string_view otg_label = "Enable OTG";
+    std::string_view otg_label = i18n::Tr("Enable OTG", "Attiva OTG");
     if (storage_snapshot.mode == storage_service::Mode::kUsbMounted) {
-        otg_label = "Disable OTG";
+        otg_label = i18n::Tr("Disable OTG", "Disattiva OTG");
     } else if (storage_snapshot.mode == storage_service::Mode::kEnteringUsbMode) {
-        otg_label = "Enabling OTG";
+        otg_label = i18n::Tr("Enabling OTG", "Attivazione OTG");
     } else if (storage_snapshot.mode == storage_service::Mode::kExitingUsbMode) {
-        otg_label = "Disabling OTG";
+        otg_label = i18n::Tr("Disabling OTG", "Disattivazione OTG");
     }
     state.enable_otg_button = {
         .label_text = otg_label,
@@ -86,11 +88,11 @@ epaper_ui::SettingsStoragePageState SettingsStoragePageCoordinator::BuildState(
             page_navigation::NavigationItemRole::kSettingsStorageEnableOtgButton),
     };
 
-    std::string_view format_label = "Format SD";
+    std::string_view format_label = i18n::Tr("Format SD", "Formatta SD");
     if (storage_snapshot.mode == storage_service::Mode::kFormatting ||
         (storage_snapshot.operation == storage_service::Operation::kFormatSd &&
          storage_snapshot.phase == storage_service::OperationPhase::kStarted)) {
-        format_label = "Formatting SD";
+        format_label = i18n::Tr("Formatting SD", "Formattazione SD");
     }
     state.format_sd_button = {
         .label_text = format_label,
@@ -99,7 +101,7 @@ epaper_ui::SettingsStoragePageState SettingsStoragePageCoordinator::BuildState(
     };
 
     state.back = {
-        .label_text = "Back",
+        .label_text = i18n::Tr("Back", "Indietro"),
         .selected =
             IsRoleFocused(page_navigation::NavigationItemRole::kSettingsStorageBackButton),
     };

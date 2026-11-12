@@ -1,5 +1,7 @@
 #include "dashboard_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <ctime>
 #include <string>
 
@@ -50,12 +52,8 @@ void FillCurrentDate(epaper_ui::CurrentDateState* date)
     std::tm local_tm = {};
     localtime_r(&now, &local_tm);
 
-    char weekday[16] = {};
-    char date_text[24] = {};
-    std::strftime(weekday, sizeof(weekday), "%A", &local_tm);
-    std::strftime(date_text, sizeof(date_text), "%b %d, %Y", &local_tm);
-    date->weekday_text = weekday;
-    date->date_text = date_text;
+    date->weekday_text = i18n::WeekdayName(local_tm.tm_wday);
+    date->date_text = i18n::FormatLongDate(local_tm);
 }
 
 }  // namespace
@@ -142,18 +140,18 @@ epaper_ui::DashboardPageState DashboardPageCoordinator::BuildState() const
     if (archive_.recording_count == 0) {
         state.shows_completion_banner = true;
         state.completion_banner.icon = EmbeddedIconId::kTaskStart;
-        state.completion_banner.message_text = "Capture your first note with the mic";
+        state.completion_banner.message_text = i18n::Tr("Capture your first note with the mic", "Registra la tua prima nota con il microfono");
     } else {
         state.shows_completion_banner = false;
-        state.current_progress.label_text = "Task tracker";
+        state.current_progress.label_text = i18n::Tr("Task tracker", "Attività completate");
         const int total = archive_.todo_recording_count;
         const int done = archive_.completed_todo_count;
         if (total > 0) {
             state.current_progress.status_text =
-                std::to_string(done) + "/" + std::to_string(total) + " completed";
+                std::to_string(done) + "/" + std::to_string(total) + i18n::Tr(" completed", " completate");
             state.current_progress.progress_percent = (done * 100) / total;
         } else {
-            state.current_progress.status_text = "No tasks yet";
+            state.current_progress.status_text = i18n::Tr("No tasks yet", "Ancora nessuna attività");
             state.current_progress.progress_percent = 0;
         }
     }

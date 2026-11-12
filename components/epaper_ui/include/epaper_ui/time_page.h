@@ -2,6 +2,8 @@
 #define EPAPER_UI_TIME_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/button.h"
@@ -28,8 +30,8 @@ enum class TimePageItemId : uint8_t {
 
 struct TimePageState {
     int navigation_focus_index = -1;
-    std::string title_text = "Time setting";
-    std::string manual_heading_text = "Set manual time";
+    std::string title_text = i18n::Tr("Time setting", "Impostazione ora");
+    std::string manual_heading_text = i18n::Tr("Set manual time", "Imposta ora manualmente");
     SelectInputState timezone = {};
     TimeInputState hour = {};
     TimeInputState minute = {};

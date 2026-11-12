@@ -49,7 +49,7 @@ private:
     std::string pending_topic_id_ = {};
     std::string pending_topic_name_ = {};
     std::string topic_id_ = {};
-    std::string topic_name_ = "Topic";
+    std::string topic_name_ = {};
 };
 
 #endif  // TOPIC_SUMMARY_PAGE_COORDINATOR_H_

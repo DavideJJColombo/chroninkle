@@ -2,6 +2,8 @@
 #define EPAPER_UI_FOLLOW_UP_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/global_footer.h"
@@ -13,7 +15,7 @@ namespace epaper_ui {
 
 struct FollowUpPageState {
     int navigation_focus_index = -1;
-    std::string title_text = "Follow up";
+    std::string title_text = i18n::Tr("Follow up", "Promemoria");
     TimelineListState timeline = {};
 
     bool operator==(const FollowUpPageState& other) const = default;

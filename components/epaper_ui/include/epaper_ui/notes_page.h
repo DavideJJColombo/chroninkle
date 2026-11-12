@@ -2,6 +2,8 @@
 #define EPAPER_UI_NOTES_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/global_footer.h"
@@ -13,7 +15,7 @@ namespace epaper_ui {
 
 struct NotesPageState {
     int navigation_focus_index = -1;
-    std::string title_text = "Notes";
+    std::string title_text = i18n::Tr("Notes", "Note");
     TimelineListState timeline = {};
 
     bool operator==(const NotesPageState& other) const = default;

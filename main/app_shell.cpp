@@ -1,5 +1,7 @@
 #include "app_shell.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -361,6 +363,23 @@ esp_err_t ShowSettingsAboutScreen(display_service::RefreshMode refresh_mode)
 // ShowOnboardingFromSettingsIfRequested below.
 void ShowSettingsSubPageIfRequested()
 {
+    if (settings_page_runtime::ConsumePendingLanguageChanged()) {
+        // Every surface rebuilds its text from i18n::Current() when its state is rebuilt, so
+        // re-sync the visible ones and repaint the whole screen. Focus is deliberately not reset:
+        // it stays on the Language row so pressing again toggles back.
+        SyncStatusBarState("language_changed");
+        const esp_err_t footer_err = footer_runtime::UpdateDisplayState();
+        if (footer_err != ESP_OK && footer_err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(kTag, "Footer sync after language change failed: %s",
+                     esp_err_to_name(footer_err));
+        }
+        const esp_err_t err = settings_page_runtime::UpdateDisplayStateAndRequestRefresh(
+            display_service::RefreshMode::kFull);
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(kTag, "Repaint after language change failed: %s", esp_err_to_name(err));
+        }
+        return;
+    }
     if (settings_page_runtime::ConsumePendingShowStorage()) {
         const esp_err_t err = ShowSettingsStorageScreen(display_service::RefreshMode::kPartial);
         if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
@@ -876,7 +895,7 @@ std::vector<overlay_runtime::StickyNoteItem> BuildFollowUpStickyItems()
             entry.metadata.time_valid, entry.metadata.created_unix_seconds);
         item.header.minute_seconds_text =
             timeline_format::FormatDurationLabel(entry.metadata.duration_ms);
-        item.body_text = has_transcription ? transcript : "Audio only follow-up item.";
+        item.body_text = has_transcription ? transcript : i18n::Tr("Audio only follow-up item.", "Promemoria solo audio.");
         items.push_back(std::move(item));
     }
     return items;
@@ -890,7 +909,7 @@ void ShowFollowUpStickyNotes()
     if (items.empty()) {
         epaper_ui::ToastState toast = {};
         toast.visible = true;
-        toast.body_text = "Follow up on a thought to view";
+        toast.body_text = i18n::Tr("Follow up on a thought to view", "Segna un pensiero come promemoria per vederlo qui");
         toast.leading_icon = project_assets::GetIcon(EmbeddedIconId::kPin);
         (void)overlay_runtime::ShowToastForDuration(toast, 2000);
         return;
@@ -1067,15 +1086,26 @@ recording_session_service::Context BuildRecordingSessionContext()
     return context;
 }
 
+std::string TagOptionLabel(const recording_session_service::TagOption& option)
+{
+    if (option.is_topic) {
+        return i18n::Tr("Topic", "Argomento");
+    }
+    if (option.is_discard) {
+        return i18n::Tr("Discard", "Scarta");
+    }
+    return timeline_format::TagText(option.tag);
+}
+
 epaper_ui::SelectModalState BuildRecordingTagSelectModalState()
 {
     epaper_ui::SelectModalState state = {};
     state.visible = true;
-    state.title_text = "Save recording as";
+    state.title_text = i18n::Tr("Save recording as", "Salva registrazione come");
     state.selected_index = 0;
     for (const auto& option : recording_session_service::TagOptions()) {
         state.items.push_back({
-            .label_text = std::string(option.label_text),
+            .label_text = TagOptionLabel(option),
         });
     }
     return state;
@@ -1184,7 +1214,7 @@ void HandleRecordingSessionEvent(const recording_session_service::Event& event, 
         }
         case recording_session_service::Phase::kTranscribing: {
             const esp_err_t err = overlay_runtime::ShowToast(
-                BuildToast("Transcribing recording...", EmbeddedIconId::kTranscribe));
+                BuildToast(i18n::Tr("Transcribing recording...", "Trascrizione in corso..."), EmbeddedIconId::kTranscribe));
             FlushOverlayFeedback();
             if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
                 ESP_LOGW(kTag, "Show transcription toast failed: %s", esp_err_to_name(err));
@@ -1206,16 +1236,16 @@ void HandleRecordingSessionEvent(const recording_session_service::Event& event, 
                 toast = BuildToast(event.snapshot.last_status_message.c_str(),
                                    EmbeddedIconId::kClose);
             } else if (event.snapshot.transcript_saved) {
-                toast = BuildToast("Transcript saved to SD", EmbeddedIconId::kFileTranscript);
+                toast = BuildToast(i18n::Tr("Transcript saved to SD", "Trascrizione salvata su SD"), EmbeddedIconId::kFileTranscript);
             } else if (!event.snapshot.last_error_code.empty()) {
                 // Transcription was attempted but failed. Surface it as a failure (the recording
                 // itself is still on SD) with a specific message for a quota/rate-limit error.
                 const bool quota_exceeded =
                     event.snapshot.last_error_code == "RESOURCE_EXHAUSTED";
-                toast = BuildToast(quota_exceeded ? "Gemini quota exceeded" : "Transcription failed",
+                toast = BuildToast(quota_exceeded ? i18n::Tr("Gemini quota exceeded", "Quota Gemini esaurita") : i18n::Tr("Transcription failed", "Trascrizione non riuscita"),
                                    EmbeddedIconId::kClose);
             } else if (event.snapshot.clip_saved) {
-                toast = BuildToast("Recording saved to SD", EmbeddedIconId::kCheck);
+                toast = BuildToast(i18n::Tr("Recording saved to SD", "Registrazione salvata su SD"), EmbeddedIconId::kCheck);
             } else {
                 toast = BuildToast(event.snapshot.last_status_message.c_str(), EmbeddedIconId::kClose);
             }
@@ -1232,7 +1262,7 @@ void HandleRecordingSessionEvent(const recording_session_service::Event& event, 
         }
         case recording_session_service::Phase::kFailed: {
             const char* text = event.snapshot.last_status_message.empty()
-                                   ? "Recording failed"
+                                   ? i18n::Tr("Recording failed", "Registrazione non riuscita")
                                    : event.snapshot.last_status_message.c_str();
             const esp_err_t err = overlay_runtime::ShowToastForDuration(
                 BuildToast(text, EmbeddedIconId::kClose), 2500);
@@ -1303,7 +1333,7 @@ void HandleTopicSummaryEvent(const summary_service::Event& event, void*)
             break;
         case summary_service::RequestPhase::kFailed: {
             const char* text =
-                request.status_message.empty() ? "Summary failed" : request.status_message.c_str();
+                request.status_message.empty() ? i18n::Tr("Summary failed", "Riepilogo non riuscito") : request.status_message.c_str();
             err = overlay_runtime::ShowToastForDuration(BuildToast(text, EmbeddedIconId::kClose),
                                                         2500);
             break;
@@ -2068,16 +2098,20 @@ void HandleTranscriptionRetryEvent(const transcription_retry_service::Event& eve
     EmbeddedIconId icon = EmbeddedIconId::kCheck;
     if (s.last_batch_failed == 0) {
         text = std::to_string(s.last_batch_succeeded) +
-               (s.last_batch_succeeded == 1 ? " note transcribed" : " notes transcribed");
+               (s.last_batch_succeeded == 1
+                    ? i18n::Tr(" note transcribed", " nota trascritta")
+                    : i18n::Tr(" notes transcribed", " note trascritte"));
     } else if (s.last_batch_succeeded == 0) {
         icon = EmbeddedIconId::kClose;
         text = std::to_string(s.last_batch_failed) +
-               (s.last_batch_failed == 1 ? " note needs manual retry" : " notes need manual retry");
+               (s.last_batch_failed == 1
+                    ? i18n::Tr(" note needs manual retry", " nota da ritrascrivere a mano")
+                    : i18n::Tr(" notes need manual retry", " note da ritrascrivere a mano"));
     } else {
         icon = EmbeddedIconId::kClose;
-        text = std::to_string(s.last_batch_succeeded) + " transcribed, " +
-               std::to_string(s.last_batch_failed) +
-               (s.last_batch_failed == 1 ? " needs manual retry" : " need manual retry");
+        text = std::to_string(s.last_batch_succeeded) +
+               i18n::Tr(" transcribed, ", " trascritte, ") + std::to_string(s.last_batch_failed) +
+               i18n::Tr(" need manual retry", " da ritrascrivere a mano");
     }
     const esp_err_t err =
         overlay_runtime::ShowToastForDuration(BuildToast(text.c_str(), icon), 2500);

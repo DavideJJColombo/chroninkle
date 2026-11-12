@@ -1,5 +1,7 @@
 #include "epaper_ui/keyboard_layout.h"
 
+#include "i18n.h"
+
 #include <cstddef>
 
 namespace epaper_ui {
@@ -247,19 +249,20 @@ int KeyboardFlatIndex(KeyboardLayoutKind kind, int row, int column)
     return flat_index + column;
 }
 
+// Italian labels are kept short: the Enter key can be as narrow as 3 grid columns (~66px).
 std::string_view KeyboardSubmitLabel(KeyboardInputSubmitStyle style)
 {
     switch (style) {
         case KeyboardInputSubmitStyle::kDone:
-            return "Done";
+            return i18n::Tr("Done", "Fatto");
         case KeyboardInputSubmitStyle::kJoin:
-            return "Join";
+            return i18n::Tr("Join", "Vai");
         case KeyboardInputSubmitStyle::kSave:
-            return "Save";
+            return i18n::Tr("Save", "Salva");
         case KeyboardInputSubmitStyle::kNext:
-            return "Next";
+            return i18n::Tr("Next", "Succ.");
     }
-    return "Done";
+    return i18n::Tr("Done", "Fatto");
 }
 
 }  // namespace epaper_ui

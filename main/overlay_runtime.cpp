@@ -1,5 +1,7 @@
 #include "overlay_runtime.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <mutex>
@@ -68,71 +70,77 @@ epaper_ui::CardModalState BuildCardModalState(CardModalPurpose purpose)
     state.visible = true;
     switch (purpose) {
         case CardModalPurpose::kShutdownConfirm:
-            state.title_text = "Shut down device?";
-            state.body_text = "Your device will power off. Do you want to continue?";
-            state.action_labels = {"Cancel", "Shut down"};
+            state.title_text = i18n::Tr("Shut down device?", "Spegnere il dispositivo?");
+            state.body_text = i18n::Tr("Your device will power off. Do you want to continue?", "Il dispositivo si spegnerà. Vuoi continuare?");
+            state.action_labels = {i18n::Tr("Cancel", "Annulla"), i18n::Tr("Shut down", "Spegni")};
             break;
         case CardModalPurpose::kStorageNoSdCard:
-            state.title_text = "No SD card";
-            state.body_text = "No SD card is inserted. Insert an SD card to continue.";
+            state.title_text = i18n::Tr("No SD card", "Nessuna scheda SD");
+            state.body_text = i18n::Tr("No SD card is inserted. Insert an SD card to continue.", "Non è inserita nessuna scheda SD. Inseriscine una per continuare.");
             state.action_labels = {"OK"};
             break;
         case CardModalPurpose::kStorageConfirmFormat:
-            state.title_text = "Format SD card?";
-            state.body_text = "Formatting the SD card will erase everything on the card.";
-            state.action_labels = {"Cancel", "Format"};
+            state.title_text = i18n::Tr("Format SD card?", "Formattare la scheda SD?");
+            state.body_text = i18n::Tr("Formatting the SD card will erase everything on the card.", "La formattazione cancellerà tutto il contenuto della scheda SD.");
+            state.action_labels = {i18n::Tr("Cancel", "Annulla"), i18n::Tr("Format", "Formatta")};
             break;
         case CardModalPurpose::kStorageUsbEntering:
-            state.title_text = "Enabling OTG";
+            state.title_text = i18n::Tr("Enabling OTG", "Attivazione OTG");
             // No actions: transient, and there is nothing safe to do mid-transition. A card
             // modal is only dismissed by its own buttons, so this is inherently sticky.
-            state.body_text = "Preparing OTG. Please wait...";
+            state.body_text = i18n::Tr("Preparing OTG. Please wait...", "Preparazione OTG. Attendi...");
             state.action_labels = {};
             break;
         case CardModalPurpose::kStorageUsbActive:
-            state.title_text = "OTG mode enabled";
-            state.body_text = "Keep the USB cable connected to your computer. The SD card is "
-                              "unavailable to the device until you disable OTG.";
+            state.title_text = i18n::Tr("OTG mode enabled", "Modalità OTG attiva");
+            state.body_text = i18n::Tr("Keep the USB cable connected to your computer. The SD card is "
+                                     "unavailable to the device until you disable OTG.",
+                                     "Lascia il cavo USB collegato al computer. La scheda SD non è "
+                                     "disponibile sul dispositivo finché non disattivi OTG.");
             // The only way out. Deliberately a single action so the modal cannot be
             // dismissed while the card still belongs to the host.
-            state.action_labels = {"Disable OTG mode"};
+            state.action_labels = {i18n::Tr("Disable OTG mode", "Disattiva modalità OTG")};
             break;
         case CardModalPurpose::kStorageUsbNoCable:
-            state.title_text = "No USB connection";
-            state.body_text = "Connect the USB cable to a computer, then try again.";
+            state.title_text = i18n::Tr("No USB connection", "Nessuna connessione USB");
+            state.body_text = i18n::Tr("Connect the USB cable to a computer, then try again.", "Collega il cavo USB a un computer e riprova.");
             state.action_labels = {"OK"};
             break;
         case CardModalPurpose::kStorageUsbError:
-            state.title_text = "OTG failed";
-            state.body_text = "There was an error and OTG could not be enabled.";
+            state.title_text = i18n::Tr("OTG failed", "OTG non riuscito");
+            state.body_text = i18n::Tr("There was an error and OTG could not be enabled.", "Si è verificato un errore e non è stato possibile attivare OTG.");
             state.action_labels = {"OK"};
             break;
         case CardModalPurpose::kStorageFormatting:
-            state.title_text = "Formatting SD card";
-            state.body_text = "Formatting in progress. Please wait...";
+            state.title_text = i18n::Tr("Formatting SD card", "Formattazione scheda SD");
+            state.body_text = i18n::Tr("Formatting in progress. Please wait...", "Formattazione in corso. Attendi...");
             state.action_labels = {};
             break;
         case CardModalPurpose::kStorageFormatSuccess:
-            state.title_text = "Format success";
-            state.body_text = "The SD card was formatted successfully.";
+            state.title_text = i18n::Tr("Format success", "Formattazione completata");
+            state.body_text = i18n::Tr("The SD card was formatted successfully.", "La scheda SD è stata formattata.");
             state.action_labels = {"OK"};
             break;
         case CardModalPurpose::kStorageFormatError:
-            state.title_text = "Format failed";
-            state.body_text = "There was an error and the SD card could not be formatted.";
+            state.title_text = i18n::Tr("Format failed", "Formattazione non riuscita");
+            state.body_text = i18n::Tr("There was an error and the SD card could not be formatted.", "Si è verificato un errore e non è stato possibile formattare la scheda SD.");
             state.action_labels = {"OK"};
             break;
         case CardModalPurpose::kTopicsConfirmDelete:
-            state.title_text = "Delete topic?";
-            state.body_text = "This topic will be removed. Entries already tagged with it keep "
-                              "their other topics.";
-            state.action_labels = {"Cancel", "Delete"};
+            state.title_text = i18n::Tr("Delete topic?", "Eliminare l'argomento?");
+            state.body_text = i18n::Tr("This topic will be removed. Entries already tagged with it keep "
+                                     "their other topics.",
+                                     "L'argomento verrà rimosso. Le voci già associate mantengono "
+                                     "gli altri argomenti.");
+            state.action_labels = {i18n::Tr("Cancel", "Annulla"), i18n::Tr("Delete", "Elimina")};
             break;
         case CardModalPurpose::kBookListConfirmDelete:
-            state.title_text = "Delete book?";
-            state.body_text = "This book and your saved reading position will be removed. "
-                              "There's no undo.";
-            state.action_labels = {"Cancel", "Delete"};
+            state.title_text = i18n::Tr("Delete book?", "Eliminare il libro?");
+            state.body_text = i18n::Tr("This book and your saved reading position will be removed. "
+                                     "There's no undo.",
+                                     "Il libro e la posizione di lettura salvata verranno rimossi. "
+                                     "Non si può annullare.");
+            state.action_labels = {i18n::Tr("Cancel", "Annulla"), i18n::Tr("Delete", "Elimina")};
             break;
         case CardModalPurpose::kNone:
         default:

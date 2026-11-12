@@ -1,5 +1,7 @@
 #include "transcription_service.h"
 
+#include "i18n.h"
+
 #include <mutex>
 #include <string>
 #include <utility>
@@ -59,9 +61,9 @@ void RunTranscriptionJob(recording_service::RecordedClipPtr clip)
         std::lock_guard<std::mutex> lock(s_mutex);
         s_request_in_flight = false;
         s_last_http_status = 0;
-        s_last_status_message = "Transcription failed";
+        s_last_status_message = i18n::Tr("Transcription failed", "Trascrizione non riuscita");
         s_last_error_code = "empty_audio";
-        s_last_error_message = "No recorded audio available";
+        s_last_error_message = i18n::Tr("No recorded audio available", "Nessun audio registrato disponibile");
         s_last_transcript.clear();
         NotifyLocked();
         return;
@@ -74,7 +76,7 @@ void RunTranscriptionJob(recording_service::RecordedClipPtr clip)
         s_request_in_flight = false;
         s_last_http_status = result.http_status;
         if (result.success) {
-            s_last_status_message = "Transcript ready";
+            s_last_status_message = i18n::Tr("Transcript ready", "Trascrizione pronta");
             s_last_error_code.clear();
             s_last_error_message.clear();
             s_last_transcript = result.transcript;
@@ -88,7 +90,7 @@ void RunTranscriptionJob(recording_service::RecordedClipPtr clip)
                      static_cast<unsigned long long>(result.upload_elapsed_ms),
                      static_cast<unsigned long long>(result.total_elapsed_ms));
         } else {
-            s_last_status_message = "Transcription failed";
+            s_last_status_message = i18n::Tr("Transcription failed", "Trascrizione non riuscita");
             s_last_error_code = result.error_code;
             s_last_error_message = result.error_message;
             s_last_transcript.clear();
@@ -145,29 +147,29 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         if (s_request_in_flight) {
-            s_last_status_message = "Transcription already running";
+            s_last_status_message = i18n::Tr("Transcription already running", "Trascrizione già in corso");
             s_last_error_code = "request_in_flight";
-            s_last_error_message = "A transcription request is already running";
+            s_last_error_message = i18n::Tr("A transcription request is already running", "È già in corso una trascrizione");
             NotifyLocked();
             return false;
         }
         if (!gemini_snapshot.runtime.ready || api_key.empty()) {
             s_last_http_status = 0;
-            s_last_status_message = "Transcription unavailable";
+            s_last_status_message = i18n::Tr("Transcription unavailable", "Trascrizione non disponibile");
             s_last_error_code = gemini_snapshot.settings.configured ? "provider_not_ready"
                                                                     : "not_configured";
             s_last_error_message = gemini_snapshot.settings.configured
-                                       ? "Gemini is not ready yet"
-                                       : "No Gemini API key configured";
+                                       ? i18n::Tr("Gemini is not ready yet", "Gemini non è ancora pronto")
+                                       : i18n::Tr("No Gemini API key configured", "Nessuna chiave API Gemini configurata");
             s_last_transcript.clear();
             NotifyLocked();
             return false;
         }
         if (!clip || clip->empty()) {
             s_last_http_status = 0;
-            s_last_status_message = "Transcription unavailable";
+            s_last_status_message = i18n::Tr("Transcription unavailable", "Trascrizione non disponibile");
             s_last_error_code = "empty_audio";
-            s_last_error_message = "No recorded audio available";
+            s_last_error_message = i18n::Tr("No recorded audio available", "Nessun audio registrato disponibile");
             s_last_transcript.clear();
             NotifyLocked();
             return false;
@@ -175,7 +177,7 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
 
         s_request_in_flight = true;
         s_last_http_status = 0;
-        s_last_status_message = "Transcribing recording";
+        s_last_status_message = i18n::Tr("Transcribing recording", "Trascrizione in corso");
         s_last_error_code.clear();
         s_last_error_message.clear();
         s_last_transcript.clear();

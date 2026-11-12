@@ -2,6 +2,8 @@
 #define EPAPER_UI_TOPIC_SUMMARY_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/button.h"
@@ -15,8 +17,8 @@ namespace epaper_ui {
 struct TopicSummaryPageState {
     int navigation_focus_index = -1;
     // The topic's name -- set per-topic, same as Topic Entries' title.
-    std::string title_text = "Topic";
-    std::string subtitle_text = "Summary";
+    std::string title_text = i18n::Tr("Topic", "Argomento");
+    std::string subtitle_text = i18n::Tr("Summary", "Riepilogo");
     ScrollContainerState scroll_container = {};
     // Back (secondary) returns to Topic Entries; the primary action gets/refreshes the summary --
     // its label switches between "Get summary" and "Refresh summary" based on whether one already

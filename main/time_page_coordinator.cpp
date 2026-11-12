@@ -1,5 +1,7 @@
 #include "time_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -36,6 +38,40 @@ std::string Pad2(int value)
 
 TimePageCoordinator::TimePageCoordinator() = default;
 
+std::string LocalizedTimezoneLabel(const timezone_service::TimezoneInfo& info)
+{
+    const std::string& english = info.description.empty() ? info.name : info.description;
+    if (!i18n::IsItalian()) {
+        return english;
+    }
+    struct Translation {
+        const char* english;
+        const char* italian;
+    };
+    static constexpr Translation kTranslations[] = {
+        {"Eastern Time", "Nord America orientale"},
+        {"Central Time", "Nord America centrale"},
+        {"Mountain Time", "Nord America (Montagne Rocciose)"},
+        {"Pacific Time", "Nord America (Pacifico)"},
+        {"Alaska Time", "Alaska"},
+        {"Hawaii Time", "Hawaii"},
+        {"United Kingdom", "Regno Unito"},
+        {"Central Europe", "Europa centrale (Italia)"},
+        {"Eastern Europe", "Europa orientale"},
+        {"Japan", "Giappone"},
+        {"China", "Cina"},
+        {"Australia Eastern", "Australia orientale"},
+        {"Australia Central", "Australia centrale"},
+        {"Australia Western", "Australia occidentale"},
+    };
+    for (const Translation& translation : kTranslations) {
+        if (english == translation.english) {
+            return translation.italian;
+        }
+    }
+    return english;
+}
+
 void TimePageCoordinator::LoadFromSnapshot(const timezone_service::Snapshot& snapshot)
 {
     timezone_name_ = snapshot.settings.timezone_name;
@@ -43,7 +79,7 @@ void TimePageCoordinator::LoadFromSnapshot(const timezone_service::Snapshot& sna
     timezone_description_ = timezone_name_;
     for (const timezone_service::TimezoneInfo& info : timezones_) {
         if (info.name == timezone_name_) {
-            timezone_description_ = info.description.empty() ? info.name : info.description;
+            timezone_description_ = LocalizedTimezoneLabel(info);
             break;
         }
     }
@@ -193,13 +229,13 @@ epaper_ui::TimePageState TimePageCoordinator::BuildState() const
     epaper_ui::TimePageState state = {};
     state.navigation_focus_index = focus_.index();
 
-    state.timezone.label_text = "Timezone";
-    state.timezone.placeholder_text = "Select timezone";
+    state.timezone.label_text = i18n::Tr("Timezone", "Fuso orario");
+    state.timezone.placeholder_text = i18n::Tr("Select timezone", "Seleziona fuso orario");
     state.timezone.value_text = timezone_description_;
     state.timezone.focused = IsRoleFocused(NavigationItemRole::kTimePageTimezone);
 
     state.hour.value_text = hour_;
-    state.hour.suffix_text = "HR";
+    state.hour.suffix_text = i18n::Tr("HR", "ORE");
     state.hour.max_length = 2;
     state.hour.focused = IsRoleFocused(NavigationItemRole::kTimePageHour);
 
@@ -217,19 +253,19 @@ epaper_ui::TimePageState TimePageCoordinator::BuildState() const
     state.month.focused = IsRoleFocused(NavigationItemRole::kTimePageMonth);
 
     state.day.value_text = day_;
-    state.day.placeholder_text = "DD";
+    state.day.placeholder_text = i18n::Tr("DD", "GG");
     state.day.max_length = 2;
     state.day.focused = IsRoleFocused(NavigationItemRole::kTimePageDay);
 
     state.year.value_text = year_;
-    state.year.placeholder_text = "YYYY";
+    state.year.placeholder_text = i18n::Tr("YYYY", "AAAA");
     state.year.max_length = 4;
     state.year.focused = IsRoleFocused(NavigationItemRole::kTimePageYear);
 
-    state.save.label_text = "Sync & Save";
+    state.save.label_text = i18n::Tr("Sync & Save", "Sincronizza e salva");
     state.save.selected = IsRoleFocused(NavigationItemRole::kTimePageSave);
 
-    state.back.label_text = "Back";
+    state.back.label_text = i18n::Tr("Back", "Indietro");
     state.back.selected = IsRoleFocused(NavigationItemRole::kTimePageBackButton);
     return state;
 }

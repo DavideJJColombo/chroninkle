@@ -2,6 +2,8 @@
 #define EPAPER_UI_TOPIC_ENTRIES_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/button.h"
@@ -15,7 +17,7 @@ struct TopicEntriesPageState {
     int navigation_focus_index = -1;
     // The topic's name (e.g. "Kitchen Renovation") -- set per-topic, unlike Notes/Todos'/
     // Follow-up's fixed title.
-    std::string title_text = "Topic";
+    std::string title_text = i18n::Tr("Topic", "Argomento");
     TimelineListState timeline = {};
     // Reached only from the Topics browse screen (picking a topic); Back returns there, not Home
     // -- the footer's Home icon still means literal Home, same split Details uses.

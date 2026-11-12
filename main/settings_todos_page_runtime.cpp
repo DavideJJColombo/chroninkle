@@ -1,5 +1,7 @@
 #include "settings_todos_page_runtime.h"
 
+#include "i18n.h"
+
 #include <climits>
 #include <cstddef>
 #include <mutex>
@@ -19,11 +21,12 @@ namespace {
 // timezone SelectModal pattern rather than free-form numeric entry.
 struct ArchiveAfterOption {
     const char* label;
+    const char* label_italian;
     int days;
 };
 constexpr ArchiveAfterOption kArchiveAfterOptions[] = {
-    {"7 days", 7}, {"14 days", 14}, {"30 days", 30},
-    {"60 days", 60}, {"90 days", 90}, {"Never", 0},
+    {"7 days", "7 giorni", 7},    {"14 days", "14 giorni", 14}, {"30 days", "30 giorni", 30},
+    {"60 days", "60 giorni", 60}, {"90 days", "90 giorni", 90}, {"Never", "Mai", 0},
 };
 
 std::mutex s_mutex;
@@ -200,7 +203,8 @@ esp_err_t ShowArchiveAfterModal()
         const int current_days = recording_archive_service::GetArchiveAfterDays();
         state.selected_index = 0;
         for (size_t index = 0; index < std::size(kArchiveAfterOptions); ++index) {
-            state.items.push_back({.label_text = kArchiveAfterOptions[index].label});
+            state.items.push_back({.label_text = i18n::Tr(kArchiveAfterOptions[index].label,
+                                                         kArchiveAfterOptions[index].label_italian)});
             if (kArchiveAfterOptions[index].days == current_days) {
                 state.selected_index = static_cast<int>(index);
             }

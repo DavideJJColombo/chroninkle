@@ -1,6 +1,7 @@
 #include "app_shell.h"
 
 #include "esp_err.h"
+#include "i18n.h"
 #include "nvs_flash.h"
 
 extern "C" void app_main(void)
@@ -12,5 +13,6 @@ extern "C" void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
+    i18n::Init();
     app_shell::Run();
 }

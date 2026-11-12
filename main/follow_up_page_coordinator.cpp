@@ -1,5 +1,7 @@
 #include "follow_up_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 #include "project_assets.h"
@@ -86,7 +88,7 @@ std::vector<FollowUpPageCoordinator::TimelineGroup> FollowUpPageCoordinator::Bui
             timeline_format::FormatDurationLabel(entry.metadata.duration_ms);
         timeline_entry.item.header.tag_text = timeline_format::TagText(entry.metadata.tag);
         timeline_entry.item.body_text =
-            has_transcription ? transcript : "Audio only follow-up item.";
+            has_transcription ? transcript : i18n::Tr("Audio only follow-up item.", "Promemoria solo audio.");
         timeline_entry.item.accessory.kind = epaper_ui::ListItemAccessoryKind::kCheckbox;
         // The checkbox is a tap-to-complete affordance; completing clears the flag and the item
         // leaves the list, so it always renders unchecked.
@@ -95,7 +97,7 @@ std::vector<FollowUpPageCoordinator::TimelineGroup> FollowUpPageCoordinator::Bui
     }
 
     if (groups.empty()) {
-        groups.push_back({"today", "Today", {}});
+        groups.push_back({"today", i18n::Tr("Today", "Oggi"), {}});
     }
     return groups;
 }
@@ -129,12 +131,12 @@ bool FollowUpPageCoordinator::SetEntryChecked(const std::string& recording_id, b
 epaper_ui::FollowUpPageState FollowUpPageCoordinator::BuildState() const
 {
     epaper_ui::FollowUpPageState state = {};
-    state.title_text = "Follow up";
+    state.title_text = i18n::Tr("Follow up", "Promemoria");
     state.navigation_focus_index = focus_.focus().index();
 
     epaper_ui::TimelineListState timeline = {};
-    timeline.item_label_plural = "Follow up";
-    timeline.empty_state_text = "No follow-up items available";
+    timeline.item_label_plural = i18n::Tr("Follow up", "Promemoria");
+    timeline.empty_state_text = i18n::Tr("No follow-up items available", "Nessun promemoria");
     timeline.empty_state_icon_asset = project_assets::GetIcon(EmbeddedIconId::kPin);
     timeline.visible_group_index = focus_.VisibleGroupIndex();
     timeline.focused_group_index = focus_.FocusedGroupIndex();

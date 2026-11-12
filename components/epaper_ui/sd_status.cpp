@@ -1,5 +1,7 @@
 #include "epaper_ui/sd_status.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <string_view>
 
@@ -9,8 +11,15 @@
 namespace epaper_ui {
 namespace {
 
-constexpr std::string_view kStorageLabel = "Ext storage";
-constexpr std::string_view kNoSdCardStatus = "No SD card";
+std::string_view StorageLabel()
+{
+    return i18n::Tr("Ext storage", "Memoria esterna");
+}
+
+std::string_view NoSdCardStatus()
+{
+    return i18n::Tr("No SD card", "Nessuna SD");
+}
 
 const EmbeddedImageAsset* ResolveSdIcon()
 {
@@ -60,7 +69,7 @@ void DrawScaledMonoAsset(uint8_t* framebuffer,
 
 std::string ResolveStatusText(const SdStatusState& state)
 {
-    return state.has_sd_card ? state.free_space_text : std::string(kNoSdCardStatus);
+    return state.has_sd_card ? state.free_space_text : std::string(NoSdCardStatus());
 }
 
 }  // namespace
@@ -74,7 +83,7 @@ UiRect SdStatusBounds(int origin_x, int origin_y, const SdStatusState& state, co
     ProgressBarStyle progress_style = style.progress;
     progress_style.width = std::max(0, width - icon_size - gap);
     const ProgressBarState progress_state = {
-        .label_text = std::string(kStorageLabel),
+        .label_text = std::string(StorageLabel()),
         .status_text = ResolveStatusText(state),
         .progress_percent = state.has_sd_card ? std::clamp(state.used_percent, 0, 100) : 0,
     };
@@ -106,7 +115,7 @@ void DrawSdStatus(uint8_t* framebuffer,
     progress_style.width = std::max(0, bounds.width - icon_size - gap);
     progress_style.label_role = design::TypographyRole::kLabelSmallBlack;
     const ProgressBarState progress_state = {
-        .label_text = std::string(kStorageLabel),
+        .label_text = std::string(StorageLabel()),
         .status_text = ResolveStatusText(state),
         .progress_percent = state.has_sd_card ? std::clamp(state.used_percent, 0, 100) : 0,
     };

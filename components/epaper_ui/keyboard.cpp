@@ -1,5 +1,7 @@
 #include "epaper_ui/keyboard.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 #include "render_utils.h"
@@ -83,6 +85,20 @@ std::string FitText(std::string_view text, design::TypographyRole role, int max_
         --length;
     }
     return std::string(kEllipsis);
+}
+
+std::string_view KeyLabel(const KeyboardKeySpec& key, KeyboardInputSubmitStyle submit_style)
+{
+    switch (key.kind) {
+        case KeyboardKeyKind::kEnter:
+            return KeyboardSubmitLabel(submit_style);
+        case KeyboardKeyKind::kSpace:
+            return i18n::Tr("Space", "Spazio");
+        case KeyboardKeyKind::kBackspace:
+            return i18n::Tr("Bksp", "Canc");
+        default:
+            return key.label;
+    }
 }
 
 UiRect Inset(const UiRect& rect, int inset)
@@ -441,9 +457,7 @@ void DrawKeyboard(uint8_t* framebuffer,
                        bounds.x,
                        bounds.y,
                        {
-                           .label_text = key.kind == KeyboardKeyKind::kEnter
-                                             ? KeyboardSubmitLabel(state.input.submit_style)
-                                             : key.label,
+                           .label_text = KeyLabel(key, state.input.submit_style),
                            .selected = flat_index == state.selected_key_index,
                        },
                        button_style);

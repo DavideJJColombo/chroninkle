@@ -1,5 +1,7 @@
 #include "settings_topics_page_coordinator.h"
 
+#include "i18n.h"
+
 namespace {
 
 using page_navigation::NavigationItemRole;
@@ -67,11 +69,11 @@ epaper_ui::SettingsTopicsPageState SettingsTopicsPageCoordinator::BuildState(
         focused_index >= 0 ? focused_index : epaper_ui::kSelectListNoSelection;
 
     state.new_topic_button = {
-        .label_text = "New topic",
+        .label_text = i18n::Tr("New topic", "Nuovo argomento"),
         .selected = IsRoleFocused(NavigationItemRole::kSettingsTopicsNewTopicButton),
     };
     state.back = {
-        .label_text = "Back",
+        .label_text = i18n::Tr("Back", "Indietro"),
         .selected = IsRoleFocused(NavigationItemRole::kSettingsTopicsBackButton),
     };
     return state;

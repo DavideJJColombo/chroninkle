@@ -1,5 +1,7 @@
 #include "settings_page_coordinator.h"
 
+#include "i18n.h"
+
 namespace {
 
 using page_navigation::NavigationItemRole;
@@ -8,6 +10,7 @@ using page_navigation::NavigationItemRole;
 constexpr NavigationItemRole kMenuRoles[epaper_ui::kSettingsMenuItemCount] = {
     NavigationItemRole::kSettingsMenuNetwork,
     NavigationItemRole::kSettingsMenuTime,
+    NavigationItemRole::kSettingsMenuLanguage,
     NavigationItemRole::kSettingsMenuStorage,
     NavigationItemRole::kSettingsMenuTodos,
     NavigationItemRole::kSettingsMenuTopics,
@@ -42,7 +45,8 @@ epaper_ui::SettingsPageState SettingsPageCoordinator::BuildState() const
 {
     epaper_ui::SettingsPageState state = {};
     state.navigation_focus_index = focus_.index();
-    state.title_text = "Settings";
+    state.title_text = i18n::Tr("Settings", "Impostazioni");
+    state.language = static_cast<int>(i18n::Current());
 
     state.menu.selected_index = -1;
     for (int index = 0; index < epaper_ui::kSettingsMenuItemCount; ++index) {
@@ -53,7 +57,7 @@ epaper_ui::SettingsPageState SettingsPageCoordinator::BuildState() const
     }
 
     state.manual_button = {
-        .label_text = "Manual",
+        .label_text = i18n::Tr("Manual", "Guida"),
         .selected = IsRoleFocused(NavigationItemRole::kSettingsManualOnboardingButton),
     };
     return state;

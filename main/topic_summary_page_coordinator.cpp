@@ -1,5 +1,7 @@
 #include "topic_summary_page_coordinator.h"
 
+#include "i18n.h"
+
 #include "shared_page_interactions.h"
 
 namespace {
@@ -7,8 +9,15 @@ namespace {
 using page_navigation::NavigationItemRole;
 
 constexpr int kScrollStepPercent = 10;
-constexpr const char* kConnectToGeminiMessage = "Connect to Gemini for summaries";
-constexpr const char* kEmptyStateMessage = "Get a summary of every entry tagged with this topic";
+const char* ConnectToGeminiMessage()
+{
+    return i18n::Tr("Connect to Gemini for summaries", "Connetti Gemini per i riepiloghi");
+}
+const char* EmptyStateMessage()
+{
+    return i18n::Tr("Get a summary of every entry tagged with this topic",
+                    "Ottieni un riepilogo di tutte le voci con questo argomento");
+}
 
 }  // namespace
 
@@ -31,7 +40,7 @@ void TopicSummaryPageCoordinator::Show()
     scroll_position_percent_ = 0;
     if (!pending_topic_id_.empty() || !pending_topic_name_.empty()) {
         topic_id_ = pending_topic_id_;
-        topic_name_ = pending_topic_name_.empty() ? "Topic" : pending_topic_name_;
+        topic_name_ = pending_topic_name_.empty() ? i18n::Tr("Topic", "Argomento") : pending_topic_name_;
         pending_topic_id_.clear();
         pending_topic_name_.clear();
     }
@@ -100,10 +109,10 @@ epaper_ui::TopicSummaryPageState TopicSummaryPageCoordinator::BuildState(
     state.scroll_container.active = scroll_container_active_;
     state.scroll_container.scroll_position_percent = scroll_position_percent_;
 
-    state.back_button.label_text = "Back";
+    state.back_button.label_text = i18n::Tr("Back", "Indietro");
     state.back_button.selected = IsRoleFocused(NavigationItemRole::kTopicSummaryPageBackButton);
 
-    state.get_summary_button.label_text = cache.available ? "Refresh summary" : "Get summary";
+    state.get_summary_button.label_text = cache.available ? i18n::Tr("Refresh summary", "Aggiorna") : i18n::Tr("Get summary", "Ottieni riepilogo");
     state.get_summary_button.selected =
         IsRoleFocused(NavigationItemRole::kTopicSummaryPageGetSummaryButton);
     return state;
@@ -116,7 +125,7 @@ std::string TopicSummaryPageCoordinator::BuildEmptyStateMessage(
         return {};
     }
     if (!gemini_ready) {
-        return kConnectToGeminiMessage;
+        return ConnectToGeminiMessage();
     }
-    return kEmptyStateMessage;
+    return EmptyStateMessage();
 }

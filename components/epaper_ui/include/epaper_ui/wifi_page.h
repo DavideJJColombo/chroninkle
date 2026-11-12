@@ -2,6 +2,8 @@
 #define EPAPER_UI_WIFI_PAGE_H_
 
 #include <cstdint>
+
+#include "i18n.h"
 #include <string>
 
 #include "epaper_ui/button.h"
@@ -27,7 +29,7 @@ enum class WifiPageItemId : uint8_t {
 
 struct WifiPageState {
     int navigation_focus_index = -1;
-    std::string title_text = "WiFi Setup";
+    std::string title_text = i18n::Tr("WiFi Setup", "Configura Wi-Fi");
     // Moved here from the old flat Settings page -- this is now the "Network" section of the
     // Settings hub.
     MenuToggleState wifi_toggle = {};

@@ -1,5 +1,7 @@
 #include "todos_page_runtime.h"
 
+#include "i18n.h"
+
 #include <climits>
 #include <mutex>
 #include <vector>
@@ -257,28 +259,28 @@ bool ShowItemActionsModal()
             .archived = entry->archived,
         };
         s_item_actions.clear();
-        modal.title_text = "Todo";
+        modal.title_text = i18n::Tr("Todo", "Attività");
         // Only offered when the row actually has audio on the card; a transcript-only
         // entry would otherwise show an action that silently does nothing.
         if (entry->has_audio_file) {
-            modal.items.push_back({"Play recording"});
+            modal.items.push_back({i18n::Tr("Play recording", "Riproduci registrazione")});
             s_item_actions.push_back(ItemAction::kPlayRecording);
         }
-        modal.items.push_back({"View details"});
+        modal.items.push_back({i18n::Tr("View details", "Vedi dettagli")});
         s_item_actions.push_back(ItemAction::kViewDetails);
-        modal.items.push_back({entry->follow_up ? "Remove follow-up" : "Follow up"});
+        modal.items.push_back({entry->follow_up ? i18n::Tr("Remove follow-up", "Togli dai promemoria") : i18n::Tr("Follow up", "Aggiungi ai promemoria")});
         s_item_actions.push_back(ItemAction::kFollowUp);
-        modal.items.push_back({entry->completed ? "Mark incomplete" : "Complete"});
+        modal.items.push_back({entry->completed ? i18n::Tr("Mark incomplete", "Segna come da fare") : i18n::Tr("Complete", "Completa")});
         s_item_actions.push_back(ItemAction::kComplete);
         // Only offered for a completed-but-not-yet-archived row -- once archived, "Mark
         // incomplete" above already doubles as the restore action.
         if (entry->completed && !entry->archived) {
-            modal.items.push_back({"Archive now"});
+            modal.items.push_back({i18n::Tr("Archive now", "Archivia ora")});
             s_item_actions.push_back(ItemAction::kArchiveNow);
         }
-        modal.items.push_back({"Delete"});
+        modal.items.push_back({i18n::Tr("Delete", "Elimina")});
         s_item_actions.push_back(ItemAction::kDelete);
-        modal.items.push_back({"Close"});
+        modal.items.push_back({i18n::Tr("Close", "Chiudi")});
         s_item_actions.push_back(ItemAction::kClose);
         modal.selected_index = 0;
         s_item_actions_pending = true;

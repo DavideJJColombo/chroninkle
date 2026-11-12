@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 
+#include "i18n.h"
 #include "page_navigation/navigation_model.h"
 #include "page_navigation/page_focus_projection.h"
 #include "settings_page_coordinator.h"
@@ -18,6 +19,7 @@ std::atomic<bool> s_pending_show_storage = false;
 std::atomic<bool> s_pending_show_todos = false;
 std::atomic<bool> s_pending_show_topics = false;
 std::atomic<bool> s_pending_show_about = false;
+std::atomic<bool> s_pending_language_changed = false;
 
 footer_runtime::FooterFocusItem FooterItemForSelectedIndex(int selected_index)
 {
@@ -228,6 +230,18 @@ void RequestShowAbout()
 bool ConsumePendingShowAbout()
 {
     return s_pending_show_about.exchange(false, std::memory_order_relaxed);
+}
+
+void ToggleLanguage()
+{
+    const int next = (static_cast<int>(i18n::Current()) + 1) % i18n::kLanguageCount;
+    (void)i18n::SetLanguage(static_cast<i18n::Language>(next));
+    s_pending_language_changed.store(true, std::memory_order_relaxed);
+}
+
+bool ConsumePendingLanguageChanged()
+{
+    return s_pending_language_changed.exchange(false, std::memory_order_relaxed);
 }
 
 }  // namespace settings_page_runtime

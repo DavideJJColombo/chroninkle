@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 
+#include "i18n.h"
 #include "render_utils.h"
 
 namespace epaper_ui {
@@ -13,10 +14,6 @@ constexpr int kSideInset = design::spacing::k16;
 constexpr int kTopGap = design::spacing::k16;
 constexpr int kTitleBottomGap = design::spacing::k24;
 constexpr int kMenuManualGap = design::spacing::k24;
-
-constexpr std::array<const char*, kSettingsMenuItemCount> kSettingsMenuLabels = {
-    "Network", "Time", "Storage", "Todos", "Topics", "About",
-};
 
 int PageWidth(int portrait_width)
 {
@@ -67,12 +64,27 @@ Layout BuildLayout(int portrait_width, int portrait_height, const SettingsPageSt
 
 }  // namespace
 
-const char* SettingsMenuItemLabel(int index)
+std::string SettingsMenuItemLabel(int index)
 {
-    if (index < 0 || index >= kSettingsMenuItemCount) {
-        return "";
+    using i18n::Tr;
+    switch (static_cast<SettingsMenuItem>(index)) {
+        case SettingsMenuItem::kNetwork:
+            return Tr("Network", "Rete");
+        case SettingsMenuItem::kTime:
+            return Tr("Time", "Ora");
+        case SettingsMenuItem::kLanguage:
+            return std::string(Tr("Language: ", "Lingua: ")) +
+                   i18n::LanguageName(i18n::Current());
+        case SettingsMenuItem::kStorage:
+            return Tr("Storage", "Memoria");
+        case SettingsMenuItem::kTodos:
+            return Tr("Todos", "Da fare");
+        case SettingsMenuItem::kTopics:
+            return Tr("Topics", "Argomenti");
+        case SettingsMenuItem::kAbout:
+            return Tr("About", "Informazioni");
     }
-    return kSettingsMenuLabels[static_cast<size_t>(index)];
+    return {};
 }
 
 UiRect SettingsMenuItemBounds(int portrait_width,

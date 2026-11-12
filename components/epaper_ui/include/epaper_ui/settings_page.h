@@ -2,6 +2,7 @@
 #define EPAPER_UI_SETTINGS_PAGE_H_
 
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 #include "epaper_ui/button.h"
@@ -12,13 +13,15 @@
 
 namespace epaper_ui {
 
-// Settings is a hub: 6 headings, each navigating to a dedicated sub-page, in this fixed slot
-// order (must match kSettingsMenuLabels in settings_page.cpp).
-inline constexpr int kSettingsMenuItemCount = 6;
+// Settings is a hub: 7 headings in this fixed slot order (must match SettingsMenuItemLabel in
+// settings_page.cpp). Each navigates to a dedicated sub-page, except Language, which toggles the
+// UI language in place and shows the current one in its label.
+inline constexpr int kSettingsMenuItemCount = 7;
 
 enum class SettingsMenuItem : int {
     kNetwork = 0,
     kTime,
+    kLanguage,
     kStorage,
     kTodos,
     kTopics,
@@ -33,7 +36,10 @@ struct SettingsPageMenuState {
 
 struct SettingsPageState {
     int navigation_focus_index = -1;
-    std::string_view title_text = "Settings";
+    std::string_view title_text = {};
+    // Part of the state (not just looked up at draw time) so a language switch is seen as a
+    // state change and the page repaints.
+    int language = 0;
     SettingsPageMenuState menu = {};
     // Replays the onboarding carousel -- a one-shot action, not a heading, so it sits below the
     // menu rather than being one of the 4 headings above.
@@ -42,7 +48,7 @@ struct SettingsPageState {
     bool operator==(const SettingsPageState& other) const = default;
 };
 
-const char* SettingsMenuItemLabel(int index);
+std::string SettingsMenuItemLabel(int index);
 UiRect SettingsMenuItemBounds(int portrait_width,
                               int portrait_height,
                               const SettingsPageState& state,

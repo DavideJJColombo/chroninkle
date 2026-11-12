@@ -109,6 +109,7 @@ constexpr TimezoneAliasEntry kTimezoneAliases[] = {
     {"Europe/London", "UK"},
     {"Europe/Berlin", "Central_Europe"},
     {"Europe/Paris", "Central_Europe"},
+    {"Europe/Rome", "Central_Europe"},
     {"Europe/Warsaw", "Central_Europe"},
     {"Europe/Athens", "Eastern_Europe"},
     {"Europe/Bucharest", "Eastern_Europe"},

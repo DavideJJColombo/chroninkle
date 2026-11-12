@@ -1,5 +1,7 @@
 #include "epaper_ui/dashboard_page.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <array>
 
@@ -17,6 +19,9 @@ constexpr auto kProgressLabelRole = design::TypographyRole::kLabelSmallBlack;
 
 constexpr std::array<const char*, kDashboardMenuItemCount> kMenuLabels = {
     "Follow up", "Todos", "Notes", "Topics", "Books",
+};
+constexpr std::array<const char*, kDashboardMenuItemCount> kMenuLabelsItalian = {
+    "Promemoria", "Da fare", "Note", "Argomenti", "Libri",
 };
 
 int PageWidth(int portrait_width)
@@ -126,7 +131,8 @@ const char* DashboardMenuItemLabel(int index)
     if (index < 0 || index >= kDashboardMenuItemCount) {
         return "";
     }
-    return kMenuLabels[static_cast<size_t>(index)];
+    const size_t slot = static_cast<size_t>(index);
+    return i18n::Tr(kMenuLabels[slot], kMenuLabelsItalian[slot]);
 }
 
 UiRect DashboardMenuItemBounds(int portrait_width,

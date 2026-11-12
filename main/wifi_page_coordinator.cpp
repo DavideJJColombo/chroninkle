@@ -1,11 +1,19 @@
 #include "wifi_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 namespace {
 
-constexpr const char* kPasswordLabel = "Password";
-constexpr const char* kPasswordPlaceholder = "Enter password";
+const char* PasswordLabel()
+{
+    return "Password";
+}
+const char* PasswordPlaceholder()
+{
+    return i18n::Tr("Enter password", "Inserisci password");
+}
 
 int NextPageIndex(int current_index, int total_items, int items_per_page)
 {
@@ -253,14 +261,14 @@ epaper_ui::WifiPageState WifiPageCoordinator::BuildState() const
 {
     epaper_ui::WifiPageState state = {};
     state.navigation_focus_index = focus_.index();
-    state.title_text = "WiFi Setup";
+    state.title_text = i18n::Tr("WiFi Setup", "Configura Wi-Fi");
     state.wifi_toggle = {
         .label_text = "WiFi",
         .toggle_state = BuildToggleState(
             wifi_enabled_, IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageWifiToggle)),
     };
     state.access_point_toggle = {
-        .label_text = "Access Point",
+        .label_text = i18n::Tr("Access Point", "Access point"),
         .toggle_state = BuildToggleState(
             access_point_mode_,
             IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageEnableApToggle)),
@@ -297,15 +305,15 @@ epaper_ui::WifiPageState WifiPageCoordinator::BuildState() const
     }
 
     state.scan_button = {
-        .label_text = "Scan",
+        .label_text = i18n::Tr("Scan", "Cerca"),
         .selected = IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageScanButton),
     };
     state.connect_button = {
-        .label_text = SelectedNetworkIsCurrent() ? "Disconnect" : "Connect",
+        .label_text = SelectedNetworkIsCurrent() ? i18n::Tr("Disconnect", "Disconnetti") : i18n::Tr("Connect", "Connetti"),
         .selected = IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageConnectButton),
     };
     state.back = {
-        .label_text = "Back",
+        .label_text = i18n::Tr("Back", "Indietro"),
         .selected = IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageBackButton),
     };
     return state;
@@ -383,8 +391,8 @@ bool WifiPageCoordinator::CommitFocusedNetworkSelection()
 
 void WifiPageCoordinator::InitializePasswordInput()
 {
-    password_input_state_.label_text = kPasswordLabel;
-    password_input_state_.placeholder_text = kPasswordPlaceholder;
+    password_input_state_.label_text = PasswordLabel();
+    password_input_state_.placeholder_text = PasswordPlaceholder();
     password_input_state_.submit_style = epaper_ui::KeyboardInputSubmitStyle::kDone;
 }
 

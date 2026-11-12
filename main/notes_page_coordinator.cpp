@@ -1,5 +1,7 @@
 #include "notes_page_coordinator.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 
 #include "project_assets.h"
@@ -90,13 +92,13 @@ std::vector<NotesPageCoordinator::TimelineGroup> NotesPageCoordinator::BuildGrou
         timeline_entry.item.header.minute_seconds_text =
             timeline_format::FormatDurationLabel(entry.metadata.duration_ms);
         timeline_entry.item.header.tag_text = timeline_format::TagText(entry.metadata.tag);
-        timeline_entry.item.body_text = has_transcription ? transcript : "Audio only note.";
+        timeline_entry.item.body_text = has_transcription ? transcript : i18n::Tr("Audio only note.", "Nota solo audio.");
         timeline_entry.item.accessory.kind = epaper_ui::ListItemAccessoryKind::kNone;
         groups[static_cast<size_t>(group_index)].entries.push_back(std::move(timeline_entry));
     }
 
     if (groups.empty()) {
-        groups.push_back({"today", "Today", {}});
+        groups.push_back({"today", i18n::Tr("Today", "Oggi"), {}});
     }
     return groups;
 }
@@ -132,12 +134,12 @@ bool NotesPageCoordinator::SetEntryFollowUpState(const std::string& recording_id
 epaper_ui::NotesPageState NotesPageCoordinator::BuildState() const
 {
     epaper_ui::NotesPageState state = {};
-    state.title_text = "Notes";
+    state.title_text = i18n::Tr("Notes", "Note");
     state.navigation_focus_index = focus_.focus().index();
 
     epaper_ui::TimelineListState timeline = {};
-    timeline.item_label_plural = "Notes";
-    timeline.empty_state_text = "No notes available";
+    timeline.item_label_plural = i18n::Tr("Notes", "Note");
+    timeline.empty_state_text = i18n::Tr("No notes available", "Nessuna nota");
     timeline.empty_state_icon_asset = project_assets::GetIcon(EmbeddedIconId::kIdea);
     timeline.visible_group_index = focus_.VisibleGroupIndex();
     timeline.focused_group_index = focus_.FocusedGroupIndex();

@@ -3,6 +3,7 @@
 #include <array>
 
 #include "asset_manifest.h"
+#include "i18n.h"
 #include "project_assets.h"
 
 namespace {
@@ -13,30 +14,49 @@ using epaper_ui::OnboardingControl;
 struct Slide {
     const char* title;
     const char* body;
+    const char* title_italian;
+    const char* body_italian;
     EmbeddedImageId image;
 };
 
 constexpr std::array<Slide, 6> kSlides = {{
     {"Welcome to Chroninkle",
      "Your pocket voice notebook. Capture thoughts out loud and let Chroninkle keep them organized.",
+     "Benvenuto in Chroninkle",
+     "Il tuo taccuino vocale tascabile. Cattura i pensieri a voce e lascia che Chroninkle li tenga "
+     "in ordine.",
      EmbeddedImageId::kSlide1},
     {"Capture in a tap",
      "Hold Record to capture a note, idea, or task -- saved straight to the SD card. A quick "
      "press is Back -- it exits whatever you're inside.",
+     "Registra in un attimo",
+     "Tieni premuto Registra per catturare una nota, un'idea o un'attività: viene salvata subito "
+     "sulla scheda SD. Una pressione breve fa da Indietro ed esce da dove ti trovi.",
      EmbeddedImageId::kSlide2},
     {"Navigate with the rocker",
      "Tilt the rocker up or down to move your selection; press it in to select.",
+     "Naviga con il bilanciere",
+     "Inclina il bilanciere su o giù per spostare la selezione; premilo per selezionare.",
      EmbeddedImageId::kSlide3},
     {"Sleep & power",
      "The device sleeps when inactive. Hold PWR for about a second to open a shut-down "
      "confirmation.",
+     "Riposo e spegnimento",
+     "Il dispositivo va a riposo quando non lo usi. Tieni premuto PWR per circa un secondo per "
+     "aprire la conferma di spegnimento.",
      EmbeddedImageId::kSlide4},
     {"Summaries with Gemini",
      "Connect Gemini and let Chroninkle transcribe your recordings and summarize your day for you.",
+     "Riepiloghi con Gemini",
+     "Collega Gemini e lascia che Chroninkle trascriva le tue registrazioni e riassuma la tua "
+     "giornata.",
      EmbeddedImageId::kSlide5},
     {"Notes, Todos & Follow-ups",
      "Recordings are grouped by day. Browse them as Notes, mark tasks as Todos, and pin anything as "
      "a follow-up.",
+     "Note, attività e promemoria",
+     "Le registrazioni sono raggruppate per giorno. Sfogliale come Note, segna le attività come Da "
+     "fare e fissa qualsiasi cosa come promemoria.",
      EmbeddedImageId::kSlide6},
 }};
 
@@ -211,8 +231,8 @@ epaper_ui::OnboardingPageState OnboardingPageCoordinator::BuildState() const
     state.carousel.next_selected = IsRoleFocused(NavigationItemRole::kOnboardingPageNext);
 
     const Slide& slide = kSlides[static_cast<size_t>(active_index_)];
-    state.slide_title = slide.title;
-    state.slide_body = slide.body;
+    state.slide_title = i18n::Tr(slide.title, slide.title_italian);
+    state.slide_body = i18n::Tr(slide.body, slide.body_italian);
     state.slide_image = project_assets::GetImage(slide.image);
     return state;
 }

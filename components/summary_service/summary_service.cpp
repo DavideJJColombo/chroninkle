@@ -1,5 +1,7 @@
 #include "summary_service.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <cerrno>
 #include <cstdio>
@@ -78,7 +80,8 @@ std::string SegmentLabelForTarget(const SummaryTarget& target)
     if (target.kind == SummaryKind::kTopic) {
         return target.topic_name;
     }
-    return target.kind == SummaryKind::kTodos ? "Todos" : "Notes";
+    return target.kind == SummaryKind::kTodos ? i18n::Tr("Todos", "Attività")
+                                               : i18n::Tr("Notes", "Note");
 }
 
 // Tag -> bucket mapping mirrors recording_archive_service: Task is a Todo; everything else
@@ -117,7 +120,7 @@ bool GeneratePromptTextResult(const std::string& prompt, std::string* text_out,
         }
         if (error_message_out != nullptr) {
             *error_message_out =
-                result.error_message.empty() ? "Gemini summary request failed" : result.error_message;
+                result.error_message.empty() ? i18n::Tr("Gemini summary request failed", "Richiesta di riepilogo a Gemini non riuscita") : result.error_message;
         }
         return false;
     }
@@ -414,7 +417,7 @@ bool GenerateRollupSummaryRecursive(const SummaryTarget& target,
             *error_code_out = "summary_empty";
         }
         if (error_message_out != nullptr) {
-            *error_message_out = "No intermediate summaries are available";
+            *error_message_out = i18n::Tr("No intermediate summaries are available", "Nessun riepilogo intermedio disponibile");
         }
         return false;
     }
@@ -428,7 +431,7 @@ bool GenerateRollupSummaryRecursive(const SummaryTarget& target,
             *error_code_out = "summary_rollup_too_large";
         }
         if (error_message_out != nullptr) {
-            *error_message_out = "Summary rollup is still too large";
+            *error_message_out = i18n::Tr("Summary rollup is still too large", "Il riepilogo è ancora troppo lungo");
         }
         return false;
     }
@@ -442,7 +445,7 @@ bool GenerateRollupSummaryRecursive(const SummaryTarget& target,
                 *error_code_out = "summary_rollup_split_failed";
             }
             if (error_message_out != nullptr) {
-                *error_message_out = "Summary rollup could not be split";
+                *error_message_out = i18n::Tr("Summary rollup could not be split", "Impossibile suddividere il riepilogo");
             }
             return false;
         }
@@ -798,7 +801,7 @@ GenerationResult GenerateChunkedSummary(const SummaryTarget& target,
         std::vector<SourceEntry> fragments;
         if (!SplitEntryToFitTokenBudget(target, entry, kSummaryChunkTokenBudget, &fragments)) {
             result.error_code = "summary_chunk_split_failed";
-            result.error_message = "Summary input could not be chunked";
+            result.error_message = i18n::Tr("Summary input could not be chunked", "Impossibile suddividere il testo da riassumere");
             result.metadata = metadata;
             return result;
         }
@@ -810,7 +813,7 @@ GenerationResult GenerateChunkedSummary(const SummaryTarget& target,
         BuildChunkGroups(target, prepared_entries, kSummaryChunkTokenBudget, &chunks_valid);
     if (!chunks_valid || chunks.empty()) {
         result.error_code = "summary_chunk_failed";
-        result.error_message = "Summary input could not be chunked";
+        result.error_message = i18n::Tr("Summary input could not be chunked", "Impossibile suddividere il testo da riassumere");
         result.metadata = metadata;
         return result;
     }
@@ -853,14 +856,14 @@ GenerationResult GenerateSummary(const SummaryTarget& target)
     const gemini_service::Snapshot gemini_snapshot = gemini_service::GetSnapshot();
     if (!gemini_snapshot.runtime.ready) {
         result.error_code = "gemini_not_ready";
-        result.error_message = "Gemini is not connected";
+        result.error_message = i18n::Tr("Gemini is not connected", "Gemini non è connesso");
         ESP_LOGW(kTag, "Summary aborted: Gemini not connected");
         return result;
     }
     if (gemini_service::GetEffectiveApiKey().empty() ||
         gemini_service::GetEffectiveModelName().empty()) {
         result.error_code = "gemini_not_configured";
-        result.error_message = "Gemini is not configured";
+        result.error_message = i18n::Tr("Gemini is not configured", "Gemini non è configurato");
         ESP_LOGW(kTag, "Summary aborted: Gemini not configured");
         return result;
     }
@@ -872,7 +875,7 @@ GenerationResult GenerateSummary(const SummaryTarget& target)
         // Distinct from "no recordings": the SD read failed, so we can't trust an
         // empty result. Surface it honestly instead of caching a bogus summary.
         result.error_code = "storage_read_failed";
-        result.error_message = "Couldn't read recordings from SD";
+        result.error_message = i18n::Tr("Couldn't read recordings from SD", "Impossibile leggere le registrazioni dalla SD");
         ESP_LOGW(kTag, "Summary aborted: SD read failed (%s)", esp_err_to_name(list_status));
         return result;
     }
@@ -892,7 +895,7 @@ GenerationResult GenerateSummary(const SummaryTarget& target)
     metadata.missing_transcript_item_count = missing_count;
     if (entries.empty()) {
         result.error_code = "no_summary_source";
-        result.error_message = "No transcribed recordings are available for this summary yet";
+        result.error_message = i18n::Tr("No transcribed recordings are available for this summary yet", "Non ci sono ancora registrazioni trascritte per questo riepilogo");
         result.metadata = metadata;
         ESP_LOGW(kTag,
                  "Summary aborted: no transcribed source (items=%d transcribed=%d missing=%d)",
@@ -986,8 +989,11 @@ void CompleteSummaryRequest(const SummaryTarget& target, const GenerationResult&
     s_snapshot.request.kind = target.kind;
     s_snapshot.request.topic_id = target.topic_id;
     s_snapshot.request.phase = result.success ? RequestPhase::kSucceeded : RequestPhase::kFailed;
-    s_snapshot.request.status_message = result.success ? label + " summary updated"
-                                                        : std::string("Unable to summarize ") + label;
+    s_snapshot.request.status_message =
+        result.success ? (i18n::IsItalian() ? "Riepilogo aggiornato: " + label
+                                            : label + " summary updated")
+                       : std::string(i18n::Tr("Unable to summarize ", "Impossibile riassumere ")) +
+                             label;
     s_snapshot.request.error_code = result.error_code;
     s_snapshot.request.error_message = result.error_message;
     ++s_snapshot.request_generation;
@@ -1013,7 +1019,7 @@ void ProcessSummaryRequest(SummaryTarget target)
     if (result.success && !PersistSummary(target, result)) {
         result.success = false;
         result.error_code = "summary_save_failed";
-        result.error_message = "Unable to save summary to SD card";
+        result.error_message = i18n::Tr("Unable to save summary to SD card", "Impossibile salvare il riepilogo sulla scheda SD");
     }
     CompleteSummaryRequest(target, result);
 }
@@ -1098,7 +1104,7 @@ bool RequestSummary(SummaryKind kind)
         s_snapshot.request.topic_id.clear();
         s_snapshot.request.phase = RequestPhase::kStarted;
         s_snapshot.request.status_message =
-            std::string("Summarizing ") + SegmentLabelForTarget(target);
+            std::string(i18n::Tr("Summarizing ", "Riepilogo in corso: ")) + SegmentLabelForTarget(target);
         s_snapshot.request.error_code.clear();
         s_snapshot.request.error_message.clear();
         ++s_snapshot.request_generation;
@@ -1130,7 +1136,7 @@ bool RequestTopicSummary(const std::string& topic_id, const std::string& topic_n
         s_snapshot.request.topic_id = topic_id;
         s_snapshot.request.phase = RequestPhase::kStarted;
         s_snapshot.request.status_message =
-            std::string("Summarizing ") + SegmentLabelForTarget(target);
+            std::string(i18n::Tr("Summarizing ", "Riepilogo in corso: ")) + SegmentLabelForTarget(target);
         s_snapshot.request.error_code.clear();
         s_snapshot.request.error_message.clear();
         ++s_snapshot.request_generation;

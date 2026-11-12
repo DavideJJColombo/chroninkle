@@ -9,6 +9,9 @@
 #include "page_navigation/roving_focus.h"
 #include "timezone_service.h"
 
+// Timezone name for display in the current UI language (catalog descriptions are English).
+std::string LocalizedTimezoneLabel(const timezone_service::TimezoneInfo& info);
+
 class TimePageCoordinator {
 public:
     TimePageCoordinator();

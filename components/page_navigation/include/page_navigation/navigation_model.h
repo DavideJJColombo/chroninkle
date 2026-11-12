@@ -132,7 +132,8 @@ struct NavigationModel {
 
 NavigationModel BuildSettingsPageNavigationModel();
 NavigationModel BuildWifiPageNavigationModel();
-NavigationModel BuildTimePageNavigationModel();
+// include_meridiem = false drops the AM/PM toggle (24-hour clock entry).
+NavigationModel BuildTimePageNavigationModel(bool include_meridiem = true);
 NavigationModel BuildSettingsStoragePageNavigationModel();
 NavigationModel BuildSettingsTodosPageNavigationModel();
 NavigationModel BuildSettingsTopicsPageNavigationModel(int topic_count);

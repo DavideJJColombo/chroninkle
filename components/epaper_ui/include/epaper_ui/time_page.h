@@ -36,6 +36,8 @@ struct TimePageState {
     TimeInputState hour = {};
     TimeInputState minute = {};
     ButtonState meridiem = {};
+    // false for the 24-hour clock: no AM/PM toggle, hour and minute share the row.
+    bool show_meridiem = true;
     TimeInputState month = {};
     TimeInputState day = {};
     TimeInputState year = {};

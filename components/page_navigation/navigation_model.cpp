@@ -138,26 +138,28 @@ NavigationModel BuildWifiPageNavigationModel()
     return model;
 }
 
-NavigationModel BuildTimePageNavigationModel()
+NavigationModel BuildTimePageNavigationModel(bool include_meridiem)
 {
     NavigationModel model = {};
     model.scope = NavigationScope::kTime;
 
-    AddItem(model, NavigationItemSection::kTimePageControls,
-            NavigationItemRole::kTimePageTimezone, 0);
-    AddItem(model, NavigationItemSection::kTimePageControls, NavigationItemRole::kTimePageHour, 1);
-    AddItem(model, NavigationItemSection::kTimePageControls,
-            NavigationItemRole::kTimePageMinute, 2);
-    AddItem(model, NavigationItemSection::kTimePageControls,
-            NavigationItemRole::kTimePageMeridiem, 3);
-    AddItem(model, NavigationItemSection::kTimePageControls, NavigationItemRole::kTimePageMonth, 4);
-    AddItem(model, NavigationItemSection::kTimePageControls, NavigationItemRole::kTimePageDay, 5);
-    AddItem(model, NavigationItemSection::kTimePageControls, NavigationItemRole::kTimePageYear, 6);
-    AddItem(model, NavigationItemSection::kTimePageControls, NavigationItemRole::kTimePageSave, 7);
+    int index = 0;
+    const auto add = [&](NavigationItemRole role) {
+        AddItem(model, NavigationItemSection::kTimePageControls, role, index++);
+    };
+    add(NavigationItemRole::kTimePageTimezone);
+    add(NavigationItemRole::kTimePageHour);
+    add(NavigationItemRole::kTimePageMinute);
+    if (include_meridiem) {
+        add(NavigationItemRole::kTimePageMeridiem);
+    }
+    add(NavigationItemRole::kTimePageMonth);
+    add(NavigationItemRole::kTimePageDay);
+    add(NavigationItemRole::kTimePageYear);
+    add(NavigationItemRole::kTimePageSave);
     // Reached from the Settings hub's "Time" heading now, not its own footer icon -- Back
     // returns to the hub.
-    AddItem(model, NavigationItemSection::kTimePageControls,
-            NavigationItemRole::kTimePageBackButton, 8);
+    add(NavigationItemRole::kTimePageBackButton);
     AddFooterItems(model, /*is_home_screen=*/false);
     return model;
 }

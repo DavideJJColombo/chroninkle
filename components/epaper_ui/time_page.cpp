@@ -90,9 +90,17 @@ Layout BuildLayout(int portrait_width, int portrait_height, const TimePageState&
     const int column2_x = page_x + column + kColumnGap;
     const int column3_x = page_x + (2 * (column + kColumnGap));
 
-    layout.hour = TimeInputBounds(page_x, y, state.hour, FieldStyle(column));
-    layout.minute = TimeInputBounds(column2_x, y, state.minute, FieldStyle(column));
-    layout.meridiem = ButtonBounds(column3_x, y, state.meridiem, MeridiemStyle(column));
+    if (state.show_meridiem) {
+        layout.hour = TimeInputBounds(page_x, y, state.hour, FieldStyle(column));
+        layout.minute = TimeInputBounds(column2_x, y, state.minute, FieldStyle(column));
+        layout.meridiem = ButtonBounds(column3_x, y, state.meridiem, MeridiemStyle(column));
+    } else {
+        const int half = std::max(0, (page_width - kColumnGap) / 2);
+        layout.hour = TimeInputBounds(page_x, y, state.hour, FieldStyle(half));
+        layout.minute =
+            TimeInputBounds(page_x + half + kColumnGap, y, state.minute, FieldStyle(half));
+        layout.meridiem = {};
+    }
     y = Bottom3(layout.hour, layout.minute, layout.meridiem) + kSectionGap;
 
     layout.month = TimeInputBounds(page_x, y, state.month, FieldStyle(column));
@@ -240,9 +248,11 @@ void DrawTimePage(uint8_t* framebuffer,
                   layout.hour.x, layout.hour.y, state.hour, FieldStyle(layout.hour.width));
     DrawTimeInput(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                   layout.minute.x, layout.minute.y, state.minute, FieldStyle(layout.minute.width));
-    DrawButton(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
-               layout.meridiem.x, layout.meridiem.y, state.meridiem,
-               MeridiemStyle(layout.meridiem.width));
+    if (state.show_meridiem) {
+        DrawButton(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
+                   layout.meridiem.x, layout.meridiem.y, state.meridiem,
+                   MeridiemStyle(layout.meridiem.width));
+    }
 
     DrawTimeInput(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                   layout.month.x, layout.month.y, state.month, FieldStyle(layout.month.width));

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "epaper_ui/time_page.h"
+#include "i18n.h"
 #include "page_navigation/navigation_model.h"
 #include "page_navigation/roving_focus.h"
 #include "timezone_service.h"
@@ -60,15 +61,16 @@ private:
     void LoadFromSnapshot(const timezone_service::Snapshot& snapshot);
 
     page_navigation::NavigationModel navigation_model_ =
-        page_navigation::BuildTimePageNavigationModel();
+        page_navigation::BuildTimePageNavigationModel(!i18n::Uses24HourClock());
     page_navigation::RovingFocus focus_{navigation_model_.item_count, 0};
 
     std::vector<timezone_service::TimezoneInfo> timezones_ = {};
     std::string timezone_name_ = {};
     std::string timezone_description_ = {};
-    std::string hour_ = {};    // "01".."12"
+    std::string hour_ = {};    // "01".."12" with AM/PM, "00".."23" on the 24-hour clock
     std::string minute_ = {};  // "00".."59"
     bool meridiem_pm_ = false;
+    bool uses_24_hour_ = i18n::Uses24HourClock();  // follows the UI language, set on show
     std::string month_ = {};   // "01".."12"
     std::string day_ = {};     // "01".."31"
     std::string year_ = {};    // "YYYY"

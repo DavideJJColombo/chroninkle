@@ -1,5 +1,8 @@
 #include "time_page_coordinator.h"
 
+#include <algorithm>
+#include <cstdlib>
+
 #include "i18n.h"
 
 #include <array>
@@ -93,6 +96,10 @@ void TimePageCoordinator::LoadFromSnapshot(const timezone_service::Snapshot& sna
     const int hour24 = std::atoi(time[0].c_str());
     minute_ = time[1].empty() ? std::string("00") : time[1];
     meridiem_pm_ = hour24 >= 12;
+    if (uses_24_hour_) {
+        hour_ = Pad2(hour24);
+        return;
+    }
     int hour12 = hour24 % 12;
     if (hour12 == 0) {
         hour12 = 12;
@@ -113,6 +120,21 @@ void TimePageCoordinator::RefreshFromService(
 void TimePageCoordinator::PrepareForShow()
 {
     user_edited_ = false;
+    // The clock format follows the UI language, which can change while the page is hidden.
+    const bool uses_24_hour = i18n::Uses24HourClock();
+    if (uses_24_hour != uses_24_hour_) {
+        if (!hour_.empty()) {
+            const int hour = std::atoi(hour_.c_str());
+            if (uses_24_hour) {
+                hour_ = Pad2((hour % 12) + (meridiem_pm_ ? 12 : 0));
+            } else {
+                meridiem_pm_ = hour >= 12;
+                hour_ = Pad2(hour % 12 == 0 ? 12 : hour % 12);
+            }
+        }
+        uses_24_hour_ = uses_24_hour;
+        navigation_model_ = page_navigation::BuildTimePageNavigationModel(!uses_24_hour_);
+    }
     focus_.Configure(navigation_model_.item_count,
                      navigation_model_.IndexOfRole(NavigationItemRole::kTimePageTimezone));
 }
@@ -213,10 +235,14 @@ timezone_service::SettingsPatch TimePageCoordinator::BuildSettingsPatch() const
     patch.has_timezone_name = true;
     patch.timezone_name = timezone_name_;
 
-    int hour12 = std::atoi(hour_.c_str());
-    int hour24 = hour12 % 12;
-    if (meridiem_pm_) {
-        hour24 += 12;
+    int hour24 = 0;
+    if (uses_24_hour_) {
+        hour24 = std::clamp(std::atoi(hour_.c_str()), 0, 23);
+    } else {
+        hour24 = std::atoi(hour_.c_str()) % 12;
+        if (meridiem_pm_) {
+            hour24 += 12;
+        }
     }
     patch.has_manual_datetime = true;
     patch.manual_date = year_ + "-" + month_ + "-" + day_;
@@ -245,6 +271,7 @@ epaper_ui::TimePageState TimePageCoordinator::BuildState() const
     state.minute.focused = IsRoleFocused(NavigationItemRole::kTimePageMinute);
 
     state.meridiem.label_text = meridiem_pm_ ? "PM" : "AM";
+    state.show_meridiem = !uses_24_hour_;
     state.meridiem.selected = IsRoleFocused(NavigationItemRole::kTimePageMeridiem);
 
     state.month.value_text = month_;

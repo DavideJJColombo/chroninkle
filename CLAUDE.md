@@ -35,6 +35,14 @@ top). This CLAUDE.md is a condensed map; when the two disagree,
 `docs/app-architecture.md` wins. Board-specific pin/electrical detail also
 lives in `docs/waveshare-epaper-hardware-spec.md`.
 
+## Firmware update (OTA)
+
+`components/ota_service` lets the setup portal (AP mode) upload `build/chroninkle.bin` to the
+inactive OTA slot, guarded by a one-time code shown on the device screen (app_shell's
+HandleOtaEvent shows it as a toast). The image is checked (project name, chip), verified by
+`esp_ota_end`, activated, and the device restarts; rollback relies on app_shell marking the
+running image valid at boot. Bump `version.txt` per release.
+
 ## UI language (i18n)
 
 The UI is bilingual (English / Italian). Every user-visible string is written in place as

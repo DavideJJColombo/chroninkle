@@ -11,6 +11,7 @@ Chroninkle provisions:
 - **Wi-Fi** — scan, connect, disconnect, and live status
 - **Gemini API key** — save / clear
 - **Time & timezone** — pick a timezone, or set date/time manually
+- **Firmware update (OTA)** — upload a new `build/chroninkle.bin`
 
 The frontend is organized around:
 
@@ -27,6 +28,17 @@ that request fails it falls back to the browser language. Strings live in place 
 translated by `applyStaticTranslations()`, and English messages returned by the firmware API
 are mapped by `translateServerMessage()` in `api.ts`. When adding text, add the Italian too;
 when the firmware gains a new portal message, add it to `SERVER_MESSAGES`.
+
+## Firmware Update (OTA)
+
+The Firmware Update card uploads a new firmware image to the inactive OTA slot
+(`components/ota_service`). Because the portal's Wi-Fi is open, an upload needs a one-time
+6-digit code that the device shows on its own screen ("Show code"), valid for 10 minutes and
+for one upload, with at most 5 wrong attempts. The firmware checks the file is a
+`chroninkle` image for this chip, verifies it after writing, switches the boot slot and
+restarts; the bootloader rolls back to the previous firmware if the new one fails before
+marking itself valid. Bump `version.txt` for each release so the card shows which version is
+installed.
 
 ## API Endpoints Used By The Portal
 
@@ -53,6 +65,12 @@ Gemini (`gemini_service`)
 - `GET /api/settings/gemini`
 - `PATCH /api/settings/gemini`
 - `POST /api/settings/gemini/reset`
+
+Firmware update (`ota_service`)
+
+- `GET /api/ota/status`
+- `POST /api/ota/code`
+- `POST /api/ota/upload?code=NNNNNN` (raw `.bin` body)
 
 ## Local Development
 
@@ -113,6 +131,7 @@ components/wifi_service/portal/   # embedded build output served by the firmware
   Portal-specific application logic split by responsibility:
   - `api.ts` — typed API fetch helpers
   - `i18n.ts` — portal language, `t()`, firmware message translation
+  - `firmware.ts` — firmware update (OTA) card
   - `wifi.ts` — WiFi scan/connect/disconnect flow
   - `time.ts` — timezone + manual date/time
   - `providerKeys.ts` — Gemini API key save/clear

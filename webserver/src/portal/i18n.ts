@@ -83,6 +83,26 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Gemini API key cleared': 'Chiave API di Gemini cancellata',
   'Failed to clear Gemini API key': 'Impossibile cancellare la chiave API di Gemini',
   'Request failed.': 'Richiesta non riuscita.',
+  'Firmware status loaded': 'Stato del firmware caricato',
+  'Update code shown on the device': 'Codice mostrato sul dispositivo',
+  'Update code required': 'Serve il codice mostrato sul dispositivo',
+  'Update code expired, request a new one': 'Codice scaduto: richiedine uno nuovo',
+  'Too many wrong codes, request a new one': 'Troppi codici errati: richiedine uno nuovo',
+  'Wrong update code': 'Codice errato',
+  'An update is already in progress': 'È già in corso un aggiornamento',
+  'No OTA partition available': 'Nessuna partizione disponibile per l’aggiornamento',
+  'Firmware file has the wrong size': 'Il file del firmware ha una dimensione non valida',
+  'Upload interrupted': 'Caricamento interrotto',
+  'Not a firmware file (use build/chroninkle.bin)':
+    'Non è un file firmware (usa build/chroninkle.bin)',
+  'Firmware built for a different chip': 'Firmware compilato per un altro chip',
+  'Firmware for a different project': 'Firmware di un altro progetto',
+  'Could not start the update': 'Impossibile avviare l’aggiornamento',
+  'Could not write the firmware': 'Impossibile scrivere il firmware',
+  'Firmware file is corrupted': 'Il file del firmware è danneggiato',
+  'Could not finish the update': 'Impossibile completare l’aggiornamento',
+  'Could not activate the new firmware': 'Impossibile attivare il nuovo firmware',
+  'Update installed, the device is restarting': 'Aggiornamento installato, il dispositivo si riavvia',
 };
 
 const SERVER_MESSAGE_PREFIXES: Array<[string, string]> = [
@@ -181,6 +201,18 @@ export function applyStaticTranslations(): void {
   setText('timezoneLocationSaveBtn', 'Salva');
 
   setAttr('statusToast', 'aria-label', 'Notifica di stato');
+
+  setAttr('firmwareCard', 'title', 'Aggiornamento firmware');
+  setAttr('firmwareFileInput', 'label', 'File del firmware (.bin)');
+  setAttr('firmwareCodeInput', 'label', 'Codice mostrato sul dispositivo');
+  setText(
+    'firmwareHelpText',
+    'Tocca «Mostra codice» per far comparire un codice monouso sullo schermo del dispositivo, ' +
+      'scegli build/chroninkle.bin, inserisci il codice e tocca «Aggiorna». Se il nuovo ' +
+      'firmware non riesce ad avviarsi, il dispositivo torna da solo alla versione precedente.'
+  );
+  setText('firmwareCodeBtn', 'Mostra codice');
+  setText('firmwareUpdateBtn', 'Aggiorna');
 
   // The Wi-Fi status card's Settings button lives in its (open) shadow root.
   const settingsButton = document

@@ -882,7 +882,8 @@ void StartConfigPortal()
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     // Root + WiFi API (scan/configure/status/language/disconnect) + portal assets (index.js/index.css) plus
-    // the timezone_service and gemini_service portal routes registered via the registrar below.
+    // the timezone_service, gemini_service and ota_service portal routes registered via the
+    // registrar below.
     config.max_uri_handlers = 24;
     config.lru_purge_enable = true;
 

@@ -134,6 +134,46 @@
               Save
             </ui-button>
         </ui-card>
+
+        <ui-card id="firmwareCard" title="Firmware Update">
+            <p id="firmwareVersionText" class="form-helper-text"></p>
+
+            <ui-file-upload
+              id="firmwareFileInput"
+              label="Firmware file (.bin)"
+              accept=".bin,application/octet-stream"
+            ></ui-file-upload>
+
+            <ui-input
+              id="firmwareCodeInput"
+              label="Code shown on the device"
+              placeholder="000000"
+              autocomplete="off"
+              inputmode="numeric"
+              maxlength="6"
+            ></ui-input>
+
+            <p id="firmwareHelpText" class="form-helper-text">
+              Tap "Show code" to display a one-time code on the device screen, choose
+              build/chroninkle.bin, enter the code and tap "Update". If the new firmware fails
+              to start, the device goes back to the previous one by itself.
+            </p>
+
+            <ui-button
+              slot="footer"
+              id="firmwareCodeBtn"
+              variant="secondary"
+            >
+              Show code
+            </ui-button>
+            <ui-button
+              slot="footer"
+              id="firmwareUpdateBtn"
+              variant="primary"
+            >
+              Update
+            </ui-button>
+        </ui-card>
       </div>
     </main>
 

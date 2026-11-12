@@ -5,6 +5,7 @@ import {
   defineBottomSheet,
   defineButton,
   defineCard,
+  defineFileUpload,
   defineIconButton,
   defineInput,
   defineNetworkList,
@@ -23,6 +24,7 @@ import wifiFindIcon from './assets/wifi_find.svg?raw';
 import apiKeyIcon from './assets/api_key.svg?raw';
 import checkIcon from './assets/check.svg?raw';
 import clockIcon from './assets/clock.svg?raw';
+import firmwareIcon from './assets/firmware_update.svg?raw';
 import {
   fetchGeminiModuleJson,
   fetchPortalJson,
@@ -55,6 +57,7 @@ import {
   svgWithClass,
 } from './portal/uiHelpers';
 import { parseClockTimeInputValue } from './portal/duration';
+import { createFirmwareController } from './portal/firmware';
 import { createProviderKeysController } from './portal/providerKeys';
 import { createTimeController } from './portal/time';
 import { createWiFiController } from './portal/wifi';
@@ -69,6 +72,7 @@ import type {
 defineBottomSheet();
 defineButton();
 defineCard();
+defineFileUpload();
 defineIconButton();
 defineInput();
 defineNetworkList();
@@ -182,6 +186,17 @@ const wifiController = createWiFiController({
   wifiStatusCard: dom.wifiStatusCard,
 });
 
+const firmwareController = createFirmwareController({
+  card: dom.firmwareCard,
+  versionText: dom.firmwareVersionText,
+  fileInput: dom.firmwareFileInput,
+  codeInput: dom.firmwareCodeInput,
+  codeButton: dom.firmwareCodeBtn,
+  updateButton: dom.firmwareUpdateBtn,
+  setFieldError,
+  clearFieldError,
+});
+
 function updatePageFade() {
   if (!pageFade) {
     return;
@@ -198,6 +213,14 @@ function initialize() {
   dom.wifiStatusCard.iconSvg = wifiIcon;
   dom.geminiCard.iconSvg = apiKeyIcon;
   dom.timezoneLocationCard.iconSvg = clockIcon;
+  dom.firmwareCard.iconSvg = firmwareIcon;
+  dom.firmwareFileInput.progressHidden = true;
+  dom.firmwareCodeBtn.addEventListener('click', () => {
+    void firmwareController.requestCode();
+  });
+  dom.firmwareUpdateBtn.addEventListener('click', () => {
+    firmwareController.upload();
+  });
 
   wifiController.renderNetworkList();
 
@@ -260,6 +283,7 @@ async function loadInitialStatus() {
     timeController.fetchTimeSettingsStatus(),
     wifiController.checkStatus(),
     loadGeminiSettings(),
+    firmwareController.loadStatus(),
   ]);
 }
 

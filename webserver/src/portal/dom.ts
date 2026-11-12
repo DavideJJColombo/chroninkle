@@ -1,3 +1,4 @@
+import type { FirmwareFileField } from './firmware';
 import type {
   BottomSheetField,
   CardField,
@@ -37,6 +38,13 @@ export interface PortalDom {
   manualDateInput: ValidatableField;
   timezoneLocationClearBtn: HTMLButtonElement;
   timezoneLocationSaveBtn: HTMLButtonElement;
+  // Firmware update (OTA)
+  firmwareCard: CardField;
+  firmwareVersionText: HTMLElement;
+  firmwareFileInput: FirmwareFileField;
+  firmwareCodeInput: ValidatableField;
+  firmwareCodeBtn: HTMLElement & { disabled: boolean };
+  firmwareUpdateBtn: HTMLElement & { disabled: boolean };
 }
 
 export function createPortalDom(): PortalDom {
@@ -63,5 +71,12 @@ export function createPortalDom(): PortalDom {
     manualDateInput: getRequiredElement<ValidatableField>('manualDateInput'),
     timezoneLocationClearBtn: getRequiredElement<HTMLButtonElement>('timezoneLocationClearBtn'),
     timezoneLocationSaveBtn: getRequiredElement<HTMLButtonElement>('timezoneLocationSaveBtn'),
+
+    firmwareCard: getRequiredElement<CardField>('firmwareCard'),
+    firmwareVersionText: getRequiredElement<HTMLElement>('firmwareVersionText'),
+    firmwareFileInput: getRequiredElement<FirmwareFileField>('firmwareFileInput'),
+    firmwareCodeInput: getRequiredElement<ValidatableField>('firmwareCodeInput'),
+    firmwareCodeBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('firmwareCodeBtn'),
+    firmwareUpdateBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('firmwareUpdateBtn'),
   };
 }

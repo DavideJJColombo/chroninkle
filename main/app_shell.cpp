@@ -33,6 +33,7 @@
 #include "input_focus_runtime.h"
 #include "input_runtime_setup.h"
 #include "lock_screen_runtime.h"
+#include "ota_service.h"
 #include "overlay_runtime.h"
 #include "page_input_runtime.h"
 #include "power_key_runtime.h"
@@ -1488,6 +1489,45 @@ void RegisterWifiBackendRoutes(httpd_handle_t server, void*)
 {
     timezone_service::RegisterPortalRoutes(server);
     gemini_service::RegisterPortalRoutes(server);
+    ota_service::RegisterPortalRoutes(server);
+}
+
+// Firmware updates from the setup portal: the one-time code the portal asks for is shown here,
+// on the device itself, then the progress of the update.
+void HandleOtaEvent(const ota_service::Event& event, void*)
+{
+    epaper_ui::ToastState toast = {};
+    uint32_t duration_ms = 4000;
+    std::string text;
+    switch (event.type) {
+        case ota_service::EventType::kCodeIssued: {
+            char code[8] = {};
+            std::snprintf(code, sizeof(code), "%06u", static_cast<unsigned>(event.code));
+            text = std::string(i18n::Tr("Update code: ", "Codice aggiornamento: ")) + code;
+            toast = BuildToast(text.c_str(), EmbeddedIconId::kLock);
+            duration_ms = 10 * 60 * 1000;  // as long as the code stays valid
+            break;
+        }
+        case ota_service::EventType::kUpdateStarted:
+            toast = BuildToast(i18n::Tr("Updating firmware...", "Aggiornamento firmware in corso..."),
+                               EmbeddedIconId::kRefresh);
+            duration_ms = 5 * 60 * 1000;
+            break;
+        case ota_service::EventType::kUpdateFailed:
+            toast = BuildToast(i18n::Tr("Firmware update failed", "Aggiornamento non riuscito"),
+                               EmbeddedIconId::kClose);
+            break;
+        case ota_service::EventType::kUpdateSucceeded:
+            toast = BuildToast(i18n::Tr("Update installed, restarting...",
+                                        "Aggiornamento installato, riavvio..."),
+                               EmbeddedIconId::kCheck);
+            break;
+    }
+    const esp_err_t err = overlay_runtime::ShowToastForDuration(toast, duration_ms);
+    FlushOverlayFeedback();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Show OTA toast failed: %s", esp_err_to_name(err));
+    }
 }
 
 void HandleGeminiEvent(const gemini_service::Event& event, void*)
@@ -2056,6 +2096,7 @@ void InitWifiService()
     wifi_service::SetScanDeferProvider(
         [](void*) { return display_service::IsRefreshInProgress(); }, nullptr);
     wifi_service::SetPortalRouteRegistrar(RegisterWifiBackendRoutes, nullptr);
+    ota_service::SetEventHandler(HandleOtaEvent, nullptr);
     const esp_err_t err = wifi_service::Init();
     if (err != ESP_OK) {
         ESP_LOGW(kTag, "Wi-Fi service init failed: %s", esp_err_to_name(err));

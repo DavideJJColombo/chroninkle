@@ -132,6 +132,9 @@ std::string FitLabelText(design::TypographyRole role, const std::string& text, i
         return {};
     }
     for (size_t length = text.size(); length > 0; --length) {
+        if (!epaper_font::IsUtf8Boundary(text, length)) {
+            continue;
+        }
         const std::string candidate = text.substr(0, length) + kEllipsis;
         if (MeasureText(role, candidate) <= max_width) {
             return candidate;

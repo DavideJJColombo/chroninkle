@@ -255,15 +255,24 @@ std::array<std::string_view, 4> WrapLines(std::string_view text, int max_width, 
 
         if (last_fit_end == line_start) {
             last_fit_end = text.size();
+            // A single word wider than the line: break it at the last character that fits,
+            // only ever cutting between UTF-8 code points.
+            size_t previous_split = line_start;
             for (size_t split = line_start + 1; split <= text.size(); ++split) {
+                if (!epaper_font::IsUtf8Boundary(text, split)) {
+                    continue;
+                }
                 if (MeasureText(kToastRole, text.substr(line_start, split - line_start)) >
                     max_width) {
-                    last_fit_end = split - 1;
+                    last_fit_end = previous_split;
                     break;
                 }
+                previous_split = split;
             }
             if (last_fit_end <= line_start) {
-                last_fit_end = std::min(text.size(), line_start + 1);
+                size_t first_char_end = line_start;
+                epaper_font::DecodeUtf8(text, &first_char_end);
+                last_fit_end = std::min(text.size(), first_char_end);
             }
         }
 

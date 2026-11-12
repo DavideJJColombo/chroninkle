@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "epaper_ui/bitmap_font.h"
+
 namespace epaper_ui {
 namespace {
 
@@ -45,8 +47,11 @@ bool Backspace(KeyboardInputState& input)
         return false;
     }
 
-    input.value_text.erase(static_cast<size_t>(input.cursor_index - 1), 1);
-    --input.cursor_index;
+    // Delete the whole character before the cursor, not just its last UTF-8 byte.
+    const size_t end = static_cast<size_t>(input.cursor_index);
+    const size_t start = epaper_font::PreviousUtf8Boundary(input.value_text, end);
+    input.value_text.erase(start, end - start);
+    input.cursor_index = static_cast<int>(start);
     return true;
 }
 

@@ -1,4 +1,26 @@
 #!/usr/bin/env python3
+"""Generate packed 1-bit bitmap fonts for the e-paper UI from TTF files.
+
+Each font covers one of two slot ranges, indexed by byte value:
+
+- ``ascii``: 32-126 (printable ASCII only).
+- ``cp1252``: 32-255 laid out as Windows-1252, i.e. ASCII + Latin-1 (accented
+  letters such as a-grave, e-acute, ...) + the typographic punctuation
+  Windows-1252 puts at 0x80-0x9F (curly quotes, dashes, ellipsis, euro sign).
+  ``epaper_font::CodepointToSlot`` in ``components/epaper_ui/bitmap_font.cpp``
+  maps decoded UTF-8 code points onto these slots; keep the two in sync.
+
+Two rasterizer backends are supported:
+
+- ``coretext`` (macOS only): the original backend.
+- ``freetype`` (any OS, needs ``pip install freetype-py``): unhinted monochrome
+  rendering, which matches CoreText's output to within ~1% of edge pixels.
+
+``--reuse-glyphs-from <existing generated .cpp>`` copies every glyph (and the
+font metrics) already present in an existing generated file verbatim and only
+rasterizes the missing ones, so extending a font's charset on a non-macOS
+machine does not perturb the glyphs that were already shipped.
+"""
 
 from __future__ import annotations
 
@@ -25,9 +47,6 @@ from ctypes import (
 from dataclasses import dataclass
 from pathlib import Path
 
-
-if platform.system() != "Darwin":
-    raise SystemExit("font generation is only supported on macOS")
 
 
 class CGPoint(Structure):
@@ -58,6 +77,7 @@ class FontSpec:
     path: str
     symbol: str
     size: float
+    charset: str = "cp1252"
 
 
 @dataclass(frozen=True)
@@ -70,108 +90,111 @@ class GlyphRecord:
     bitmap: list[int]
 
 
+kFirstSlot = 32
+kCharsetLastSlot = {"ascii": 126, "cp1252": 255}
+
+# Windows-1252 0x80-0x9F. None marks the five slots Windows-1252 leaves undefined;
+# they are emitted as empty, zero-advance glyphs and never addressed at runtime.
+kCp1252HighControls = [
+    0x20AC, None, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+    0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, None, 0x017D, None,
+    None, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
+    0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, None, 0x017E, 0x0178,
+]
+
+
+def slot_codepoint(slot: int) -> int | None:
+    """Unicode code point rendered into a byte slot (Windows-1252 layout)."""
+    if 0x80 <= slot <= 0x9F:
+        return kCp1252HighControls[slot - 0x80]
+    if slot == 0x7F:
+        return None
+    return slot
+
+
 class FontGenError(RuntimeError):
     pass
 
 
-CORE_GRAPHICS = CDLL(
-    "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
-)
-CORE_TEXT = CDLL("/System/Library/Frameworks/CoreText.framework/CoreText")
+if platform.system() == "Darwin":
+    CORE_GRAPHICS = CDLL(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics"
+    )
+    CORE_TEXT = CDLL("/System/Library/Frameworks/CoreText.framework/CoreText")
 
-kCTFontOrientationHorizontal = 0
-kCGInterpolationNone = 1
-kCGImageAlphaNone = 0
-kAsciiFirst = 32
-kAsciiLast = 126
-kIdentityTransform = CGAffineTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    kCTFontOrientationHorizontal = 0
+    kCGInterpolationNone = 1
+    kCGImageAlphaNone = 0
+    kIdentityTransform = CGAffineTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
-CORE_GRAPHICS.CGDataProviderCreateWithFilename.argtypes = [c_char_p]
-CORE_GRAPHICS.CGDataProviderCreateWithFilename.restype = c_void_p
-CORE_GRAPHICS.CGFontCreateWithDataProvider.argtypes = [c_void_p]
-CORE_GRAPHICS.CGFontCreateWithDataProvider.restype = c_void_p
-CORE_GRAPHICS.CGColorSpaceCreateDeviceGray.argtypes = []
-CORE_GRAPHICS.CGColorSpaceCreateDeviceGray.restype = c_void_p
-CORE_GRAPHICS.CGBitmapContextCreate.argtypes = [
-    c_void_p,
-    c_size_t,
-    c_size_t,
-    c_size_t,
-    c_size_t,
-    c_void_p,
-    c_uint32,
-]
-CORE_GRAPHICS.CGBitmapContextCreate.restype = c_void_p
-CORE_GRAPHICS.CGContextSetGrayFillColor.argtypes = [c_void_p, c_double, c_double]
-CORE_GRAPHICS.CGContextFillRect.argtypes = [c_void_p, CGRect]
-CORE_GRAPHICS.CGContextSetShouldAntialias.argtypes = [c_void_p, c_bool]
-CORE_GRAPHICS.CGContextSetAllowsAntialiasing.argtypes = [c_void_p, c_bool]
-CORE_GRAPHICS.CGContextSetInterpolationQuality.argtypes = [c_void_p, c_int]
-CORE_GRAPHICS.CGContextSetTextMatrix.argtypes = [c_void_p, CGAffineTransform]
+    CORE_GRAPHICS.CGDataProviderCreateWithFilename.argtypes = [c_char_p]
+    CORE_GRAPHICS.CGDataProviderCreateWithFilename.restype = c_void_p
+    CORE_GRAPHICS.CGFontCreateWithDataProvider.argtypes = [c_void_p]
+    CORE_GRAPHICS.CGFontCreateWithDataProvider.restype = c_void_p
+    CORE_GRAPHICS.CGColorSpaceCreateDeviceGray.argtypes = []
+    CORE_GRAPHICS.CGColorSpaceCreateDeviceGray.restype = c_void_p
+    CORE_GRAPHICS.CGBitmapContextCreate.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_size_t,
+        c_size_t,
+        c_size_t,
+        c_void_p,
+        c_uint32,
+    ]
+    CORE_GRAPHICS.CGBitmapContextCreate.restype = c_void_p
+    CORE_GRAPHICS.CGContextSetGrayFillColor.argtypes = [c_void_p, c_double, c_double]
+    CORE_GRAPHICS.CGContextFillRect.argtypes = [c_void_p, CGRect]
+    CORE_GRAPHICS.CGContextSetShouldAntialias.argtypes = [c_void_p, c_bool]
+    CORE_GRAPHICS.CGContextSetAllowsAntialiasing.argtypes = [c_void_p, c_bool]
+    CORE_GRAPHICS.CGContextSetInterpolationQuality.argtypes = [c_void_p, c_int]
+    CORE_GRAPHICS.CGContextSetTextMatrix.argtypes = [c_void_p, CGAffineTransform]
 
-CORE_TEXT.CTFontCreateWithGraphicsFont.argtypes = [
-    c_void_p,
-    c_double,
-    c_void_p,
-    c_void_p,
-]
-CORE_TEXT.CTFontCreateWithGraphicsFont.restype = c_void_p
-CORE_TEXT.CTFontGetGlyphsForCharacters.argtypes = [
-    c_void_p,
-    POINTER(c_uint16),
-    POINTER(c_uint16),
-    c_long,
-]
-CORE_TEXT.CTFontGetGlyphsForCharacters.restype = c_bool
-CORE_TEXT.CTFontGetAdvancesForGlyphs.argtypes = [
-    c_void_p,
-    c_uint32,
-    POINTER(c_uint16),
-    POINTER(CGSize),
-    c_long,
-]
-CORE_TEXT.CTFontGetBoundingRectsForGlyphs.argtypes = [
-    c_void_p,
-    c_uint32,
-    POINTER(c_uint16),
-    POINTER(CGRect),
-    c_long,
-]
-CORE_TEXT.CTFontGetBoundingRectsForGlyphs.restype = CGRect
-CORE_TEXT.CTFontGetAscent.argtypes = [c_void_p]
-CORE_TEXT.CTFontGetAscent.restype = c_double
-CORE_TEXT.CTFontGetDescent.argtypes = [c_void_p]
-CORE_TEXT.CTFontGetDescent.restype = c_double
-CORE_TEXT.CTFontGetLeading.argtypes = [c_void_p]
-CORE_TEXT.CTFontGetLeading.restype = c_double
-CORE_TEXT.CTFontDrawGlyphs.argtypes = [
-    c_void_p,
-    POINTER(c_uint16),
-    POINTER(CGPoint),
-    c_long,
-    c_void_p,
-]
+    CORE_TEXT.CTFontCreateWithGraphicsFont.argtypes = [
+        c_void_p,
+        c_double,
+        c_void_p,
+        c_void_p,
+    ]
+    CORE_TEXT.CTFontCreateWithGraphicsFont.restype = c_void_p
+    CORE_TEXT.CTFontGetGlyphsForCharacters.argtypes = [
+        c_void_p,
+        POINTER(c_uint16),
+        POINTER(c_uint16),
+        c_long,
+    ]
+    CORE_TEXT.CTFontGetGlyphsForCharacters.restype = c_bool
+    CORE_TEXT.CTFontGetAdvancesForGlyphs.argtypes = [
+        c_void_p,
+        c_uint32,
+        POINTER(c_uint16),
+        POINTER(CGSize),
+        c_long,
+    ]
+    CORE_TEXT.CTFontGetBoundingRectsForGlyphs.argtypes = [
+        c_void_p,
+        c_uint32,
+        POINTER(c_uint16),
+        POINTER(CGRect),
+        c_long,
+    ]
+    CORE_TEXT.CTFontGetBoundingRectsForGlyphs.restype = CGRect
+    CORE_TEXT.CTFontGetAscent.argtypes = [c_void_p]
+    CORE_TEXT.CTFontGetAscent.restype = c_double
+    CORE_TEXT.CTFontGetDescent.argtypes = [c_void_p]
+    CORE_TEXT.CTFontGetDescent.restype = c_double
+    CORE_TEXT.CTFontGetLeading.argtypes = [c_void_p]
+    CORE_TEXT.CTFontGetLeading.restype = c_double
+    CORE_TEXT.CTFontDrawGlyphs.argtypes = [
+        c_void_p,
+        POINTER(c_uint16),
+        POINTER(CGPoint),
+        c_long,
+        c_void_p,
+    ]
 
 
-def parse_args(argv: list[str]) -> tuple[Path, list[FontSpec]]:
-    if len(argv) < 4 or argv[1] != "--output":
-        raise FontGenError(
-            "usage: generate_epaper_fonts.py --output <file> <font-path:symbol:size>..."
-        )
 
-    output_path = Path(argv[2])
-    specs: list[FontSpec] = []
-    for raw in argv[3:]:
-        parts = raw.split(":", 2)
-        if len(parts) != 3:
-            raise FontGenError(f"invalid font spec: {raw}")
-        try:
-            size = float(parts[2])
-        except ValueError as exc:
-            raise FontGenError(f"invalid font size in spec: {raw}") from exc
-        specs.append(FontSpec(path=parts[0], symbol=parts[1], size=size))
-
-    return output_path, specs
 
 
 def load_font(spec: FontSpec) -> c_void_p:
@@ -310,6 +333,131 @@ def render_glyph(font: c_void_p, character: int) -> GlyphRecord:
     )
 
 
+class CoreTextBackend:
+    name = "coretext"
+
+    def __init__(self, spec: FontSpec) -> None:
+        if platform.system() != "Darwin":
+            raise FontGenError("the coretext backend is only available on macOS")
+        self._font = load_font(spec)
+
+    def metrics(self) -> tuple[int, int]:
+        ascent = max(1, math.ceil(CORE_TEXT.CTFontGetAscent(self._font)))
+        descent = max(0, math.ceil(CORE_TEXT.CTFontGetDescent(self._font)))
+        leading = max(0, math.ceil(CORE_TEXT.CTFontGetLeading(self._font)))
+        return max(1, ascent + descent + leading), ascent
+
+    def render(self, codepoint: int) -> GlyphRecord:
+        return render_glyph(self._font, codepoint)
+
+
+class FreeTypeBackend:
+    name = "freetype"
+
+    def __init__(self, spec: FontSpec) -> None:
+        try:
+            import freetype  # type: ignore[import-not-found]
+        except ImportError as exc:
+            raise FontGenError(
+                "the freetype backend needs freetype-py: pip install freetype-py"
+            ) from exc
+        self._ft = freetype
+        self._face = freetype.Face(spec.path)
+        self._size = spec.size
+        self._face.set_char_size(int(round(spec.size * 64)), 0, 72, 72)
+
+    def metrics(self) -> tuple[int, int]:
+        # Unrounded design-unit metrics, rounded up the way the CoreText backend does.
+        scale = self._size / self._face.units_per_EM
+        ascent = max(1, math.ceil(self._face.ascender * scale))
+        descent = max(0, math.ceil(-self._face.descender * scale))
+        leading = max(0, math.ceil((self._face.height - self._face.ascender + self._face.descender) * scale))
+        return max(1, ascent + descent + leading), ascent
+
+    def render(self, codepoint: int) -> GlyphRecord:
+        ft = self._ft
+        if self._face.get_char_index(codepoint) == 0 and codepoint != ord("?"):
+            codepoint = ord("?")
+        self._face.load_char(
+            chr(codepoint),
+            ft.FT_LOAD_RENDER
+            | ft.FT_LOAD_NO_HINTING
+            | ft.FT_LOAD_TARGET_MONO
+            | ft.FT_LOAD_MONOCHROME,
+        )
+        glyph = self._face.glyph
+        bitmap = glyph.bitmap
+        advance = max(1, math.ceil(glyph.linearHoriAdvance / 65536.0))
+        width, height = bitmap.width, bitmap.rows
+        if width == 0 or height == 0:
+            return GlyphRecord(0, 0, glyph.bitmap_left, glyph.bitmap_top, advance, [])
+
+        samples: list[int] = []
+        for row in range(height):
+            for col in range(width):
+                byte = bitmap.buffer[row * bitmap.pitch + col // 8]
+                samples.append(0 if byte & (0x80 >> (col % 8)) else 0xFF)
+        return GlyphRecord(
+            width=width,
+            height=height,
+            bearing_x=glyph.bitmap_left,
+            bearing_y=glyph.bitmap_top,
+            advance=advance,
+            bitmap=pack_bitmap(samples, width, height, width),
+        )
+
+
+@dataclass
+class ExistingFont:
+    first_slot: int
+    line_height: int
+    ascent: int
+    glyphs: dict[int, GlyphRecord]
+
+
+def parse_existing_fonts(path: Path) -> dict[str, ExistingFont]:
+    """Read glyphs and metrics back out of a previously generated fonts .cpp."""
+    source = path.read_text(encoding="utf-8")
+    fonts: dict[str, ExistingFont] = {}
+    record_re = re.compile(
+        r"\{\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(-?\d+),\s*(-?\d+),\s*(\d+)\s*\}"
+    )
+    for match in re.finditer(
+        r"const epaper_font::GlyphBitmap (\w+)_glyphs\[\] = \{(.*?)\};", source, re.S
+    ):
+        symbol = match.group(1)
+        bitmaps_match = re.search(
+            r"const uint8_t %s_bitmaps\[\] = \{(.*?)\};" % re.escape(symbol), source, re.S
+        )
+        font_match = re.search(
+            r"const epaper_font::BitmapFont %s = \{\s*\"[^\"]*\",\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),"
+            % re.escape(symbol),
+            source,
+        )
+        if bitmaps_match is None or font_match is None:
+            raise FontGenError(f"could not parse existing font {symbol} in {path}")
+        data = [int(value, 16) for value in re.findall(r"0x([0-9A-Fa-f]{2})", bitmaps_match.group(1))]
+        first_slot = int(font_match.group(1))
+        glyphs: dict[int, GlyphRecord] = {}
+        for index, record in enumerate(record_re.findall(match.group(2))):
+            offset, count, width, height, bearing_x, bearing_y, advance = (int(v) for v in record)
+            glyphs[first_slot + index] = GlyphRecord(
+                width=width,
+                height=height,
+                bearing_x=bearing_x,
+                bearing_y=bearing_y,
+                advance=advance,
+                bitmap=data[offset : offset + count],
+            )
+        fonts[symbol] = ExistingFont(
+            first_slot=first_slot,
+            line_height=int(font_match.group(3)),
+            ascent=int(font_match.group(4)),
+            glyphs=glyphs,
+        )
+    return fonts
+
+
 def emit_byte_array(values: list[int], indent: str) -> str:
     if not values:
         return ""
@@ -329,25 +477,39 @@ def emit_byte_array(values: list[int], indent: str) -> str:
     return "\n".join(lines)
 
 
-def generate_source(specs: list[FontSpec]) -> str:
+kEmptyGlyph = GlyphRecord(0, 0, 0, 0, 0, [])
+
+
+def generate_source(
+    specs: list[FontSpec], backend_name: str, existing: dict[str, ExistingFont]
+) -> str:
     out = [
-        '#include "generated_epaper_fonts.h"',
+        '#include "epaper_ui/generated_epaper_fonts.h"',
         "",
         "namespace epaper_fonts {",
         "",
     ]
 
+    backend_cls = CoreTextBackend if backend_name == "coretext" else FreeTypeBackend
     for spec in specs:
-        font = load_font(spec)
-        ascent = max(1, math.ceil(CORE_TEXT.CTFontGetAscent(font)))
-        descent = max(0, math.ceil(CORE_TEXT.CTFontGetDescent(font)))
-        leading = max(0, math.ceil(CORE_TEXT.CTFontGetLeading(font)))
-        line_height = max(1, ascent + descent + leading)
+        backend = backend_cls(spec)
+        previous = existing.get(spec.symbol)
+        if previous is not None:
+            line_height, ascent = previous.line_height, previous.ascent
+        else:
+            line_height, ascent = backend.metrics()
 
+        last_slot = kCharsetLastSlot[spec.charset]
         all_bitmap_bytes: list[int] = []
         glyph_lines: list[str] = []
-        for code in range(kAsciiFirst, kAsciiLast + 1):
-            glyph = render_glyph(font, code)
+        for slot in range(kFirstSlot, last_slot + 1):
+            codepoint = slot_codepoint(slot)
+            if previous is not None and slot in previous.glyphs:
+                glyph = previous.glyphs[slot]
+            elif codepoint is None:
+                glyph = kEmptyGlyph
+            else:
+                glyph = backend.render(codepoint)
             offset = len(all_bitmap_bytes)
             all_bitmap_bytes.extend(glyph.bitmap)
             glyph_lines.append(
@@ -382,8 +544,8 @@ def generate_source(specs: list[FontSpec]) -> str:
                 "",
                 f"const epaper_font::BitmapFont {spec.symbol} = {{",
                 f'    "{spec.symbol}",',
-                f"    {kAsciiFirst},",
-                f"    {kAsciiLast},",
+                f"    {kFirstSlot},",
+                f"    {last_slot},",
                 f"    {line_height},",
                 f"    {ascent},",
                 f"    {spec.symbol}_glyphs,",
@@ -398,10 +560,64 @@ def generate_source(specs: list[FontSpec]) -> str:
     return "\n".join(out)
 
 
+kUsage = (
+    "usage: generate_epaper_fonts.py --output <file> [--backend coretext|freetype] "
+    "[--reuse-glyphs-from <generated.cpp>] <font-path:symbol:size[:ascii|cp1252]>..."
+)
+
+
+def parse_args(argv: list[str]) -> tuple[Path, str, Path | None, list[FontSpec]]:
+    output_path: Path | None = None
+    backend = "coretext" if platform.system() == "Darwin" else "freetype"
+    reuse_from: Path | None = None
+    raw_specs: list[str] = []
+
+    args = argv[1:]
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in ("--output", "--backend", "--reuse-glyphs-from"):
+            if index + 1 >= len(args):
+                raise FontGenError(kUsage)
+            value = args[index + 1]
+            if arg == "--output":
+                output_path = Path(value)
+            elif arg == "--backend":
+                if value not in ("coretext", "freetype"):
+                    raise FontGenError(f"unknown backend: {value}")
+                backend = value
+            else:
+                reuse_from = Path(value)
+            index += 2
+            continue
+        raw_specs.append(arg)
+        index += 1
+
+    if output_path is None or not raw_specs:
+        raise FontGenError(kUsage)
+
+    specs: list[FontSpec] = []
+    for raw in raw_specs:
+        parts = raw.split(":")
+        if len(parts) not in (3, 4):
+            raise FontGenError(f"invalid font spec: {raw}")
+        try:
+            size = float(parts[2])
+        except ValueError as exc:
+            raise FontGenError(f"invalid font size in spec: {raw}") from exc
+        charset = parts[3] if len(parts) == 4 else "cp1252"
+        if charset not in kCharsetLastSlot:
+            raise FontGenError(f"unknown charset in spec: {raw}")
+        specs.append(FontSpec(path=parts[0], symbol=parts[1], size=size, charset=charset))
+
+    return output_path, backend, reuse_from, specs
+
+
 def main(argv: list[str]) -> int:
     try:
-        output_path, specs = parse_args(argv)
-        source = generate_source(specs)
+        output_path, backend, reuse_from, specs = parse_args(argv)
+        existing = parse_existing_fonts(reuse_from) if reuse_from is not None else {}
+        source = generate_source(specs, backend, existing)
         output_path.write_text(source, encoding="utf-8")
         return 0
     except FontGenError as exc:

@@ -260,7 +260,11 @@ size_t FindSplitOffset(const std::string& text)
     if (text.size() <= 1U) {
         return 0;
     }
-    const size_t midpoint = text.size() / 2U;
+    size_t midpoint = text.size() / 2U;
+    // Never split inside a multi-byte UTF-8 character (e.g. an accented letter).
+    while (midpoint > 0U && (static_cast<unsigned char>(text[midpoint]) & 0xC0U) == 0x80U) {
+        --midpoint;
+    }
     const auto try_find = [&](const std::string& needle) -> size_t {
         const size_t forward = text.find(needle, midpoint);
         const size_t backward = text.rfind(needle, midpoint);

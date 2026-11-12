@@ -37,7 +37,9 @@ lives in `docs/waveshare-epaper-hardware-spec.md`.
 
 ## Commands
 
-This is an ESP-IDF project; there is no unit test suite. **Do not automatically
+This is an ESP-IDF project; there is no on-device unit test suite. Host-side (PC)
+tests for pure logic live in `tests/host/` (run `tests/host/run.sh`, needs only a
+C++20 compiler). **Do not automatically
 run builds** — only build when the user explicitly asks, and reuse the
 existing `build/` directory rather than creating a new one (see `AGENTS.md`).
 

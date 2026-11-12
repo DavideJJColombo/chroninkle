@@ -99,17 +99,13 @@ void NormalizeLineBreaks(std::string& text)
     }
 }
 
-// Best-effort transliteration of common Unicode punctuation (curly quotes, en/em dashes,
-// ellipsis, non-breaking space) that a real .txt file uses freely but this bitmap font
-// (ASCII 32-126 only) has no glyphs for. Without this, each raw UTF-8 byte of a multi-byte
-// character independently misses FindGlyph and renders as its own '?' -- one typographic
-// character shows up as two or three "?"s. Byte-length preserving like NormalizeLineBreaks
-// above: a replacement is padded with spaces (or truncated, though the table below is chosen
-// to always fit) to exactly the source sequence's byte length. An unrecognized multi-byte
-// sequence still collapses to a single '?' rather than one per byte; a stray/malformed
-// continuation byte (e.g. a multi-byte character split across a chunk-read boundary) becomes
-// a single space.
-void TransliterateUtf8Punctuation(std::string& text)
+// Cleans up UTF-8 the bitmap fonts cannot draw. Accented letters and the common typographic
+// punctuation (curly quotes, dashes, ellipsis, euro sign...) are drawn natively, so those
+// sequences are left untouched. Byte-length preserving like NormalizeLineBreaks above (the
+// pagination offsets map back to file offsets): any other multi-byte character collapses to
+// a single '?' padded with spaces, rather than one '?' per byte, and a stray/malformed byte
+// (e.g. a multi-byte character split across a chunk-read boundary) becomes a single space.
+void SanitizeUnsupportedUtf8(std::string& text)
 {
     size_t i = 0;
     while (i < text.size()) {
@@ -142,34 +138,24 @@ void TransliterateUtf8Punctuation(std::string& text)
             codepoint = (codepoint << 6) | (cont & 0x3F);
         }
         if (!valid) {
-            text[i] = ' ';
+            // A stray continuation byte or a sequence cut off by the end of the chunk is a
+            // fragment of a split character: blank it. Any other invalid lead byte is most
+            // likely a legacy Latin-1 / Windows-1252 file, which the renderer draws as such.
+            const bool truncated = seq_len > 0 && i + static_cast<size_t>(seq_len) > text.size();
+            if ((lead & 0xC0) == 0x80 || truncated) {
+                text[i] = ' ';
+            }
             ++i;
             continue;
         }
 
-        const char* replacement = "?";
-        switch (codepoint) {
-            case 0x2018: case 0x2019: case 0x201A: case 0x2032:
-                replacement = "'";
-                break;
-            case 0x201C: case 0x201D: case 0x201E: case 0x2033:
-                replacement = "\"";
-                break;
-            case 0x2013:
-                replacement = "-";
-                break;
-            case 0x2014:
-                replacement = "--";
-                break;
-            case 0x2026:
-                replacement = "...";
-                break;
-            case 0x00A0:
-                replacement = " ";
-                break;
-            default:
-                break;
+        // The renderer draws these natively, or through its own ASCII stand-in.
+        if (epaper_font::IsRenderableCodepoint(codepoint) ||
+            !epaper_font::AsciiFallback(codepoint).empty()) {
+            i += static_cast<size_t>(seq_len);
+            continue;
         }
+        const char* replacement = "?";
         const size_t replacement_len = std::strlen(replacement);
         for (int k = 0; k < seq_len; ++k) {
             text[i + static_cast<size_t>(k)] =
@@ -211,7 +197,7 @@ BookReaderPageLayout PaginateBookText(int portrait_width, int portrait_height,
     // into one unbreakable "line".
     std::string text = raw_text;
     NormalizeLineBreaks(text);
-    TransliterateUtf8Punctuation(text);
+    SanitizeUnsupportedUtf8(text);
 
     size_t start = 0;
     while (start < text.size() && static_cast<int>(result.lines.size()) < max_lines) {

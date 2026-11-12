@@ -42,6 +42,10 @@ std::string FitText(std::string_view text, design::TypographyRole role, int max_
 
     size_t length = text.size();
     while (length > 0) {
+        if (!epaper_font::IsUtf8Boundary(text, length)) {
+            --length;
+            continue;
+        }
         std::string_view candidate = text.substr(0, length);
         if (MeasureText(role, candidate) <= max_width) {
             return std::string(candidate);

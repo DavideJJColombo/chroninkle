@@ -77,7 +77,7 @@ std::vector<TodosPageCoordinator::TimelineGroup> TodosPageCoordinator::BuildGrou
             group_index = static_cast<int>(groups.size()) - 1;
         }
 
-        const std::string transcript = timeline_format::TrimTranscript(entry.transcript_text);
+        const std::string transcript = timeline_format::EntryText(entry);
         const bool has_transcription = entry.metadata.has_transcript && !transcript.empty();
 
         TimelineEntry timeline_entry = {};
@@ -94,7 +94,11 @@ std::vector<TodosPageCoordinator::TimelineGroup> TodosPageCoordinator::BuildGrou
         timeline_entry.item.header.time_text = timeline_format::FormatTimeLabel(entry.metadata.time_valid, entry.metadata.created_unix_seconds);
         timeline_entry.item.header.minute_seconds_text =
             timeline_format::FormatDurationLabel(entry.metadata.duration_ms);
-        timeline_entry.item.header.tag_text = i18n::Tr("Task", "Da fare");
+        // An open todo with a deadline shows it in place of the "Task" pill.
+        const std::string due_label =
+            entry.metadata.completed ? std::string() : timeline_format::DueLabel(entry.metadata);
+        timeline_entry.item.header.tag_text =
+            !due_label.empty() ? due_label : std::string(i18n::Tr("Task", "Da fare"));
         timeline_entry.item.body_text = has_transcription ? transcript : i18n::Tr("Audio only todo.", "Attività solo audio.");
         timeline_entry.item.accessory.kind = epaper_ui::ListItemAccessoryKind::kCheckbox;
         timeline_entry.item.accessory.checked = entry.metadata.completed;

@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 
+#include "app_state_service.h"
 #include "i18n.h"
 #include "page_navigation/navigation_model.h"
 #include "page_navigation/page_focus_projection.h"
@@ -236,6 +237,13 @@ void ToggleLanguage()
 {
     const int next = (static_cast<int>(i18n::Current()) + 1) % i18n::kLanguageCount;
     (void)i18n::SetLanguage(static_cast<i18n::Language>(next));
+    s_pending_language_changed.store(true, std::memory_order_relaxed);
+}
+
+void ToggleAutoClassify()
+{
+    app_state_service::SetAutoClassifyEnabled(!app_state_service::AutoClassifyEnabled());
+    // Same repaint path as a language change: the Settings page rebuilds its labels.
     s_pending_language_changed.store(true, std::memory_order_relaxed);
 }
 

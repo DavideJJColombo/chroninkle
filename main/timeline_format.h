@@ -34,6 +34,17 @@ std::string TrimTranscript(const std::string& text);
 // Human tag label: kTask -> "Task", kIdea -> "Idea", otherwise "Note".
 std::string TagText(recording_archive_service::RecordingTag tag);
 
+// Text to show for an entry in lists and on the lock screen: its short display_text when it has
+// one (a single task pulled out of a longer recording), otherwise the trimmed transcript.
+std::string EntryText(const recording_archive_service::RecordingEntry& entry);
+
+// Deadline label of a todo: "" without a deadline, otherwise "Overdue", "Today", "Tomorrow" or a
+// short date ("Fri Nov 14"), followed by the time when one was set ("Today 15:00").
+std::string DueLabel(const recording_archive_service::RecordingMetadata& metadata);
+
+// Sort key putting the earliest deadline first and entries without one last.
+std::string DueSortKey(const recording_archive_service::RecordingMetadata& metadata);
+
 }  // namespace timeline_format
 
 #endif  // TIMELINE_FORMAT_H_

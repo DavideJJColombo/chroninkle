@@ -1,5 +1,6 @@
 #include "settings_page_coordinator.h"
 
+#include "app_state_service.h"
 #include "i18n.h"
 
 namespace {
@@ -11,6 +12,7 @@ constexpr NavigationItemRole kMenuRoles[epaper_ui::kSettingsMenuItemCount] = {
     NavigationItemRole::kSettingsMenuNetwork,
     NavigationItemRole::kSettingsMenuTime,
     NavigationItemRole::kSettingsMenuLanguage,
+    NavigationItemRole::kSettingsMenuAutoClassify,
     NavigationItemRole::kSettingsMenuStorage,
     NavigationItemRole::kSettingsMenuTodos,
     NavigationItemRole::kSettingsMenuTopics,
@@ -47,6 +49,7 @@ epaper_ui::SettingsPageState SettingsPageCoordinator::BuildState() const
     state.navigation_focus_index = focus_.index();
     state.title_text = i18n::Tr("Settings", "Impostazioni");
     state.language = static_cast<int>(i18n::Current());
+    state.auto_classify = app_state_service::AutoClassifyEnabled();
 
     state.menu.selected_index = -1;
     for (int index = 0; index < epaper_ui::kSettingsMenuItemCount; ++index) {

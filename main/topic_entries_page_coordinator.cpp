@@ -86,7 +86,7 @@ std::vector<TopicEntriesPageCoordinator::TimelineGroup> TopicEntriesPageCoordina
             group_index = static_cast<int>(groups.size()) - 1;
         }
 
-        const std::string transcript = timeline_format::TrimTranscript(entry.transcript_text);
+        const std::string transcript = timeline_format::EntryText(entry);
         const bool has_transcription = entry.metadata.has_transcript && !transcript.empty();
 
         TimelineEntry timeline_entry = {};

@@ -20,9 +20,9 @@ namespace transcription_retry_service {
 namespace {
 
 constexpr const char* kTag = "TranscribeRetry";
-// Per-item poll timeout: gemini_service's own HTTP transcription timeout is 30s
-// (kTranscribeTimeoutMs); this leaves margin for task scheduling before giving up on one item.
-constexpr int64_t kItemTimeoutUs = 40 * 1000 * 1000;
+// Per-item poll timeout: a transcription is an upload plus a generate call, each bounded by
+// gemini_service's own HTTP timeouts; this leaves margin for long recordings and scheduling.
+constexpr int64_t kItemTimeoutUs = 200LL * 1000 * 1000;
 constexpr int64_t kPollIntervalMs = 250;
 // Mirrors details_page_runtime's TranscribeWorker: loading a clip back off SD needs a
 // generously sized stack.

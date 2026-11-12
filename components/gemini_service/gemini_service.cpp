@@ -70,7 +70,8 @@ constexpr const char* kTranscriptPromptItalian =
     "Italian: write Italian with correct accents, apostrophes and punctuation. Transcribe in the "
     "language actually spoken and never translate. Respond with transcript text only. Do not add "
     "commentary or formatting.";
-constexpr int kTranscribeTimeoutMs = 30000;
+// Per HTTP operation of a transcription; sized for the longest recordings (up to 3 minutes).
+constexpr int kTranscribeTimeoutMs = 90000;
 constexpr size_t kHttpUploadChunkSamples = 2048;
 
 struct AuthResult {
@@ -1184,7 +1185,8 @@ HttpResponse PerformUploadFinalizePcmWav(const std::string& upload_url,
     return response;
 }
 
-std::string BuildTranscriptRequestJson(const std::string& file_uri)
+std::string BuildTranscriptRequestJson(const std::string& file_uri,
+                                       const TranscribeOptions* options)
 {
     cJSON* root = cJSON_CreateObject();
     cJSON* contents = cJSON_AddArrayToObject(root, "contents");
@@ -1193,8 +1195,10 @@ std::string BuildTranscriptRequestJson(const std::string& file_uri)
     cJSON* parts = cJSON_AddArrayToObject(content, "parts");
 
     cJSON* prompt_part = cJSON_CreateObject();
+    const bool custom_prompt = options != nullptr && !options->prompt.empty();
     cJSON_AddStringToObject(prompt_part, "text",
-                            i18n::Tr(kTranscriptPrompt, kTranscriptPromptItalian));
+                            custom_prompt ? options->prompt.c_str()
+                                          : i18n::Tr(kTranscriptPrompt, kTranscriptPromptItalian));
     cJSON_AddItemToArray(parts, prompt_part);
 
     cJSON* audio_part = cJSON_CreateObject();
@@ -1205,6 +1209,15 @@ std::string BuildTranscriptRequestJson(const std::string& file_uri)
 
     cJSON* generation_config = cJSON_AddObjectToObject(root, "generationConfig");
     cJSON_AddNumberToObject(generation_config, "temperature", 0);
+    if (options != nullptr && !options->response_schema_json.empty()) {
+        cJSON* schema = cJSON_Parse(options->response_schema_json.c_str());
+        if (schema != nullptr) {
+            cJSON_AddStringToObject(generation_config, "responseMimeType", "application/json");
+            cJSON_AddItemToObject(generation_config, "responseSchema", schema);
+        } else {
+            ESP_LOGW(kTag, "Ignoring invalid transcription response schema");
+        }
+    }
 
     char* raw = cJSON_PrintUnformatted(root);
     std::string json = raw != nullptr ? raw : "";
@@ -1549,7 +1562,8 @@ TokenCountResult CountTokens(const std::string& prompt)
     return result;
 }
 
-TranscriptionResult Transcribe(const recording_service::RecordedClip& clip)
+TranscriptionResult Transcribe(const recording_service::RecordedClip& clip,
+                               const TranscribeOptions* options)
 {
     TranscriptionResult result = {};
     result.clip_duration_ms = clip.duration_ms();
@@ -1618,7 +1632,8 @@ TranscriptionResult Transcribe(const recording_service::RecordedClip& clip)
 
     // 3. generateContent referencing the uploaded file.
     HttpResponse http =
-        PerformGenerateContentWithBody(api_key, model_name, BuildTranscriptRequestJson(file_uri));
+        PerformGenerateContentWithBody(api_key, model_name,
+                                       BuildTranscriptRequestJson(file_uri, options));
     result.http_status = http.status_code;
     result.total_elapsed_ms =
         static_cast<uint64_t>((esp_timer_get_time() - task_started_us) / 1000ULL);

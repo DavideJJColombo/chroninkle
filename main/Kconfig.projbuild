@@ -42,6 +42,15 @@ menu "Chroninkle Settings"
             Default timezone catalog entry used before a runtime timezone
             setting has been saved in NVS.
 
+    config CHRONINKLE_MAX_RECORDING_SECONDS
+        int "Longest recording (seconds)"
+        range 5 180
+        default 60
+        help
+            A recording stops automatically after this many seconds. Longer
+            takes use more PSRAM (about 32 KB per second) and take longer to
+            upload to Gemini.
+
     config CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG
         bool "Replay each recording before choosing its type"
         default n

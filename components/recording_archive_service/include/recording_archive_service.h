@@ -51,6 +51,17 @@ struct RecordingMetadata {
     // matching entry in the current registry (the topic was since deleted) is simply skipped by
     // readers, so no rewrite is needed here when a topic is deleted.
     std::vector<std::string> topic_ids = {};
+    // Short text to show in lists and on the lock screen instead of the transcript (e.g. one task
+    // pulled out of a longer recording by automatic classification). Empty: show the transcript.
+    std::string display_text = {};
+    // Optional deadline of a todo, local time: "YYYY-MM-DD" and, when one was said, "HH:MM".
+    std::string due_date = {};
+    std::string due_time = {};
+    // Set on an entry created from part of another recording (one of several todos spoken in a
+    // single take); it has no audio of its own -- the source recording holds it.
+    std::string source_recording_id = {};
+    // True when the tag/topic/deadline were chosen automatically by Gemini.
+    bool auto_classified = false;
 };
 
 // A single archived recording, resolved from its sidecar files on the SD card.
@@ -180,6 +191,23 @@ SaveResult SaveClip(const recording_service::RecordedClip& clip,
 SaveResult SaveTranscript(const std::string& recording_id, const std::string& transcript);
 
 const char* TagName(RecordingTag tag);
+
+// Result of automatic classification, applied to an archived recording in one metadata write.
+struct Classification {
+    RecordingTag tag = RecordingTag::kNote;
+    std::string display_text = {};
+    std::string due_date = {};
+    std::string due_time = {};
+    std::vector<std::string> topic_ids = {};
+};
+bool ApplyClassification(const std::string& recording_id, const Classification& classification);
+
+// Creates a text-only entry (metadata + transcript, no audio) derived from part of another
+// recording, e.g. the second of three todos spoken in one take. Inherits the source's creation
+// time. Returns the new id, or an empty string on failure.
+std::string CreateDerivedEntry(const std::string& source_recording_id,
+                               const Classification& classification,
+                               const std::string& text);
 
 }  // namespace recording_archive_service
 

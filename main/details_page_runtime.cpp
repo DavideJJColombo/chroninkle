@@ -32,11 +32,11 @@ DetailsPageCoordinator s_coordinator = {};
 int32_t s_interaction_generation = 1;
 std::atomic<bool> s_pending_back{false};
 
-// State for the i18n::Tr("Edit topics", "Modifica argomenti") multi-select modal, mirroring the item-actions-pending pattern
+// State for the "Edit topics" multi-select modal, mirroring the item-actions-pending pattern
 // used elsewhere (e.g. notes_page_runtime): set when the modal is shown, consumed on submit.
 bool s_edit_topics_pending = false;
 std::string s_edit_topics_recording_id;
-// Parallel to the modal's items (excluding the trailing i18n::Tr("Done", "Fatto") row): topic id at index i is
+// Parallel to the modal's items (excluding the trailing "Done" row): topic id at index i is
 // modal item i, so a submitted checked-items vector can be mapped straight back to ids.
 std::vector<std::string> s_edit_topics_ids;
 

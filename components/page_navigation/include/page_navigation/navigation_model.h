@@ -61,6 +61,7 @@ enum class NavigationItemRole : uint8_t {
     kSettingsMenuNetwork,
     kSettingsMenuTime,
     kSettingsMenuLanguage,
+    kSettingsMenuAutoClassify,
     kSettingsMenuStorage,
     kSettingsMenuTodos,
     kSettingsMenuTopics,

@@ -14,6 +14,7 @@ constexpr int kSideInset = design::spacing::k16;
 constexpr int kTopGap = design::spacing::k16;
 constexpr int kTitleBottomGap = design::spacing::k24;
 constexpr int kMenuManualGap = design::spacing::k24;
+constexpr int kSettingsMenuItemHeight = 60;
 
 int PageWidth(int portrait_width)
 {
@@ -31,7 +32,8 @@ MenuContainerStyle MenuStyle(int width)
     style.direction = MenuContainerDirection::kVertical;
     style.sizing = MenuContainerSizing::kFixedItemExtent;
     style.width = width;
-    style.item_height = design::menu_item::kHeight;
+    // Shorter than the default rows so all 8 headings plus Manual stay clear of the footer.
+    style.item_height = kSettingsMenuItemHeight;
     style.item_gap = 0;
     return style;
 }
@@ -64,7 +66,7 @@ Layout BuildLayout(int portrait_width, int portrait_height, const SettingsPageSt
 
 }  // namespace
 
-std::string SettingsMenuItemLabel(int index)
+std::string SettingsMenuItemLabel(int index, const SettingsPageState& state)
 {
     using i18n::Tr;
     switch (static_cast<SettingsMenuItem>(index)) {
@@ -75,6 +77,9 @@ std::string SettingsMenuItemLabel(int index)
         case SettingsMenuItem::kLanguage:
             return std::string(Tr("Language: ", "Lingua: ")) +
                    i18n::LanguageName(i18n::Current());
+        case SettingsMenuItem::kAutoClassify:
+            return state.auto_classify ? Tr("Sorting: Auto", "Tipo: Automatico")
+                                       : Tr("Sorting: Manual", "Tipo: Manuale");
         case SettingsMenuItem::kStorage:
             return Tr("Storage", "Memoria");
         case SettingsMenuItem::kTodos:
@@ -169,7 +174,7 @@ void DrawSettingsPage(uint8_t* framebuffer,
         const UiRect bounds = MenuContainerItemBounds(kSideInset, layout.menu_y, MenuState(state),
                                                        MenuStyle(page_width), index);
         MenuItemState item = {};
-        item.label_text = SettingsMenuItemLabel(index);
+        item.label_text = SettingsMenuItemLabel(index, state);
         item.selected = index == state.menu.selected_index;
 
         MenuItemStyle item_style = {};

@@ -116,7 +116,16 @@ std::string GetEffectiveModelName();
 // task). They use the effective API key + model and return the parsed result or an error.
 TextResult GenerateText(const std::string& prompt);
 TokenCountResult CountTokens(const std::string& prompt);
-TranscriptionResult Transcribe(const recording_service::RecordedClip& clip);
+// Optional instructions for Transcribe: a custom prompt and, when response_schema_json is set,
+// a JSON response constrained to that schema (Gemini responseSchema, OpenAPI subset). The JSON
+// text then comes back in TranscriptionResult::transcript for the caller to parse.
+struct TranscribeOptions {
+    std::string prompt = {};
+    std::string response_schema_json = {};
+};
+
+TranscriptionResult Transcribe(const recording_service::RecordedClip& clip,
+                               const TranscribeOptions* options = nullptr);
 bool BeginAuthentication();
 // Runs `job` on gemini_service's shared, persistent worker task (one 32KB-stack task reused
 // by every Gemini-backed caller -- transcription_service, summary_service,

@@ -77,7 +77,7 @@ void DetailsPageCoordinator::UpdateNavigationModel()
 {
     // The primary action button is present for a recording (Play once a transcript
     // exists, Transcribe otherwise) except when a transcript exists but the audio
-    // itself is gone -- there, i18n::Tr("Play", "Riproduci") would have nothing to do, so the control slot
+    // itself is gone -- there, "Play" would have nothing to do, so the control slot
     // (and its focus target) is dropped entirely, matching show_transcribe_button in
     // BuildState().
     const bool want_primary = !(has_transcript_ && !has_audio_file_);
@@ -163,7 +163,7 @@ epaper_ui::DetailsPageState DetailsPageCoordinator::BuildState() const
     // transcript exists, and otherwise transcribes it. (The reused button/role is
     // still named "transcribe" in the layout; only the label and intent vary.)
     // Hidden when a transcript exists but the audio itself is gone (e.g. removed via
-    // USB-OTG SD access) -- i18n::Tr("Play", "Riproduci") would otherwise show and silently do nothing.
+    // USB-OTG SD access) -- "Play" would otherwise show and silently do nothing.
     state.show_transcribe_button = !(has_transcript_ && !has_audio_file_);
     state.transcribe_button.label_text = has_transcript_ ? i18n::Tr("Play", "Riproduci") : i18n::Tr("Transcribe", "Trascrivi");
     state.transcribe_button.selected =
@@ -191,9 +191,16 @@ void DetailsPageCoordinator::ApplyEntry(const RecordingEntry& entry)
     has_transcript_ = entry.metadata.has_transcript && !transcript.empty();
     has_audio_file_ = entry.has_audio_file;
     transcript_text_ = transcript;
+    // A todo's deadline (set by automatic classification) heads the text.
+    if (entry.metadata.tag == recording_archive_service::RecordingTag::kTask && has_transcript_) {
+        const std::string due = timeline_format::DueLabel(entry.metadata);
+        if (!due.empty()) {
+            transcript_text_ = std::string(i18n::Tr("Due: ", "Scadenza: ")) + due + "\n\n" + transcript;
+        }
+    }
     last_transcription_error_ = entry.metadata.last_transcription_error;
     topic_ids_ = entry.metadata.topic_ids;
-    // i18n::Tr("Details", "Dettagli") (this page's own fallback title) when there's no date at all, rather than
+    // "Details" (this page's own fallback title) when there's no date at all, rather than
     // timeline_format::FormatDateLabel's own "Today" fallback for that case.
     title_text_ = entry.metadata.created_local_date.empty()
                       ? i18n::Tr("Details", "Dettagli")

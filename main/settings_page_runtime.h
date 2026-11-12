@@ -35,6 +35,8 @@ bool ConsumePendingShowAbout();
 // Switches to the next UI language (saved in NVS) and asks app_shell to repaint.
 void ToggleLanguage();
 bool ConsumePendingLanguageChanged();
+// Flips automatic classification of new recordings (saved in NVS) and asks for a repaint.
+void ToggleAutoClassify();
 
 }  // namespace settings_page_runtime
 

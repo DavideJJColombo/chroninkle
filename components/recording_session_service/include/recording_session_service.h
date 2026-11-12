@@ -64,6 +64,9 @@ struct Snapshot {
     bool has_clip = false;
     bool clip_saved = false;
     bool transcript_saved = false;
+    // The last recording was filed automatically (type/topic/todos chosen by Gemini);
+    // last_status_message then says where it went.
+    bool auto_classified = false;
     TopicActionState last_topic_action = TopicActionState::kNone;
     bool request_in_flight = false;
     size_t recorded_samples = 0;

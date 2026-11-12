@@ -35,6 +35,16 @@ top). This CLAUDE.md is a condensed map; when the two disagree,
 `docs/app-architecture.md` wins. Board-specific pin/electrical detail also
 lives in `docs/waveshare-epaper-hardware-spec.md`.
 
+## Automatic sorting of recordings
+
+With Settings > Sorting on (app_state_service::AutoClassifyEnabled, default on) and Gemini
+reachable, recording_session_service skips the tag menu: it saves the take as a Note and
+transcribes it with a custom prompt + JSON schema (`components/recording_session_service/
+auto_classify.*`, host-tested in tests/host). The answer sets the tag, topic, `display_text`
+and `due_date`/`due_time` (archive metadata); extra todos become text-only entries with
+`source_recording_id`. Offline or Manual: the old tag menu. Recording length is
+CONFIG_CHRONINKLE_MAX_RECORDING_SECONDS (default 60).
+
 ## Firmware update (OTA)
 
 `components/ota_service` lets the setup portal (AP mode) upload `build/chroninkle.bin` to the

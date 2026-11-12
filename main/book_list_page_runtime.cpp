@@ -40,7 +40,7 @@ std::string s_pending_filename;
 bool s_item_actions_pending = false;
 std::string s_item_actions_filename;
 std::vector<ItemAction> s_item_actions;
-// Stashed between the item-actions modal's i18n::Tr("Delete", "Elimina") and the confirm modal's i18n::Tr("Delete", "Elimina") --
+// Stashed between the item-actions modal's "Delete" and the confirm modal's "Delete" --
 // mirrors settings_topics_page_runtime's s_pending_delete_topic_id.
 std::string s_pending_delete_filename;
 

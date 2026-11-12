@@ -295,6 +295,22 @@ std::string SerializeMetadata(const ArchiveMetadata& metadata)
         cJSON_AddItemToArray(topic_ids, cJSON_CreateString(topic_id.c_str()));
     }
     cJSON_AddItemToObject(root, "topic_ids", topic_ids);
+    // Optional fields, written only when set so older sidecars stay byte-identical.
+    if (!metadata.display_text.empty()) {
+        cJSON_AddStringToObject(root, "display_text", metadata.display_text.c_str());
+    }
+    if (!metadata.due_date.empty()) {
+        cJSON_AddStringToObject(root, "due_date", metadata.due_date.c_str());
+    }
+    if (!metadata.due_time.empty()) {
+        cJSON_AddStringToObject(root, "due_time", metadata.due_time.c_str());
+    }
+    if (!metadata.source_recording_id.empty()) {
+        cJSON_AddStringToObject(root, "source_recording_id", metadata.source_recording_id.c_str());
+    }
+    if (metadata.auto_classified) {
+        cJSON_AddBoolToObject(root, "auto_classified", true);
+    }
 
     char* raw = cJSON_PrintUnformatted(root);
     std::string json = raw != nullptr ? raw : "";
@@ -398,6 +414,19 @@ bool ParseMetadata(const std::string& json, ArchiveMetadata* metadata)
             }
         }
     }
+
+    const auto read_string = [root](const char* key, std::string* out) {
+        cJSON* item = cJSON_GetObjectItemCaseSensitive(root, key);
+        if (cJSON_IsString(item) && item->valuestring != nullptr) {
+            *out = item->valuestring;
+        }
+    };
+    read_string("display_text", &parsed.display_text);
+    read_string("due_date", &parsed.due_date);
+    read_string("due_time", &parsed.due_time);
+    read_string("source_recording_id", &parsed.source_recording_id);
+    parsed.auto_classified =
+        cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(root, "auto_classified"));
 
     cJSON_Delete(root);
     *metadata = parsed;
@@ -634,6 +663,73 @@ esp_err_t SaveTranscriptOnMountedFilesystem(const char* mount_point, void* conte
     return ESP_OK;
 }
 
+struct DerivedEntryContext {
+    const std::string* source_recording_id = nullptr;
+    const Classification* classification = nullptr;
+    const std::string* text = nullptr;
+    std::string created_id = {};
+};
+
+esp_err_t CreateDerivedEntryOnMountedFilesystem(const char* mount_point, void* context)
+{
+    auto* derived = static_cast<DerivedEntryContext*>(context);
+    if (mount_point == nullptr || derived == nullptr || derived->classification == nullptr ||
+        derived->text == nullptr || derived->source_recording_id == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Inherit the source's creation time so the entry groups under the same day.
+    ArchiveMetadata source = {};
+    std::string source_base_path;
+    if (ResolveExistingBasePath(mount_point, *derived->source_recording_id, &source_base_path)) {
+        std::string json;
+        if (ReadTextFile(source_base_path + ".json", &json)) {
+            (void)ParseMetadata(json, &source);
+        }
+    }
+
+    const Classification& classification = *derived->classification;
+    const std::string directory = JoinPath(mount_point, ArchiveSubdirectory(classification.tag));
+    if (!EnsureDirectoryExists(directory)) {
+        return ESP_FAIL;
+    }
+
+    ArchiveMetadata metadata = {};
+    metadata.recording_id = GenerateRecordingId();
+    metadata.created_unix_seconds = source.created_unix_seconds > 0
+                                        ? source.created_unix_seconds
+                                        : static_cast<int64_t>(std::time(nullptr));
+    metadata.created_local_date =
+        !source.created_local_date.empty()
+            ? source.created_local_date
+            : FormatLocalDate(metadata.created_unix_seconds, &metadata.time_valid);
+    metadata.time_valid = source.created_local_date.empty() ? metadata.time_valid
+                                                            : source.time_valid;
+    metadata.has_transcript = true;
+    metadata.tag = classification.tag;
+    metadata.topic_ids = classification.topic_ids;
+    metadata.display_text = classification.display_text;
+    metadata.due_date = classification.due_date;
+    metadata.due_time = classification.due_time;
+    metadata.source_recording_id = *derived->source_recording_id;
+    metadata.auto_classified = true;
+
+    const std::string base_path = JoinPath(directory, metadata.recording_id);
+    const std::string& text = *derived->text;
+    if (!WriteFileBytes(base_path + ".txt", text.data(), text.size())) {
+        return ESP_FAIL;
+    }
+    const std::string json = SerializeMetadata(metadata);
+    if (!WriteFileBytes(base_path + ".json", json.data(), json.size())) {
+        (void)std::remove((base_path + ".txt").c_str());
+        return ESP_FAIL;
+    }
+    derived->created_id = metadata.recording_id;
+    ESP_LOGI(kTag, "Created derived entry: id=%s source=%s tag=%s", metadata.recording_id.c_str(),
+             derived->source_recording_id->c_str(), TagName(metadata.tag));
+    return ESP_OK;
+}
+
 void NotifyHandler()
 {
     EventHandler handler = nullptr;
@@ -853,6 +949,7 @@ struct MutateContext {
     std::string transcription_error = {};
     bool set_topic_ids = false;
     std::vector<std::string> topic_ids = {};
+    const Classification* classification = nullptr;
     bool applied = false;
 };
 
@@ -909,6 +1006,15 @@ esp_err_t MutateMetadataOnMountedFilesystem(const char* mount_point, void* conte
     }
     if (mutate->set_topic_ids) {
         metadata.topic_ids = mutate->topic_ids;
+    }
+    if (mutate->classification != nullptr) {
+        const Classification& classification = *mutate->classification;
+        metadata.tag = classification.tag;
+        metadata.display_text = classification.display_text;
+        metadata.due_date = classification.due_date;
+        metadata.due_time = classification.due_time;
+        metadata.topic_ids = classification.topic_ids;
+        metadata.auto_classified = true;
     }
 
     const std::string updated = SerializeMetadata(metadata);
@@ -1605,6 +1711,40 @@ bool UpdateRecordingTag(const std::string& recording_id, RecordingTag tag)
         (void)Refresh();
     }
     return context.applied;
+}
+
+bool ApplyClassification(const std::string& recording_id, const Classification& classification)
+{
+    if (recording_id.empty()) {
+        return false;
+    }
+    MutateContext context = {};
+    context.recording_id = recording_id.c_str();
+    context.classification = &classification;
+    (void)storage_service::RunWithMountedFilesystem(MutateMetadataOnMountedFilesystem, &context);
+    if (context.applied) {
+        (void)Refresh();  // the tag may have changed: re-aggregate the counts
+    }
+    return context.applied;
+}
+
+std::string CreateDerivedEntry(const std::string& source_recording_id,
+                               const Classification& classification,
+                               const std::string& text)
+{
+    if (source_recording_id.empty() || text.empty()) {
+        return {};
+    }
+    DerivedEntryContext context = {};
+    context.source_recording_id = &source_recording_id;
+    context.classification = &classification;
+    context.text = &text;
+    (void)storage_service::RunWithMountedFilesystem(CreateDerivedEntryOnMountedFilesystem,
+                                                    &context);
+    if (!context.created_id.empty()) {
+        (void)Refresh();
+    }
+    return context.created_id;
 }
 
 bool SetRecordingTopics(const std::string& recording_id, const std::vector<std::string>& topic_ids)

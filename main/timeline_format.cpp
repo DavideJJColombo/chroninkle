@@ -3,6 +3,7 @@
 #include "i18n.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 
 #include "timezone_service.h"
@@ -59,6 +60,9 @@ std::string FormatTimeLabel(bool time_valid, int64_t created_unix_seconds)
 
 std::string FormatDurationLabel(uint32_t duration_ms)
 {
+    if (duration_ms == 0) {
+        return {};  // text-only entry (e.g. a todo split out of another recording)
+    }
     const uint32_t seconds = duration_ms / 1000U;
     if (seconds < 60U) {
         return std::to_string(seconds) + "s";
@@ -87,6 +91,88 @@ std::string TagText(RecordingTag tag)
         default:
             return i18n::Tr("Note", "Nota");
     }
+}
+
+std::string EntryText(const recording_archive_service::RecordingEntry& entry)
+{
+    const std::string display = TrimTranscript(entry.metadata.display_text);
+    return !display.empty() ? display : TrimTranscript(entry.transcript_text);
+}
+
+namespace {
+
+// "YYYY-MM-DD" -> local midnight; false when unparseable.
+bool ParseDay(const std::string& day, std::tm* out)
+{
+    int year = 0;
+    int month = 0;
+    int mday = 0;
+    if (std::sscanf(day.c_str(), "%d-%d-%d", &year, &month, &mday) != 3) {
+        return false;
+    }
+    std::tm tm = {};
+    tm.tm_year = year - 1900;
+    tm.tm_mon = month - 1;
+    tm.tm_mday = mday;
+    tm.tm_hour = 12;  // noon: immune to DST shifts when stepping by days
+    tm.tm_isdst = -1;
+    if (std::mktime(&tm) == static_cast<std::time_t>(-1)) {
+        return false;
+    }
+    *out = tm;
+    return true;
+}
+
+std::string DayKey(const std::tm& tm)
+{
+    char buffer[16] = {};
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm);
+    return buffer;
+}
+
+}  // namespace
+
+std::string DueLabel(const recording_archive_service::RecordingMetadata& metadata)
+{
+    if (metadata.due_date.empty()) {
+        return {};
+    }
+    std::string label;
+    const std::string today = timezone_service::GetSnapshot().runtime.current_date;
+    std::tm today_tm = {};
+    std::tm due_tm = {};
+    const bool have_today = ParseDay(today, &today_tm);
+    if (!ParseDay(metadata.due_date, &due_tm)) {
+        return {};
+    }
+    std::tm tomorrow_tm = today_tm;
+    tomorrow_tm.tm_mday += 1;
+    std::mktime(&tomorrow_tm);
+
+    if (have_today && metadata.due_date < today) {
+        return i18n::Tr("Overdue", "Scaduta");
+    }
+    if (have_today && metadata.due_date == today) {
+        label = i18n::Tr("Today", "Oggi");
+    } else if (have_today && metadata.due_date == DayKey(tomorrow_tm)) {
+        label = i18n::Tr("Tomorrow", "Domani");
+    } else {
+        label = i18n::FormatShortDate(due_tm);
+    }
+    if (!metadata.due_time.empty() && metadata.due_time.size() == 5) {
+        const int hour = std::atoi(metadata.due_time.substr(0, 2).c_str());
+        const int minute = std::atoi(metadata.due_time.substr(3, 2).c_str());
+        label += " " + i18n::FormatClock(hour, minute);
+    }
+    return label;
+}
+
+std::string DueSortKey(const recording_archive_service::RecordingMetadata& metadata)
+{
+    if (metadata.due_date.empty()) {
+        return "~";  // after any digit
+    }
+    return metadata.due_date + " " + (metadata.due_time.empty() ? "99:99" : metadata.due_time);
 }
 
 }  // namespace timeline_format

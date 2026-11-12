@@ -882,7 +882,7 @@ std::vector<overlay_runtime::StickyNoteItem> BuildFollowUpStickyItems()
     items.reserve(follow_ups.size());
     for (const recording_archive_service::RecordingEntry* entry_ptr : follow_ups) {
         const recording_archive_service::RecordingEntry& entry = *entry_ptr;
-        const std::string transcript = timeline_format::TrimTranscript(entry.transcript_text);
+        const std::string transcript = timeline_format::EntryText(entry);
         const bool has_transcription = entry.metadata.has_transcript && !transcript.empty();
 
         overlay_runtime::StickyNoteItem item = {};
@@ -1236,6 +1236,10 @@ void HandleRecordingSessionEvent(const recording_session_service::Event& event, 
                        recording_session_service::TopicActionState::kFailed) {
                 toast = BuildToast(event.snapshot.last_status_message.c_str(),
                                    EmbeddedIconId::kClose);
+            } else if (event.snapshot.auto_classified) {
+                // Filed automatically: say where it went ("Aggiunto a Da fare - Casa").
+                toast = BuildToast(event.snapshot.last_status_message.c_str(),
+                                   EmbeddedIconId::kCheck);
             } else if (event.snapshot.transcript_saved) {
                 toast = BuildToast(i18n::Tr("Transcript saved to SD", "Trascrizione salvata su SD"), EmbeddedIconId::kFileTranscript);
             } else if (!event.snapshot.last_error_code.empty()) {

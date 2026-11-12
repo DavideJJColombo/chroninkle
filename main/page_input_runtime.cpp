@@ -750,6 +750,7 @@ ButtonResult ApplySettingsActivateResult(const settings_page_interactions::Activ
     callbacks.show_time = [&result]() {
         result.footer_item = footer_runtime::FooterFocusItem::kTime;
     };
+    callbacks.toggle_auto_classify = []() { settings_page_runtime::ToggleAutoClassify(); };
     callbacks.toggle_language = []() {
         // The repaint is deferred like the sub-page requests below; app_shell polls for it.
         settings_page_runtime::ToggleLanguage();

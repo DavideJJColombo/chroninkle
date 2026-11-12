@@ -5,6 +5,7 @@
 #include <string>
 
 #include "esp_err.h"
+#include "gemini_service.h"
 #include "recording_service.h"
 
 namespace transcription_service {
@@ -29,7 +30,10 @@ using EventHandler = void (*)(const Event& event, void* context);
 esp_err_t Init();
 void SetEventHandler(EventHandler handler, void* context);
 Snapshot GetSnapshot();
-bool BeginTranscription(recording_service::RecordedClipPtr clip);
+// `options` (custom prompt / JSON schema) is passed through to gemini_service::Transcribe; with
+// a schema, Snapshot::last_transcript holds Gemini's JSON text instead of plain transcript.
+bool BeginTranscription(recording_service::RecordedClipPtr clip,
+                        const gemini_service::TranscribeOptions& options = {});
 
 }  // namespace transcription_service
 

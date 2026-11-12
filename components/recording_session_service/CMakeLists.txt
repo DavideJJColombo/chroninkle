@@ -1,7 +1,7 @@
 idf_component_register(
-    SRCS "recording_session_service.cpp"
+    SRCS "recording_session_service.cpp" "auto_classify.cpp"
     INCLUDE_DIRS "include"
-    REQUIRES i18n feedback_service gemini_service playback_service recording_archive_service
+    REQUIRES app_state_service i18n json feedback_service gemini_service playback_service recording_archive_service
              recording_service storage_service system_sound_service task_config
              topic_service transcription_service
 )

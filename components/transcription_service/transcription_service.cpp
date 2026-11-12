@@ -55,7 +55,8 @@ void NotifyLocked()
 // Runs the (blocking) Gemini audio transcription and publishes the result. The Gemini HTTP now
 // lives in gemini_service::Transcribe; this service owns the async lifecycle + snapshot/events.
 // Runs on gemini_service's shared worker task (see gemini_service::RunOnWorker).
-void RunTranscriptionJob(recording_service::RecordedClipPtr clip)
+void RunTranscriptionJob(recording_service::RecordedClipPtr clip,
+                         const gemini_service::TranscribeOptions& options)
 {
     if (!clip || clip->empty()) {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -69,7 +70,7 @@ void RunTranscriptionJob(recording_service::RecordedClipPtr clip)
         return;
     }
 
-    const gemini_service::TranscriptionResult result = gemini_service::Transcribe(*clip);
+    const gemini_service::TranscriptionResult result = gemini_service::Transcribe(*clip, &options);
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -135,7 +136,8 @@ Snapshot GetSnapshot()
     return BuildSnapshotLocked();
 }
 
-bool BeginTranscription(recording_service::RecordedClipPtr clip)
+bool BeginTranscription(recording_service::RecordedClipPtr clip,
+                        const gemini_service::TranscribeOptions& options)
 {
     if (Init() != ESP_OK) {
         return false;
@@ -186,8 +188,8 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip)
 
     ESP_LOGI(kTag, "Starting Gemini transcription: samples=%u",
              static_cast<unsigned>(clip->sample_count()));
-    gemini_service::RunOnWorker([clip = std::move(clip)]() mutable {
-        RunTranscriptionJob(std::move(clip));
+    gemini_service::RunOnWorker([clip = std::move(clip), options]() mutable {
+        RunTranscriptionJob(std::move(clip), options);
     });
     return true;
 }

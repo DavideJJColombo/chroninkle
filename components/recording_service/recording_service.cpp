@@ -15,6 +15,7 @@
 #include "freertos/task.h"
 #include "audio_codec.h"
 #include "waveshare_board.h"
+#include "sdkconfig.h"
 #include "storage_service.h"
 
 namespace recording_service {
@@ -22,7 +23,13 @@ namespace {
 
 constexpr const char* kTag = "RecordingService";
 constexpr uint32_t kPrerollMs = 1000;
-constexpr uint32_t kMaxRecordingMs = 10000;
+// Longest take, in ms (CONFIG_CHRONINKLE_MAX_RECORDING_SECONDS; 16 kHz mono 16-bit is 32 KB/s
+// of PSRAM, so 60 s is ~1.9 MB).
+#ifdef CONFIG_CHRONINKLE_MAX_RECORDING_SECONDS
+constexpr uint32_t kMaxRecordingMs = CONFIG_CHRONINKLE_MAX_RECORDING_SECONDS * 1000U;
+#else
+constexpr uint32_t kMaxRecordingMs = 60000;
+#endif
 constexpr size_t kCaptureChunkSamples = 480;
 constexpr size_t kClipChunkSamples = 4096;
 constexpr uint32_t kCaptureTaskStackWords = 4096;

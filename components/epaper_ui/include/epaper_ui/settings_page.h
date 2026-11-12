@@ -13,15 +13,16 @@
 
 namespace epaper_ui {
 
-// Settings is a hub: 7 headings in this fixed slot order (must match SettingsMenuItemLabel in
-// settings_page.cpp). Each navigates to a dedicated sub-page, except Language, which toggles the
-// UI language in place and shows the current one in its label.
-inline constexpr int kSettingsMenuItemCount = 7;
+// Settings is a hub: 8 headings in this fixed slot order (must match SettingsMenuItemLabel in
+// settings_page.cpp). Each navigates to a dedicated sub-page, except Language and Sorting
+// (automatic classification of recordings), which toggle in place and show their current value.
+inline constexpr int kSettingsMenuItemCount = 8;
 
 enum class SettingsMenuItem : int {
     kNetwork = 0,
     kTime,
     kLanguage,
+    kAutoClassify,
     kStorage,
     kTodos,
     kTopics,
@@ -40,6 +41,7 @@ struct SettingsPageState {
     // Part of the state (not just looked up at draw time) so a language switch is seen as a
     // state change and the page repaints.
     int language = 0;
+    bool auto_classify = true;
     SettingsPageMenuState menu = {};
     // Replays the onboarding carousel -- a one-shot action, not a heading, so it sits below the
     // menu rather than being one of the 4 headings above.
@@ -48,7 +50,7 @@ struct SettingsPageState {
     bool operator==(const SettingsPageState& other) const = default;
 };
 
-std::string SettingsMenuItemLabel(int index);
+std::string SettingsMenuItemLabel(int index, const SettingsPageState& state);
 UiRect SettingsMenuItemBounds(int portrait_width,
                               int portrait_height,
                               const SettingsPageState& state,

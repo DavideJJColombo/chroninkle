@@ -91,10 +91,13 @@ This is the core interaction:
    your first word isn't cut off — and Chroninkle even keeps a rolling
    one-second buffer while the button is held, so a beat of audio right
    before you "properly" started holding it is still caught.
-2. **Speak.** Recordings are capped at **10 seconds** — Chroninkle is built
-   for quick captures, not long dictation. If you keep holding past 10
-   seconds, it stops automatically.
-3. **Release the Record button.** You'll hear a stop cue and the tag menu
+2. **Speak.** Recordings are capped at **60 seconds** by default
+   (`CONFIG_CHRONINKLE_MAX_RECORDING_SECONDS`, up to 180). If you keep
+   holding past the limit, it stops automatically.
+3. **Release the Record button.** You'll hear a stop cue. With automatic
+   sorting on (Settings > Sorting, the default) and Gemini reachable, the
+   recording is filed by itself — see [Automatic sorting](#automatic-sorting)
+   below — and the rest of this list doesn't apply. Otherwise the tag menu
    opens right away. (Builds with `CONFIG_CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG`
    enabled play the recording back first; you can always play it later from
    its menu or Details page.)
@@ -119,6 +122,26 @@ This is the core interaction:
    then either a transcript being saved or a note that transcription
    failed. Topic and Discard skip this: Topic transcribes immediately to
    produce its name (see above), and Discard has nothing to transcribe.
+
+### Automatic sorting
+
+When Settings > Sorting is **Auto** and Chroninkle is online with a working
+Gemini key, there is no tag menu: one Gemini call transcribes the recording
+and decides what it is.
+
+- **Todos with deadlines.** Say "tomorrow I need to buy milk, call Marco by
+  Friday at 3 and pay the bill" and you get three separate todos, each with
+  its own short text and deadline. The first keeps the recording's audio; the
+  others are text-only. An open todo shows its deadline ("Tomorrow",
+  "Fri Nov 14 15:00", "Overdue") in place of the Task pill, the Details page
+  starts with it, and the lock screen lists todos earliest deadline first.
+- **Ideas and notes** are filed as such.
+- **Topics.** If the recording clearly belongs to one of your existing topics,
+  it is tagged with it. Say "new topic kitchen renovation" to create a topic.
+- A message tells you where it went ("Added to Todos - Home"). If Gemini got
+  it wrong, change it from the entry's menu (e.g. Turn to task) or delete it.
+
+Offline, or with Sorting set to **Manual**, the tag menu is used as before.
 
 **If you're offline when you record**, the clip still saves to the SD
 card — it just gets marked as pending. The moment Chroninkle reconnects to
@@ -406,8 +429,8 @@ percentage and a charging indicator while power is connected.
 
 ## Tips and things that surprise people
 
-- **Recordings are short on purpose** — 10 seconds max. Think "quick
-  capture," not dictation.
+- **Recordings stop after 60 seconds** by default — long enough to list a few
+  todos in one go; the limit is a build option.
 - **Discard really discards** — nothing touches the SD card until you
   pick a tag other than Discard.
 - **"Task" is what "Todos" means** — if you're looking for the tag that

@@ -8,6 +8,11 @@ namespace app_state_service {
 bool OnboardingViewed();
 void MarkOnboardingViewed();
 
+// Automatic classification of new recordings by Gemini (type, topic, todos and deadlines) instead
+// of the "Save recording as" menu. On by default; persisted in NVS.
+bool AutoClassifyEnabled();
+void SetAutoClassifyEnabled(bool enabled);
+
 }  // namespace app_state_service
 
 #endif  // APP_STATE_SERVICE_H_

@@ -107,7 +107,7 @@ bool IsPendingTodo(const recording_archive_service::RecordingEntry& entry)
 
 std::string TodoDisplayText(const recording_archive_service::RecordingEntry& entry)
 {
-    const std::string trimmed = timeline_format::TrimTranscript(entry.transcript_text);
+    const std::string trimmed = timeline_format::EntryText(entry);
     return entry.metadata.has_transcript && !trimmed.empty() ? trimmed : i18n::Tr("Audio only todo.", "Attività solo audio.");
 }
 
@@ -149,7 +149,8 @@ void TodoSummaryWorkerTask(void*)
         ESP_LOGW(kTag, "Todo summary refresh: list recordings failed: %s",
                  esp_err_to_name(list_status));
     } else {
-        // Follow-up flagged todos surface first (newest first within each group), then rest.
+        // Follow-up flagged todos surface first, then the rest; within each group the earliest
+        // deadline comes first, then todos without one, newest first.
         std::vector<const recording_archive_service::RecordingEntry*> follow_up_first;
         std::vector<const recording_archive_service::RecordingEntry*> rest;
         for (const auto& entry : entries) {
@@ -159,6 +160,11 @@ void TodoSummaryWorkerTask(void*)
             (entry.metadata.follow_up ? follow_up_first : rest).push_back(&entry);
         }
         const auto by_recency = [](const auto* a, const auto* b) {
+            const std::string due_a = timeline_format::DueSortKey(a->metadata);
+            const std::string due_b = timeline_format::DueSortKey(b->metadata);
+            if (due_a != due_b) {
+                return due_a < due_b;
+            }
             return EntryTimestamp(*a) > EntryTimestamp(*b);
         };
         std::sort(follow_up_first.begin(), follow_up_first.end(), by_recency);
@@ -171,7 +177,9 @@ void TodoSummaryWorkerTask(void*)
                 if (titles.size() >= kMaxPendingTodoTitles) {
                     break;
                 }
-                titles.push_back(TodoDisplayText(*entry));
+                const std::string due = timeline_format::DueLabel(entry->metadata);
+                titles.push_back(due.empty() ? TodoDisplayText(*entry)
+                                             : due + " \xC2\xB7 " + TodoDisplayText(*entry));
             }
         }
         const int pending_count = static_cast<int>(follow_up_first.size() + rest.size());

@@ -73,7 +73,8 @@ run builds** — only build when the user explicitly asks, and reuse the
 existing `build/` directory rather than creating a new one (see `AGENTS.md`).
 
 An ESP-IDF environment must be sourced first (`idf.py` on `PATH`, or set
-`IDF_PATH` to a v5.x ESP-IDF checkout). Helper scripts under
+`IDF_PATH` to an ESP-IDF v5.5+ checkout; v5.4 lacks the I2S `bclk_div` field
+the audio HAL uses). Verified with v5.5.1. Helper scripts under
 `.agents/skills/esp32-firmware-engineer/scripts/` wrap `idf.py` with
 environment auto-detection, port auto-detection, and target sync:
 

@@ -169,6 +169,11 @@ std::string BuildSummaryInstructionText(const SummaryTarget& target, bool interm
                       "blockers, noting completion state when it is clear from the source. Keep it "
                       "concise, factual, and easy to skim. Avoid markdown tables.\n\n";
     }
+    // The summary is read on the device, so it follows the UI language whatever language the
+    // recordings were spoken in.
+    if (i18n::IsItalian()) {
+        text += "Write the summary in Italian, whatever the language of the source.\n\n";
+    }
     return text;
 }
 

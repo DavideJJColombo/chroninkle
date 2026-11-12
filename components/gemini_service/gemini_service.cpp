@@ -16,6 +16,7 @@
 
 #include "cJSON.h"
 #include "esp_crt_bundle.h"
+#include "i18n.h"
 #include "esp_crypto_lock.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -62,6 +63,13 @@ constexpr const char* kAudioMimeType = "audio/wav";
 constexpr const char* kTranscriptPrompt =
     "Generate a verbatim transcript of the speech in this audio. Respond with transcript text "
     "only. Do not add commentary or formatting.";
+// With the UI in Italian the speaker most likely talks Italian: saying so improves accuracy
+// (accents, apostrophes, punctuation) while still forbidding any translation.
+constexpr const char* kTranscriptPromptItalian =
+    "Generate a verbatim transcript of the speech in this audio. The speaker most likely speaks "
+    "Italian: write Italian with correct accents, apostrophes and punctuation. Transcribe in the "
+    "language actually spoken and never translate. Respond with transcript text only. Do not add "
+    "commentary or formatting.";
 constexpr int kTranscribeTimeoutMs = 30000;
 constexpr size_t kHttpUploadChunkSamples = 2048;
 
@@ -1185,7 +1193,8 @@ std::string BuildTranscriptRequestJson(const std::string& file_uri)
     cJSON* parts = cJSON_AddArrayToObject(content, "parts");
 
     cJSON* prompt_part = cJSON_CreateObject();
-    cJSON_AddStringToObject(prompt_part, "text", kTranscriptPrompt);
+    cJSON_AddStringToObject(prompt_part, "text",
+                            i18n::Tr(kTranscriptPrompt, kTranscriptPromptItalian));
     cJSON_AddItemToArray(parts, prompt_part);
 
     cJSON* audio_part = cJSON_CreateObject();

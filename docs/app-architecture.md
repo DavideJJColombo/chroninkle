@@ -761,7 +761,9 @@ kIdle -> kArmed -> kStartCue -> kRecording -> kStopCue -> kPlayingBack
 - **kStopCue** — release finishes capture and plays the stop cue
   (`SoundCue::kInterrupt`). Playback waits for the cue to complete rather than
   overlapping it, since both share the one codec output.
-- **kPlayingBack** — the take is replayed to the user from the PSRAM chunks, via
+- **kPlayingBack** — only when `CONFIG_CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG` is
+  enabled (off by default, in which case the stop cue goes straight to
+  kAwaitingTagSelection): the take is replayed to the user from the PSRAM chunks, via
   `playback_service::PlayClip`, on a short-lived worker task. Playback blocks for
   the length of the clip, so it cannot run on the cue-callback task.
 - **kAwaitingTagSelection** — the tag menu opens. **The clip is still only in

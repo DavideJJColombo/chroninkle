@@ -42,6 +42,15 @@ menu "Chroninkle Settings"
             Default timezone catalog entry used before a runtime timezone
             setting has been saved in NVS.
 
+    config CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG
+        bool "Replay each recording before choosing its type"
+        default n
+        help
+            When enabled, a new recording is played back right after the stop
+            sound, before the "Save recording as" menu opens. When disabled the
+            menu opens immediately; the recording can still be played later
+            from its menu or its Details page.
+
     choice CHRONINKLE_DEFAULT_LANGUAGE
         prompt "Default UI language"
         default CHRONINKLE_DEFAULT_LANGUAGE_ENGLISH

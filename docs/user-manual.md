@@ -94,8 +94,10 @@ This is the core interaction:
 2. **Speak.** Recordings are capped at **10 seconds** — Chroninkle is built
    for quick captures, not long dictation. If you keep holding past 10
    seconds, it stops automatically.
-3. **Release the Record button.** You'll hear a stop cue, and Chroninkle
-   immediately plays your recording back to you.
+3. **Release the Record button.** You'll hear a stop cue and the tag menu
+   opens right away. (Builds with `CONFIG_CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG`
+   enabled play the recording back first; you can always play it later from
+   its menu or Details page.)
 4. **Choose a tag**, from a menu with five options:
    - **Note** — a general thought.
    - **Task** — something to do. (This is what shows up on the **Todos**

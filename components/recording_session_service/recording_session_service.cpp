@@ -15,6 +15,7 @@
 #include "freertos/task.h"
 #include "gemini_service.h"
 #include "playback_service.h"
+#include "sdkconfig.h"
 #include "storage_service.h"
 #include "system_sound_service.h"
 #include "topic_service.h"
@@ -72,6 +73,14 @@ const char* AddingTopicStatus()
 {
     return i18n::Tr("Adding topic", "Aggiunta argomento");
 }
+// Replay the take before asking what to save it as. Off by default: the recording goes
+// straight to the tag menu (it can still be played later from its menu or Details page).
+constexpr bool kReplayBeforeTagSelection =
+#if defined(CONFIG_CHRONINKLE_REPLAY_RECORDING_BEFORE_TAG)
+    true;
+#else
+    false;
+#endif
 constexpr uint32_t kMinTranscriptionDurationMs = 500;
 constexpr uint32_t kFallbackAudioSampleRateHz = 24000;
 constexpr size_t kSignalWindowSamples = 240;
@@ -377,6 +386,10 @@ void HandleStopCueResult(uint32_t token, SoundCuePlaybackResult result)
     }
     if (result != SoundCuePlaybackResult::kCompleted) {
         AdvanceToTagSelection("stop cue did not complete");
+        return;
+    }
+    if (!kReplayBeforeTagSelection) {
+        AdvanceToTagSelection("replay disabled");
         return;
     }
 

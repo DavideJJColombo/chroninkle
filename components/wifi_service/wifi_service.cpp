@@ -1,5 +1,7 @@
 #include "wifi_service.h"
 
+#include "i18n.h"
+
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
@@ -55,6 +57,8 @@ constexpr size_t kMaxPendingCallbacks = 16;
 constexpr const char* kPortalApiScanUri = "/api/scan";
 constexpr const char* kPortalApiConfigureUri = "/api/configure";
 constexpr const char* kPortalApiStatusUri = "/api/status";
+// The portal reads the device UI language here so it shows itself in the same language.
+constexpr const char* kPortalApiLanguageUri = "/api/language";
 constexpr const char* kPortalApiDisconnectUri = "/api/disconnect";
 constexpr const char* kPortalIndexJsUri = "/index.js";
 constexpr const char* kPortalIndexCssUri = "/index.css";
@@ -751,6 +755,14 @@ esp_err_t HandlePortalStatus(httpd_req_t* request)
                                             true));
 }
 
+esp_err_t HandlePortalLanguage(httpd_req_t* request)
+{
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddBoolToObject(root, "success", true);
+    cJSON_AddStringToObject(root, "language", i18n::LanguageCode(i18n::Current()));
+    return SendJsonResponse(request, 200, root);
+}
+
 esp_err_t HandlePortalScan(httpd_req_t* request)
 {
     const UiState ui_state = GetUiState();
@@ -869,7 +881,7 @@ void StartConfigPortal()
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    // Root + WiFi API (scan/configure/status/disconnect) + portal assets (index.js/index.css) plus
+    // Root + WiFi API (scan/configure/status/language/disconnect) + portal assets (index.js/index.css) plus
     // the timezone_service and gemini_service portal routes registered via the registrar below.
     config.max_uri_handlers = 24;
     config.lru_purge_enable = true;
@@ -905,6 +917,12 @@ void StartConfigPortal()
         .handler = HandlePortalStatus,
         .user_ctx = nullptr,
     };
+    httpd_uri_t language = {
+        .uri = kPortalApiLanguageUri,
+        .method = HTTP_GET,
+        .handler = HandlePortalLanguage,
+        .user_ctx = nullptr,
+    };
     httpd_uri_t disconnect = {
         .uri = kPortalApiDisconnectUri,
         .method = HTTP_POST,
@@ -928,6 +946,7 @@ void StartConfigPortal()
         RegisterRoute(s_portal_server, &scan) != ESP_OK ||
         RegisterRoute(s_portal_server, &configure) != ESP_OK ||
         RegisterRoute(s_portal_server, &status) != ESP_OK ||
+        RegisterRoute(s_portal_server, &language) != ESP_OK ||
         RegisterRoute(s_portal_server, &disconnect) != ESP_OK ||
         RegisterRoute(s_portal_server, &index_js) != ESP_OK ||
         RegisterRoute(s_portal_server, &index_css) != ESP_OK) {

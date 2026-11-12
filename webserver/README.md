@@ -18,6 +18,16 @@ The frontend is organized around:
 - feature controllers in `src/portal/`
 - a thin `src/main.ts` bootstrap/orchestration layer
 
+## Language
+
+The portal shows itself in the device's UI language (Settings > Language on the device),
+read from `GET /api/language` (`{"language": "en" | "it"}`, served by `wifi_service`). If
+that request fails it falls back to the browser language. Strings live in place as
+`t('English', 'Italiano')` (`src/portal/i18n.ts`); the static markup in `index.html` is
+translated by `applyStaticTranslations()`, and English messages returned by the firmware API
+are mapped by `translateServerMessage()` in `api.ts`. When adding text, add the Italian too;
+when the firmware gains a new portal message, add it to `SERVER_MESSAGES`.
+
 ## API Endpoints Used By The Portal
 
 These are served by the Chroninkle firmware (`wifi_service`, `timezone_service`,
@@ -29,6 +39,7 @@ WiFi (`wifi_service`)
 - `GET /api/status`
 - `POST /api/configure`
 - `POST /api/disconnect`
+- `GET /api/language`
 
 Time / timezone (`timezone_service`)
 
@@ -101,6 +112,7 @@ components/wifi_service/portal/   # embedded build output served by the firmware
 - `src/portal/`
   Portal-specific application logic split by responsibility:
   - `api.ts` — typed API fetch helpers
+  - `i18n.ts` — portal language, `t()`, firmware message translation
   - `wifi.ts` — WiFi scan/connect/disconnect flow
   - `time.ts` — timezone + manual date/time
   - `providerKeys.ts` — Gemini API key save/clear

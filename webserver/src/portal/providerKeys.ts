@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type {
   GeminiModuleResponse,
   GeminiModuleSettings,
@@ -91,11 +92,13 @@ async function saveProviderKey(
       body: JSON.stringify({ api_key: apiKey }),
     });
     applyProviderSettings(state, input, data.settings);
-    notify(data.message || `${successMessage} stored.`, 'success');
+    notify(data.message || t(`${successMessage} stored.`, `${successMessage}: salvata.`), 'success');
   } catch (error) {
     console.error(`${successMessage} save failed:`, error);
     notify(
-      error instanceof Error ? error.message : `Failed to store ${successMessage}.`,
+      error instanceof Error
+        ? error.message
+        : t(`Failed to store ${successMessage}.`, `Impossibile salvare: ${successMessage}.`),
       'error'
     );
   } finally {
@@ -126,7 +129,9 @@ async function clearProviderKey(
   } catch (error) {
     console.error(`${successMessage} failed:`, error);
     notify(
-      error instanceof Error ? error.message : `Failed to clear ${successMessage}.`,
+      error instanceof Error
+        ? error.message
+        : t(`Failed to clear ${successMessage}.`, `Impossibile cancellare: ${successMessage}.`),
       'error'
     );
   } finally {
@@ -187,7 +192,7 @@ export function createProviderKeysController(deps: ProviderKeysDeps) {
 
     const apiKey = deps.geminiApiKeyInput.value.trim();
     if (!apiKey) {
-      deps.notifyGemini('Gemini API key is required.', 'warning');
+      deps.notifyGemini(t('Gemini API key is required.', 'Serve la chiave API di Gemini.'), 'warning');
       return;
     }
 
@@ -197,8 +202,8 @@ export function createProviderKeysController(deps: ProviderKeysDeps) {
       deps.notifyGemini,
       deps.updateButtons,
       deps.fetchGeminiModuleJson,
-      'Saving Gemini API key...',
-      'Gemini API key'
+      t('Saving Gemini API key...', 'Salvataggio chiave API di Gemini...'),
+      t('Gemini API key', 'Chiave API di Gemini')
     );
   }
 
@@ -213,8 +218,8 @@ export function createProviderKeysController(deps: ProviderKeysDeps) {
       deps.notifyGemini,
       deps.updateButtons,
       deps.fetchGeminiModuleJson,
-      'Clearing Gemini API key...',
-      'Gemini API key cleared.'
+      t('Clearing Gemini API key...', 'Cancellazione chiave API di Gemini...'),
+      t('Gemini API key cleared.', 'Chiave API di Gemini cancellata.')
     );
   }
 

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type { PortalDom } from './dom';
 
 interface PortalUiStateControllers {
@@ -50,16 +51,16 @@ export function updatePortalUiState(deps: UpdatePortalUiStateDeps) {
   dom.wifiStatusCard.actionDisabled = wifiBusy;
   dom.passwordInput.disabled = controllers.wifiController.isConnecting();
   if (controllers.wifiController.isConnecting()) {
-    dom.connectBtn.textContent = 'Connecting...';
-    dom.wifiStatusCard.actionLabel = 'Connecting...';
+    dom.connectBtn.textContent = t('Connecting...', 'Connessione...');
+    dom.wifiStatusCard.actionLabel = t('Connecting...', 'Connessione...');
   } else if (isSelectedConnected) {
-    dom.connectBtn.textContent = 'Disconnect';
-    dom.wifiStatusCard.actionLabel = 'Disconnect';
+    dom.connectBtn.textContent = t('Disconnect', 'Disconnetti');
+    dom.wifiStatusCard.actionLabel = t('Disconnect', 'Disconnetti');
   } else {
-    dom.connectBtn.textContent = 'Connect';
+    dom.connectBtn.textContent = t('Connect', 'Connetti');
     dom.wifiStatusCard.actionLabel = controllers.wifiController.isCurrentlyConnected()
-      ? 'Disconnect'
-      : 'Connect';
+      ? t('Disconnect', 'Disconnetti')
+      : t('Connect', 'Connetti');
   }
 
   // --- Time / timezone ---

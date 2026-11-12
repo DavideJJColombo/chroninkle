@@ -1,3 +1,4 @@
+import { translateTimezoneLabel } from './i18n';
 import type {
   CardField,
   ModuleId,
@@ -186,7 +187,7 @@ export function buildTimezoneLabelMap(
   return new Map(
     timezones.map(item => {
       const generic = genericLabelByName.get(item.name);
-      const description = item.description?.trim() || '';
+      const description = translateTimezoneLabel(item.description?.trim() || '');
 
       if (generic?.genericLabel && !isOffsetStyleTimezoneLabel(generic.genericLabel)) {
         const shouldDisambiguate = (genericLabelCounts.get(generic.genericLabel) || 0) > 1;
@@ -211,5 +212,9 @@ export function formatTimezoneLabel(
     : { name: string; description?: string },
   labelMap: Map<string, string>
 ) {
-  return labelMap.get(item.name) || item.description?.trim() || getTimezoneFallbackLabel(item.name);
+  return (
+    labelMap.get(item.name) ||
+    translateTimezoneLabel(item.description?.trim() || '') ||
+    getTimezoneFallbackLabel(item.name)
+  );
 }

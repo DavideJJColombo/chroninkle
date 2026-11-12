@@ -1,3 +1,4 @@
+import { t, translateServerMessage } from './i18n';
 import { API_HEADERS } from './constants';
 import type {
   AudioStatusResponse,
@@ -39,7 +40,12 @@ export async function fetchApiJson<T>(path: string, init?: RequestInit): Promise
     });
   } catch (error) {
     if (timeoutController.signal.aborted) {
-      throw new Error(`Request to ${path} timed out. Check the device is still reachable.`);
+      throw new Error(
+        t(
+          `Request to ${path} timed out. Check the device is still reachable.`,
+          `La richiesta a ${path} è scaduta. Controlla che il dispositivo sia raggiungibile.`
+        )
+      );
     }
     throw error;
   } finally {
@@ -51,14 +57,22 @@ export async function fetchApiJson<T>(path: string, init?: RequestInit): Promise
 
   if (!contentType.includes('application/json')) {
     throw new Error(
-      `Unexpected response for ${path}. ` +
-        'Make sure you are connected to the device AP and loading the portal from the ESP32.'
+      t(
+        `Unexpected response for ${path}. ` +
+          'Make sure you are connected to the device AP and loading the portal from the ESP32.',
+        `Risposta inattesa da ${path}. ` +
+          'Assicurati di essere connesso alla rete del dispositivo e di aprire il portale da lì.'
+      )
     );
   }
 
   const data = JSON.parse(bodyText) as { success?: boolean; message?: string };
+  // Firmware messages are English; show them in the portal language.
+  if (typeof data.message === 'string') {
+    data.message = translateServerMessage(data.message);
+  }
   if (!response.ok || data.success !== true) {
-    throw new Error(data.message || 'Request failed.');
+    throw new Error(data.message || t('Request failed.', 'Richiesta non riuscita.'));
   }
 
   return data as T;

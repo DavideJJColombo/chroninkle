@@ -1,3 +1,4 @@
+import { applyStaticTranslations, initLanguage } from './portal/i18n';
 import './portal.css';
 import { createGradualBlur } from './gradualBlur';
 import {
@@ -273,4 +274,8 @@ async function loadGeminiSettings() {
   }
 }
 
-initialize();
+// Learn the device's UI language before anything renders text.
+void initLanguage().then(() => {
+  applyStaticTranslations();
+  initialize();
+});

@@ -1,3 +1,4 @@
+import { t } from "../portal/i18n";
 import hideIcon from "../assets/hide.svg?raw";
 import showIcon from "../assets/show.svg?raw";
 import inputStyles from "./Input.css?raw";
@@ -241,7 +242,9 @@ export class Input extends HTMLElement {
       this.toggleButton.disabled = this.disabled;
       this.toggleButton.setAttribute(
         "aria-label",
-        this.isPasswordVisible ? "Hide password" : "Show password"
+        this.isPasswordVisible
+          ? t("Hide password", "Nascondi password")
+          : t("Show password", "Mostra password")
       );
       this.toggleButton.innerHTML = svgWithClass(
         this.isPasswordVisible ? hideIcon : showIcon,

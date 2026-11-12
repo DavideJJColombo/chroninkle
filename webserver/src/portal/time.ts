@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type {
   StatusType,
   TalkingClockModuleResponse,
@@ -101,7 +102,7 @@ export function createTimeController(deps: TimeControllerDeps) {
     deps.timezoneSelect.innerHTML = '';
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = 'Select timezone';
+    placeholder.textContent = t('Select timezone', 'Seleziona fuso orario');
     deps.timezoneSelect.appendChild(placeholder);
 
     try {
@@ -123,7 +124,7 @@ export function createTimeController(deps: TimeControllerDeps) {
     } catch (error) {
       console.error('Timezone list fetch failed:', error);
       deps.notify(
-        error instanceof Error ? error.message : 'Failed to load timezones.',
+        error instanceof Error ? error.message : t('Failed to load timezones.', 'Impossibile caricare i fusi orari.'),
         'error'
       );
     }
@@ -145,7 +146,7 @@ export function createTimeController(deps: TimeControllerDeps) {
     } catch (error) {
       console.error('Time settings status failed:', error);
       deps.notify(
-        error instanceof Error ? error.message : 'Time settings status failed.',
+        error instanceof Error ? error.message : t('Time settings status failed.', 'Impossibile leggere le impostazioni dell\'ora.'),
         'error'
       );
     } finally {
@@ -215,7 +216,7 @@ export function createTimeController(deps: TimeControllerDeps) {
 
     if (Boolean(manualDate) !== Boolean(manualTime)) {
       deps.notify(
-        'Provide both current date and time for a manual clock set.',
+        t('Provide both current date and time for a manual clock set.', 'Per impostare l\'ora a mano servono sia la data sia l\'ora.'),
         'error'
       );
       return null;
@@ -283,10 +284,10 @@ export function createTimeController(deps: TimeControllerDeps) {
         error instanceof Error ? error.message : 'Failed to update clock mode.';
       const finalErrorMessage =
         errorMessage === 'timezone_name required to enable clock'
-          ? 'Please set timezone first.'
+          ? t('Please set timezone first.', 'Imposta prima il fuso orario.')
           : errorMessage;
       if (errorMessage === 'timezone_name required to enable clock') {
-        deps.setFieldError(deps.timezoneSelect, 'Select a timezone.');
+        deps.setFieldError(deps.timezoneSelect, t('Select a timezone.', 'Seleziona un fuso orario.'));
         deps.timezoneSelect.focus({ preventScroll: true });
       }
       deps.notifyClockMode(finalErrorMessage, 'error');
@@ -298,7 +299,7 @@ export function createTimeController(deps: TimeControllerDeps) {
 
   async function saveTimezoneLocation() {
     if (isTimezoneBusy || isLocationBusy || isClockBusy || deps.isTalkingClockModuleBusy()) {
-      deps.notify('Time configuration update already in progress.', 'warning');
+      deps.notify(t('Time configuration update already in progress.', 'Aggiornamento dell\'ora già in corso.'), 'warning');
       return;
     }
 
@@ -307,8 +308,8 @@ export function createTimeController(deps: TimeControllerDeps) {
       return;
     }
     if (!formValues.timezoneName) {
-      deps.setFieldError(deps.timezoneSelect, 'Select a timezone.');
-      deps.notify('Select a timezone.', 'error');
+      deps.setFieldError(deps.timezoneSelect, t('Select a timezone.', 'Seleziona un fuso orario.'));
+      deps.notify(t('Select a timezone.', 'Seleziona un fuso orario.'), 'error');
       deps.timezoneSelect.focus({ preventScroll: true });
       return;
     }
@@ -329,7 +330,7 @@ export function createTimeController(deps: TimeControllerDeps) {
     isLocationBusy = true;
     isClockBusy = true;
     deps.onTalkingClockBusyChange(deps.isTalkingClockModuleActive());
-    deps.notify('Saving time configuration...', 'info');
+    deps.notify(t('Saving time configuration...', 'Salvataggio impostazioni ora...'), 'info');
     deps.onStateChange();
 
     try {
@@ -346,11 +347,11 @@ export function createTimeController(deps: TimeControllerDeps) {
         });
         deps.applyTalkingClockModuleSettings(moduleData.settings);
       }
-      deps.notify('Time configuration saved successfully.', 'success');
+      deps.notify(t('Time configuration saved successfully.', 'Impostazioni ora salvate.'), 'success');
     } catch (error) {
       console.error('Timezone/location save failed:', error);
       deps.notify(
-        error instanceof Error ? error.message : 'Failed to save time configuration.',
+        error instanceof Error ? error.message : t('Failed to save time configuration.', 'Impossibile salvare le impostazioni dell\'ora.'),
         'error'
       );
     } finally {
@@ -364,14 +365,14 @@ export function createTimeController(deps: TimeControllerDeps) {
 
   async function clearTimezoneLocation() {
     if (isTimezoneBusy || isLocationBusy || isClockBusy) {
-      deps.notify('Time configuration update already in progress.', 'warning');
+      deps.notify(t('Time configuration update already in progress.', 'Aggiornamento dell\'ora già in corso.'), 'warning');
       return;
     }
 
     isTimezoneBusy = true;
     isLocationBusy = true;
     isClockBusy = true;
-    deps.notify('Clearing timezone/location...', 'info');
+    deps.notify(t('Clearing timezone/location...', 'Cancellazione fuso orario...'), 'info');
     deps.onStateChange();
 
     try {
@@ -383,11 +384,11 @@ export function createTimeController(deps: TimeControllerDeps) {
         }),
       });
       applyTimeSettingsStatus(data);
-      deps.notify('Timezone/location cleared successfully.', 'success');
+      deps.notify(t('Timezone/location cleared successfully.', 'Fuso orario cancellato.'), 'success');
     } catch (error) {
       console.error('Timezone/location clear failed:', error);
       deps.notify(
-        error instanceof Error ? error.message : 'Failed to clear timezone/location.',
+        error instanceof Error ? error.message : t('Failed to clear timezone/location.', 'Impossibile cancellare il fuso orario.'),
         'error'
       );
     } finally {

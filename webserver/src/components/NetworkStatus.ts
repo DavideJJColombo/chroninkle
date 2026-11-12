@@ -1,3 +1,4 @@
+import { t } from "../portal/i18n";
 import networkStatusStyles from "./NetworkStatus.css?raw";
 
 const NETWORK_STATUS_TAG = "ui-network-status";
@@ -121,7 +122,7 @@ export class NetworkStatus extends HTMLElement {
   }
 
   get actionLabel() {
-    return this.getAttribute("action-label") || "Connect";
+    return this.getAttribute("action-label") || t("Connect", "Connetti");
   }
 
   set actionLabel(value: string) {
@@ -129,7 +130,7 @@ export class NetworkStatus extends HTMLElement {
   }
 
   get statusLabel() {
-    return this.getAttribute("status-label") || "Disconnected";
+    return this.getAttribute("status-label") || t("Disconnected", "Disconnesso");
   }
 
   set statusLabel(value: string) {

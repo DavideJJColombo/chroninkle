@@ -1,3 +1,4 @@
+import { t } from "../portal/i18n";
 import networkListStyles from "./NetworkList.css?raw";
 
 const NETWORK_LIST_TAG = "ui-network-list";
@@ -109,7 +110,7 @@ export class NetworkList extends HTMLElement {
   }
 
   private syncAttributes() {
-    const label = this.getAttribute("label") || "Available networks";
+    const label = this.getAttribute("label") || t("Available networks", "Reti disponibili");
     const ariaLabel = this.getAttribute("aria-label");
 
     this.labelElement.textContent = label;

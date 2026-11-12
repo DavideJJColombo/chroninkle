@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type { PortalDom } from './dom';
 import type { StatusType, ValidatableField } from './types';
 
@@ -92,8 +93,8 @@ export function bindPortalEvents(deps: BindPortalEventsDeps) {
   // --- Time / timezone ---
   dom.timezoneLocationSaveBtn.addEventListener('click', () => {
     if (!dom.timezoneSelect.value.trim()) {
-      helpers.setFieldError(dom.timezoneSelect, 'Select a timezone.');
-      helpers.setTimezoneLocationNotification('Select a timezone.', 'error');
+      helpers.setFieldError(dom.timezoneSelect, t('Select a timezone.', 'Seleziona un fuso orario.'));
+      helpers.setTimezoneLocationNotification(t('Select a timezone.', 'Seleziona un fuso orario.'), 'error');
       dom.timezoneSelect.focus({ preventScroll: true });
       return;
     }

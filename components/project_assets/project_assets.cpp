@@ -12,14 +12,10 @@ const EmbeddedImageAsset* GetLogo(EmbeddedLogoId id)
     switch (id) {
         case EmbeddedLogoId::kAlxvLabsLogo:
             return &epaper_logos::kAlxvLabsLogo;
-        case EmbeddedLogoId::kChroninkleIcon:
-            return &epaper_logos::kChroninkleIcon;
-        case EmbeddedLogoId::kChroninkleLogo:
-            return &epaper_logos::kChroninkleLogo;
-        case EmbeddedLogoId::kChroninkleLogoStacked:
-            return &epaper_logos::kChroninkleLogoStacked;
         case EmbeddedLogoId::kFollowupLogo:
             return &epaper_logos::kFollowupLogo;
+        case EmbeddedLogoId::kTaccuinoLogo:
+            return &epaper_logos::kTaccuinoLogo;
         default:
             return nullptr;
     }

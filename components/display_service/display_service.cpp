@@ -9,6 +9,7 @@
 
 #include "design_tokens.h"
 #include "epaper_ui/font_renderer.h"
+#include "i18n.h"
 #include "epaper_ui/keyboard.h"
 #include "epaper_ui/lock_screen.h"
 #include "epaper_ui/settings_page.h"
@@ -294,20 +295,20 @@ void DrawSplashText(uint8_t* framebuffer, int x, int y, std::string_view text, d
 
 void DrawSplashScreen(uint8_t* framebuffer)
 {
-    const EmbeddedImageAsset* chroninkle_logo =
-        project_assets::GetLogo(EmbeddedLogoId::kChroninkleLogoStacked);
+    const EmbeddedImageAsset* hero_logo =
+        project_assets::GetLogo(EmbeddedLogoId::kTaccuinoLogo);
     const EmbeddedImageAsset* followup_logo =
         project_assets::GetLogo(EmbeddedLogoId::kFollowupLogo);
     const EmbeddedImageAsset* alxv_logo =
         project_assets::GetLogo(EmbeddedLogoId::kAlxvLabsLogo);
-    if (framebuffer == nullptr || chroninkle_logo == nullptr || followup_logo == nullptr ||
+    if (framebuffer == nullptr || hero_logo == nullptr || followup_logo == nullptr ||
         alxv_logo == nullptr) {
         return;
     }
 
-    constexpr std::string_view kAttributionLabel = "Based on";
+    const std::string attribution_label = i18n::Tr("Based on", "Basato su");
     const int label_width =
-        epaper_ui::MeasureText(design::TypographyRole::kLabelSmall, kAttributionLabel);
+        epaper_ui::MeasureText(design::TypographyRole::kLabelSmall, attribution_label);
     const int label_height = epaper_ui::LineHeight(design::TypographyRole::kLabelSmall);
 
     // Attribution block anchored to the bottom margin: the label, then Followup's own splash
@@ -319,12 +320,12 @@ void DrawSplashScreen(uint8_t* framebuffer)
     const int label_y = followup_y - kSplashAttributionGap - label_height;
     const int label_x = (kPortraitWidth - label_width) / 2;
 
-    // The Chroninkle mark gets the rest of the screen, centered above the attribution block.
-    const int hero_y = (label_y - static_cast<int>(chroninkle_logo->height)) / 2;
-    const int hero_x = (kPortraitWidth - static_cast<int>(chroninkle_logo->width)) / 2;
-    DrawPortraitMonoAsset(framebuffer, hero_x, hero_y, chroninkle_logo);
+    // The Taccuino mark gets the rest of the screen, centered above the attribution block.
+    const int hero_y = (label_y - static_cast<int>(hero_logo->height)) / 2;
+    const int hero_x = (kPortraitWidth - static_cast<int>(hero_logo->width)) / 2;
+    DrawPortraitMonoAsset(framebuffer, hero_x, hero_y, hero_logo);
 
-    DrawSplashText(framebuffer, label_x, label_y, kAttributionLabel, design::TypographyRole::kLabelSmall);
+    DrawSplashText(framebuffer, label_x, label_y, attribution_label, design::TypographyRole::kLabelSmall);
     DrawPortraitMonoAsset(framebuffer, followup_x, followup_y, followup_logo);
     DrawPortraitMonoAsset(framebuffer, alxv_x, alxv_y, alxv_logo);
 }

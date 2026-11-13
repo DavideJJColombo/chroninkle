@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -44,6 +45,8 @@ def convert_png_to_bmp(
     fixed_size: int | None = None,
 ) -> Path:
     bmp_path = Path(temp_dir) / f"{asset_path.stem}.bmp"
+    if shutil.which("sips") is None:
+        return _convert_png_to_bmp_with_pillow(asset_path, bmp_path, fixed_size)
     command = ["sips"]
     if fixed_size is not None:
         command.extend(["-z", str(fixed_size), str(fixed_size)])
@@ -64,6 +67,23 @@ def convert_png_to_bmp(
         )
     if not bmp_path.is_file():
         raise AssetGenError(f"sips did not produce output for {asset_path}")
+    return bmp_path
+
+
+def _convert_png_to_bmp_with_pillow(
+    asset_path: Path, bmp_path: Path, fixed_size: int | None
+) -> Path:
+    """Fallback for hosts without macOS `sips` (Linux): same 32-bit BGRA BMP via Pillow."""
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise AssetGenError("neither sips nor Pillow is available to convert PNGs") from exc
+    image = Image.open(asset_path).convert("RGBA")
+    if fixed_size is not None:
+        image = image.resize((fixed_size, fixed_size), Image.LANCZOS)
+    image.save(bmp_path, format="BMP")
+    if not bmp_path.is_file():
+        raise AssetGenError(f"Pillow did not produce output for {asset_path}")
     return bmp_path
 
 

@@ -8,6 +8,25 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-13
+
+### Changed
+
+- **New startup logo.** The boot splash shows the new Taccuino mark (a
+  notebook with its elastic band, and the name) instead of the Chroninkle
+  logo. The attribution line above the Followup and ALXV Labs logos follows
+  the UI language ("Based on" / "Basato su").
+
+### Removed
+
+- The three Chroninkle logo assets (stacked, horizontal and icon); only the
+  stacked one was ever drawn.
+
+### Fixed
+
+- `scripts/generate_epaper_project_assets.py` runs on Linux: without macOS
+  `sips` it converts PNGs with Pillow.
+
 ## [1.4.0] - 2026-11-13
 
 ### Added

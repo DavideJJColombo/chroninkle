@@ -1,6 +1,6 @@
 # Chroninkle Product Introduction
 
-![Chroninkle](assets/logos/chroninkle-logo.png)
+![Taccuino](assets/logos/taccuino-logo.png)
 
 Chroninkle is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Chroninkle helps you organize it afterward. With Gemini, your recordings are transcribed automatically, and you can ask for a written summary of your Notes or Todos any time. Everything is stored on your SD card.
 

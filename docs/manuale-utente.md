@@ -1,6 +1,6 @@
 # Manuale d'uso di Chroninkle
 
-![Chroninkle](../assets/logos/chroninkle-logo.png)
+![Taccuino](../assets/logos/taccuino-logo.png)
 
 Chroninkle è un taccuino vocale tascabile. Tieni premuto un tasto, dici quello
 che ti passa per la testa e Chroninkle lo tiene in ordine: lo trascrive, lo

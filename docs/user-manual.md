@@ -1,6 +1,6 @@
 # Chroninkle User Manual
 
-![Chroninkle](../assets/logos/chroninkle-logo.png)
+![Taccuino](../assets/logos/taccuino-logo.png)
 
 Chroninkle is a pocket voice notebook. Press a button, speak your thought, tag
 it, and Chroninkle keeps it organized — transcribed, summarized, and sorted

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
+#include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
@@ -25,6 +26,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "lwip/sockets.h"
+#include "esp_random.h"
 #include "nvs.h"
 #include "saved_networks.h"
 #include "sdkconfig.h"
@@ -39,6 +41,11 @@ constexpr const char* kPasswordKey = "password";
 // Saved networks list (wifi_saved_networks blob). The single ssid/password keys above are the
 // pre-list format, migrated into the list on first load.
 constexpr const char* kNetworksKey = "networks";
+// Setup hotspot password: 8 random digits (WPA2's minimum length), replaced by a new one the
+// first time the hotspot starts on a new local day. Kept with the day it was made for.
+constexpr const char* kApPasswordKey = "ap_pw";
+constexpr const char* kApPasswordDayKey = "ap_pw_day";
+constexpr size_t kApPasswordDigits = 8;
 constexpr const char* kApUrl = "http://192.168.4.1";
 constexpr int kConnectTimeoutSec = 60;
 // Consecutive automatic reconnect attempts before the loop gives up and waits for the
@@ -116,6 +123,9 @@ std::string s_current_ssid;
 std::string s_ip_address;
 std::string s_ap_ssid;
 std::string s_ap_url = kApUrl;
+// Own lock: ConfigureAccessPointConfig reads it from paths that may hold s_state_mutex.
+std::mutex s_ap_password_mutex;
+std::string s_ap_password;
 // Remembered networks, most recently connected first (persisted under kNetworksKey).
 std::vector<wifi_saved_networks::Network> s_saved_networks;
 // True while the station is joining a network the user picked by hand: that attempt must not be
@@ -163,6 +173,12 @@ void CheckOrAbort(esp_err_t err, const char* operation)
     }
 }
 
+std::string CurrentApPassword()
+{
+    std::lock_guard<std::mutex> lock(s_ap_password_mutex);
+    return s_ap_password;
+}
+
 UiState BuildUiStateLocked()
 {
     return UiState{
@@ -175,6 +191,7 @@ UiState BuildUiStateLocked()
         .ssid = s_current_ssid,
         .ip_address = s_ip_address,
         .ap_ssid = s_ap_ssid,
+        .ap_password = CurrentApPassword(),
         .ap_url = s_ap_url,
         .rssi = s_rssi,
     };
@@ -293,7 +310,22 @@ void ConfigureAccessPointConfig(const std::string& ap_ssid, wifi_config_t* confi
     config->ap.ssid_len = ap_ssid.size();
     config->ap.channel = 1;
     config->ap.max_connection = 4;
-    config->ap.authmode = WIFI_AUTH_OPEN;
+    // WPA2 with the daily password shown on the device (Settings > Network): only someone
+    // who can see the screen can join the setup hotspot and use the portal.
+    std::string password;
+    {
+        std::lock_guard<std::mutex> lock(s_ap_password_mutex);
+        password = s_ap_password;
+    }
+    if (password.size() >= 8) {
+        strlcpy(reinterpret_cast<char*>(config->ap.password), password.c_str(),
+                sizeof(config->ap.password));
+        config->ap.authmode = WIFI_AUTH_WPA2_PSK;
+    } else {
+        ESP_LOGW(kTag, "No setup hotspot password available; hotspot is open");
+        config->ap.authmode = WIFI_AUTH_OPEN;
+    }
+    config->ap.pmf_cfg.capable = true;
     config->ap.pmf_cfg.required = false;
 }
 
@@ -459,8 +491,75 @@ Credentials ResolveStationCredentialsLocked()
     return {CONFIG_CHRONINKLE_WIFI_STA_SSID, CONFIG_CHRONINKLE_WIFI_STA_PASSWORD};
 }
 
+bool IsValidApPassword(const std::string& password)
+{
+    return password.size() == kApPasswordDigits &&
+           std::all_of(password.begin(), password.end(),
+                       [](char c) { return c >= '0' && c <= '9'; });
+}
+
+// Today's local date ("YYYY-MM-DD"), or empty while the clock isn't set.
+std::string LocalDayKey()
+{
+    const std::time_t now = std::time(nullptr);
+    if (now < static_cast<std::time_t>(1704067200)) {  // before 2024: clock not set
+        return {};
+    }
+    std::tm local = {};
+    localtime_r(&now, &local);
+    char day[16] = {};
+    std::strftime(day, sizeof(day), "%Y-%m-%d", &local);
+    return day;
+}
+
+// The setup hotspot password for today: the saved one if it was made today (or the clock is
+// unknown), otherwise a fresh random one, saved with today's date.
+std::string ResolveDailyApPassword()
+{
+    const std::string today = LocalDayKey();
+    std::string password;
+    std::string day;
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) == ESP_OK) {
+        LoadString(handle, kApPasswordKey, &password);
+        LoadString(handle, kApPasswordDayKey, &day);
+        nvs_close(handle);
+    }
+    if (IsValidApPassword(password) && (today.empty() || day == today)) {
+        return password;
+    }
+
+    char digits[kApPasswordDigits + 1] = {};
+    std::snprintf(digits, sizeof(digits), "%08u",
+                  static_cast<unsigned>(esp_random() % 100000000U));
+    password = digits;
+    if (nvs_open(kNvsNamespace, NVS_READWRITE, &handle) == ESP_OK) {
+        esp_err_t err = nvs_set_str(handle, kApPasswordKey, password.c_str());
+        if (err == ESP_OK) {
+            err = nvs_set_str(handle, kApPasswordDayKey, today.c_str());
+        }
+        if (err == ESP_OK) {
+            err = nvs_commit(handle);
+        }
+        nvs_close(handle);
+        if (err != ESP_OK) {
+            ESP_LOGW(kTag, "Saving the setup hotspot password failed: %s", esp_err_to_name(err));
+        }
+    }
+    ESP_LOGI(kTag, "New setup hotspot password generated for %s",
+             today.empty() ? "<unknown day>" : today.c_str());
+    return password;
+}
+
+// Called whenever the hotspot is about to start: refreshes its name and its daily password.
+// The password only changes here, so a hotspot left on past midnight keeps working.
 void UpdateAccessPointIdentity()
 {
+    const std::string password = ResolveDailyApPassword();
+    {
+        std::lock_guard<std::mutex> lock(s_ap_password_mutex);
+        s_ap_password = password;
+    }
     std::lock_guard<std::mutex> lock(s_state_mutex);
     s_ap_ssid = BuildApSsid();
     s_ap_url = kApUrl;

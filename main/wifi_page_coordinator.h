@@ -71,6 +71,8 @@ private:
     // interactions/runtime layer, not the coordinator (same split Settings used).
     bool wifi_enabled_ = true;
     bool access_point_mode_ = false;
+    std::string access_point_ssid_ = {};
+    std::string access_point_password_ = {};
 };
 
 #endif  // WIFI_PAGE_COORDINATOR_H_

@@ -51,6 +51,8 @@ struct UiState {
     std::string ssid;
     std::string ip_address;
     std::string ap_ssid;
+    // WPA2 password of the setup hotspot (8 digits, new each day the hotspot starts).
+    std::string ap_password;
     std::string ap_url;
     int rssi = 0;
 };

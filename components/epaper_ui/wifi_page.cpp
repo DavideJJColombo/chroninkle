@@ -17,10 +17,12 @@ constexpr int kPasswordActionGap = design::spacing::k16;
 constexpr int kActionButtonGap = design::spacing::k12;
 constexpr int kFooterButtonGap = design::spacing::k32;
 constexpr int kBackButtonGap = design::spacing::k12;
+constexpr auto kAccessPointInfoRole = design::TypographyRole::kBody;
 
 struct Layout {
     UiRect wifi_toggle = {};
     UiRect access_point_toggle = {};
+    int access_point_info_y = 0;
     UiRect network_list = {};
     UiRect password_input = {};
     UiRect scan_button = {};
@@ -54,7 +56,16 @@ Layout BuildLayout(int portrait_width, int portrait_height, const WifiPageState&
     ap_toggle_style.bottom_border_thickness = 0;
     const UiRect access_point_toggle =
         MenuToggleBounds(page_x, wifi_toggle.bottom(), ap_toggle_style);
-    const int content_top = access_point_toggle.bottom() + kToggleNetworkGap;
+    // While the hotspot is on, one line under its toggle gives its name and password.
+    const int access_point_info_y = access_point_toggle.bottom();
+    const int access_point_info_lines =
+        state.access_point_info_text.empty()
+            ? 0
+            : 1 + static_cast<int>(std::count(state.access_point_info_text.begin(),
+                                              state.access_point_info_text.end(), '\n'));
+    const int access_point_info_height = access_point_info_lines * LineHeight(kAccessPointInfoRole);
+    const int content_top =
+        access_point_toggle.bottom() + access_point_info_height + kToggleNetworkGap;
 
     ButtonStyle back_style = {};
     back_style.width = page_width;
@@ -100,6 +111,7 @@ Layout BuildLayout(int portrait_width, int portrait_height, const WifiPageState&
     return {
         .wifi_toggle = wifi_toggle,
         .access_point_toggle = access_point_toggle,
+        .access_point_info_y = access_point_info_y,
         .network_list = network_list,
         .password_input = password_input,
         .scan_button = scan_button,
@@ -330,6 +342,27 @@ void DrawWifiPage(uint8_t* framebuffer,
     DrawMenuToggle(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                    layout.access_point_toggle.x, layout.access_point_toggle.y,
                    state.access_point_toggle, ap_toggle_style);
+    // One line per '\n' (network name, then password), each kept whole when it fits.
+    int info_y = layout.access_point_info_y;
+    size_t line_start = 0;
+    while (!state.access_point_info_text.empty() &&
+           line_start <= state.access_point_info_text.size()) {
+        const size_t line_end = state.access_point_info_text.find('\n', line_start);
+        const std::string line = state.access_point_info_text.substr(
+            line_start, line_end == std::string::npos ? std::string::npos : line_end - line_start);
+        DrawTypographyText(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
+                           layout.access_point_toggle.x + design::menu_item::kHorizontalPadding,
+                           info_y,
+                           FitLabelText(kAccessPointInfoRole, line,
+                                        layout.access_point_toggle.width -
+                                            (2 * design::menu_item::kHorizontalPadding)),
+                           kAccessPointInfoRole, design::color::kBlack);
+        info_y += LineHeight(kAccessPointInfoRole);
+        if (line_end == std::string::npos) {
+            break;
+        }
+        line_start = line_end + 1;
+    }
 
     const NetworkListStyle network_style =
         BuildNetworkListStyle(layout.network_list.width, layout.network_list.height);

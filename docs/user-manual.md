@@ -68,9 +68,14 @@ and close it on the final slide. You can replay this carousel any time from
 
 To actually get set up, Chroninkle opens its own WiFi hotspot named
 **`Chroninkle-XXXXXX`** (the last few characters are unique to your device)
-whenever it doesn't have saved WiFi credentials yet. Connect a phone or laptop to
-that hotspot — it's open, no password needed — and your device should
-automatically open a setup page (or visit `http://192.168.4.1` yourself).
+whenever it doesn't have saved WiFi credentials yet. The hotspot is protected
+by an 8-digit password, which the device shows on screen when the hotspot
+comes up (and always under Settings → Network, below Access Point). It is a
+new random number on each day the hotspot is first turned on (WPA2 needs at
+least 8 characters); a hotspot left on past midnight keeps its password until
+it is turned off. Connect a phone or laptop to that hotspot with it, and your
+device should automatically open a setup page (or visit
+`http://192.168.4.1` yourself).
 From there you can:
 
 - **Connect Chroninkle to your WiFi** — scan for networks, pick yours, enter
@@ -334,7 +339,8 @@ back to the Home screen, skipping the hub.
 From the top:
 
 1. **WiFi** — toggle WiFi on or off.
-2. **Access Point** — toggle Chroninkle's own setup hotspot on or off.
+2. **Access Point** — toggle Chroninkle's own setup hotspot on or off. While
+   it's on, its name and today's password are shown under the toggle.
 3. A list of nearby networks — each row indicates whether it's open or
    password-protected, its signal strength, and whether it's the one
    you're currently connected to. Select a network, enter its password if
@@ -417,8 +423,9 @@ setup portal (turn on **Access Point** in Settings > Network, join the
    file of a release), enter the code and tap **Update**. Progress shows in
    the portal and on the device, which then restarts by itself.
 
-The code exists because the setup network is open: only someone holding the
-device can update it. It lasts 10 minutes and one update, with at most 5 wrong
+The code is a second lock on top of the hotspot password: even someone who
+got onto the setup network cannot install firmware without holding the
+device. It lasts 10 minutes and one update, with at most 5 wrong
 attempts. Only Chroninkle firmware is accepted, it is verified before being
 installed, and if the new firmware fails to start the device goes back to the
 previous one on its own. Moving to the first firmware with this feature

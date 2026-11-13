@@ -8,6 +8,17 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+### Security
+
+- **The setup hotspot is password-protected.** It used to be open, so anyone
+  nearby could reach the setup portal while it was on. It now uses WPA2 with
+  an 8-digit random password (WPA2's minimum length), shown on the device
+  screen when the hotspot comes up and under its toggle on Settings > Network.
+  A new password is made on each day the hotspot is first started; a hotspot
+  left on past midnight keeps its password until it is turned off.
+
+## [1.2.0] - 2026-11-13
+
 ### Added
 
 - **Saved Wi-Fi networks.** Up to 5 networks are remembered (most recently

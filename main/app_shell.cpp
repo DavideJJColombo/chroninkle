@@ -87,6 +87,7 @@ TaskHandle_t s_shutdown_task = nullptr;
 std::atomic<bool> s_startup_complete = false;
 std::atomic<bool> s_gemini_ready = false;
 std::atomic<bool> s_wifi_connected = false;
+std::atomic<bool> s_access_point_active = false;
 uint32_t s_last_transcription_retry_generation = 0;
 std::atomic<int> s_last_status_bar_pending_transcription_count{-1};
 std::mutex s_recording_session_feedback_mutex;
@@ -1569,6 +1570,31 @@ void HandleGeminiEvent(const gemini_service::Event& event, void*)
     }
 }
 
+// The setup hotspot is password-protected: whenever it comes up (by hand, or at first boot with
+// no saved network), show how to join it; it is also kept on Settings > Network. Not before the
+// first full paint of the boot screen (boot refresh policy) -- Run() calls this again then.
+void MaybeShowAccessPointToast(const wifi_service::UiState& ui_state)
+{
+    if (!ui_state.access_point_mode) {
+        s_access_point_active.store(false, std::memory_order_relaxed);
+        return;
+    }
+    if (!s_startup_complete.load(std::memory_order_relaxed) || ui_state.ap_ssid.empty() ||
+        s_access_point_active.exchange(true, std::memory_order_relaxed)) {
+        return;
+    }
+    const std::string text =
+        std::string(i18n::Tr("Setup hotspot ", "Rete di configurazione ")) + ui_state.ap_ssid +
+        (ui_state.ap_password.empty() ? std::string()
+                                      : std::string(" - Password ") + ui_state.ap_password);
+    const esp_err_t err = overlay_runtime::ShowToastForDuration(
+        BuildToast(text.c_str(), EmbeddedIconId::kWifiConfig), 2 * 60 * 1000);
+    FlushOverlayFeedback();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Show hotspot toast failed: %s", esp_err_to_name(err));
+    }
+}
+
 void HandleWifiEvent(const wifi_service::Event& event, void*)
 {
     ESP_LOGI(kTag,
@@ -1587,6 +1613,8 @@ void HandleWifiEvent(const wifi_service::Event& event, void*)
     gemini_service::SetNetworkState(event.ui_state.connected,
                                     event.ui_state.access_point_mode);
     recording_session_service::SetNetworkConnected(event.ui_state.connected);
+
+    MaybeShowAccessPointToast(event.ui_state);
 
     const bool wifi_connected = event.ui_state.connected;
     const bool was_wifi_connected =
@@ -2342,6 +2370,7 @@ void Run()
                  esp_err_to_name(initial_err));
     }
     s_startup_complete.store(true, std::memory_order_relaxed);
+    MaybeShowAccessPointToast(wifi_service::GetUiState());
 }
 
 }  // namespace app_shell

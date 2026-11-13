@@ -71,10 +71,12 @@ chiudila sull'ultima schermata. Puoi rivederla quando vuoi da
 
 Per configurarlo davvero, Chroninkle crea una propria rete Wi-Fi chiamata
 **`Chroninkle-XXXXXX`** (gli ultimi caratteri cambiano da dispositivo a
-dispositivo) ogni volta che non conosce ancora nessuna rete. Collegati a
-quella rete con il telefono o il computer (è aperta, senza password): di
-solito la pagina di configurazione si apre da sola, altrimenti visita
-`http://192.168.4.1`. Da lì puoi:
+dispositivo) ogni volta che non conosce ancora nessuna rete. La rete è protetta
+da una password di 8 cifre, che il dispositivo mostra sullo schermo appena la
+rete si accende (e trovi sempre in **Impostazioni → Rete**, sotto Access
+point). Collegati a quella rete con il telefono o il computer usando quella
+password: di solito la pagina di configurazione si apre da sola, altrimenti
+visita `http://192.168.4.1`. Da lì puoi:
 
 - **Collegare Chroninkle al tuo Wi-Fi**: cerca le reti, scegli la tua e
   inserisci la password. Ogni rete a cui il dispositivo si collega viene
@@ -354,7 +356,8 @@ Dall'alto:
 
 1. **WiFi**: accende o spegne il Wi-Fi.
 2. **Access point**: accende o spegne la rete di configurazione di Chroninkle
-   (quella del [portale web](#il-portale-web)).
+   (quella del [portale web](#il-portale-web)). Quando è accesa, sotto
+   l'interruttore compaiono il nome della rete e la sua password di oggi.
 3. L'elenco delle reti vicine: ogni riga indica se la rete è aperta o protetta,
    la potenza del segnale e se è quella a cui sei collegato. Scegli una rete,
    inserisci la password se serve (puoi mostrare o nascondere quello che
@@ -428,7 +431,10 @@ computer. Per raggiungerlo:
 
 1. Sul dispositivo vai in **Impostazioni → Rete** e accendi **Access point**
    (alla prima accensione, senza reti salvate, si accende da solo).
-2. Collega il telefono o il computer alla rete **`Chroninkle-XXXXXX`**.
+2. Collega il telefono o il computer alla rete **`Chroninkle-XXXXXX`** con la
+   password di 8 cifre che compare sullo schermo del dispositivo (in un
+   messaggio quando la rete si accende, e sempre nella pagina Rete, sotto
+   l'interruttore Access point).
 3. La pagina si apre da sola; altrimenti visita `http://192.168.4.1`.
 
 Il portale usa la stessa lingua del dispositivo e contiene:
@@ -444,8 +450,13 @@ Il portale usa la stessa lingua del dispositivo e contiene:
 - **Impostazione ora**: fuso orario, ora e data.
 - **Aggiornamento firmware**: vedi la sezione successiva.
 
-La rete di configurazione è aperta, senza password: tieni acceso l'Access
-point solo mentre ti serve.
+**La password cambia ogni giorno.** È un numero casuale di 8 cifre (la
+sicurezza WPA2 non accetta password più corte), e il primo giorno in cui
+accendi l'Access point ne viene creata una nuova. Se lasci l'Access point
+acceso oltre la mezzanotte, la password non cambia finché non lo spegni e
+riaccendi, così il telefono già collegato non viene buttato fuori. Solo chi
+vede lo schermo del dispositivo può quindi collegarsi al portale; tieni
+comunque acceso l'Access point solo mentre ti serve.
 
 ## Aggiornare il firmware
 
@@ -462,8 +473,9 @@ Dalla versione 1.1.0 il firmware si aggiorna senza cavo, dal portale:
    l'avanzamento sia nel portale sia sul dispositivo, che alla fine si riavvia
    da solo.
 
-Il codice serve perché la rete del portale è aperta: solo chi ha in mano il
-dispositivo può aggiornarlo. Vale 10 minuti e per un solo aggiornamento, e
+Il codice è una protezione in più, oltre alla password della rete: anche chi
+fosse riuscito a collegarsi al portale non può installare un firmware senza
+avere in mano il dispositivo. Vale 10 minuti e per un solo aggiornamento, e
 dopo 5 tentativi sbagliati bisogna chiederne uno nuovo. Il dispositivo accetta
 solo firmware Chroninkle e ne controlla l'integrità prima di installarlo. Se il
 nuovo firmware non riesce ad avviarsi, al riavvio successivo torna da solo

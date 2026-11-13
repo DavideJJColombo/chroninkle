@@ -34,6 +34,9 @@ struct WifiPageState {
     // Settings hub.
     MenuToggleState wifi_toggle = {};
     MenuToggleState access_point_toggle = {};
+    // Shown under the Access Point toggle while the setup hotspot is on: its name and password,
+    // one per line ('\n').
+    std::string access_point_info_text = {};
     NetworkListState network_list = {};
     PasswordInputState password_input = {};
     ButtonState scan_button = {};

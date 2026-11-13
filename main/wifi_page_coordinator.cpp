@@ -61,6 +61,8 @@ void WifiPageCoordinator::RefreshFromService(const wifi_service::UiState& ui_sta
 {
     wifi_enabled_ = ui_state.wifi_enabled;
     access_point_mode_ = ui_state.access_point_mode;
+    access_point_ssid_ = ui_state.ap_ssid;
+    access_point_password_ = ui_state.ap_password;
 
     if (scan_snapshot.state == wifi_service::ScanState::kRunning) {
         network_status_ = epaper_ui::NetworkListStatus::kIdle;
@@ -273,6 +275,13 @@ epaper_ui::WifiPageState WifiPageCoordinator::BuildState() const
             access_point_mode_,
             IsRoleFocused(page_navigation::NavigationItemRole::kWifiPageEnableApToggle)),
     };
+    if (access_point_mode_ && !access_point_ssid_.empty()) {
+        state.access_point_info_text =
+            std::string(i18n::Tr("Network: ", "Rete: ")) + access_point_ssid_ +
+            (access_point_password_.empty()
+                 ? std::string()
+                 : std::string("\nPassword: ") + access_point_password_);
+    }
     state.network_list = {
         .status = network_status_,
         .focused =

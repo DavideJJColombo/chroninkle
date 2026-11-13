@@ -341,7 +341,8 @@ personal credentials afterward, and no risk of a release accidentally shipping t
 - `GPIO0` (`ACTION`/BOOT button) is the boot/download strap pin and must read
   high at reset — it's only ever pulled low by a button press, never held
   during startup.
-- `docs/user-manual.md` is the end-user manual and must stay in sync with
+- `docs/user-manual.md` (English) and `docs/manuale-utente.md` (Italian) are the end-user
+  manuals; update both. They must stay in sync with
   behavior: whenever a change adds, removes, or changes user-visible
   functionality (a new screen, a changed control/gesture, a renamed
   button, a different flow), update the relevant section of the manual as

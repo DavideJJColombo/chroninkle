@@ -7,6 +7,9 @@ it, and Chroninkle keeps it organized — transcribed, summarized, and sorted
 into Notes, Todos, and Follow-ups — on a screen that sips power and stays
 legible even when it's "asleep."
 
+An Italian version of this manual is in [manuale-utente.md](manuale-utente.md);
+the device itself can run in English or Italian (Settings > Language).
+
 This manual describes the device as it actually behaves today. A couple of
 spots in the on-device onboarding carousel describe older button gestures
 that no longer apply — this manual is the accurate reference. Chroninkle was
@@ -24,6 +27,7 @@ broadcasts its Wi-Fi setup hotspot under the old name until it's reflashed.
 - [Topics](#topics)
 - [Books](#books)
 - [Settings](#settings)
+- [Updating the firmware](#updating-the-firmware)
 - [Locking, sleep, and battery](#locking-sleep-and-battery)
 - [Shutting down and charging](#shutting-down-and-charging)
 - [Tips and things that surprise people](#tips-and-things-that-surprise-people)
@@ -300,11 +304,18 @@ storage, from Settings > Storage) and they'll show up here.
 
 ## Settings
 
-Settings is a hub, like a phone's settings app: six headings, each
-opening its own page, plus one action below them:
+Settings is a hub, like a phone's settings app: headings that each open
+their own page, two that switch in place, plus one action below them:
 
 - **Network** — WiFi and Access Point.
 - **Time** — timezone and clock.
+- **Language: English** — press it to switch the whole interface (and the
+  setup portal, and Gemini's summaries) between English and Italian. The
+  screen redraws right away and the choice is saved.
+- **Sorting: Auto** — press it to switch to **Manual** and back. Auto lets
+  Gemini file each recording by itself (see
+  [Automatic sorting](#automatic-sorting)); Manual shows the tag menu after
+  every recording.
 - **Storage** — SD card status and management.
 - **Todos** — todo archiving.
 - **Topics** — create, rename, and delete topics.
@@ -344,7 +355,9 @@ one by one, in the setup portal's WiFi settings.
 ### Time
 
 Set your timezone from a picker, or enter the date and time by hand in the
-fields provided (hour, minute, AM/PM, month, day, year). Press **Sync &
+fields provided (hour, minute, AM/PM, month, day, year). In Italian the
+hour is entered on the 24-hour clock (no AM/PM) and the date reads day,
+month, year. Press **Sync &
 Save** when you're done — it both saves what you entered and re-syncs the
 clock.
 
@@ -390,6 +403,26 @@ thought](#recording-a-thought).
   **Delete** it. Deleting asks you to confirm; anything already
   tagged with that topic simply loses
   it, keeping any other topics it has.
+
+## Updating the firmware
+
+From version 1.1.0 the firmware can be updated without a cable, from the
+setup portal (turn on **Access Point** in Settings > Network, join the
+`Chroninkle-XXXXXX` network and open `http://192.168.4.1`):
+
+1. In the portal's **Firmware Update** card (which also shows the installed
+   version), tap **Show code**: a 6-digit code appears on the device screen.
+   Wake the screen first if it's resting.
+2. Choose the new firmware file (`build/chroninkle.bin`, or the `-ota.bin`
+   file of a release), enter the code and tap **Update**. Progress shows in
+   the portal and on the device, which then restarts by itself.
+
+The code exists because the setup network is open: only someone holding the
+device can update it. It lasts 10 minutes and one update, with at most 5 wrong
+attempts. Only Chroninkle firmware is accepted, it is verified before being
+installed, and if the new firmware fails to start the device goes back to the
+previous one on its own. Moving to the first firmware with this feature
+still needs a USB flash.
 
 ## Locking, sleep, and battery
 

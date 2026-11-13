@@ -6,7 +6,7 @@ Chroninkle is a place to capture your thoughts — whether it's an idea, a to-do
 
 It runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97), so your thoughts live on a quiet, always-on screen you can place anywhere — a constant, low-interruption reminder instead of one more notification buried in your phone.
 
-For the full walkthrough of every screen and control, see the [user manual](docs/user-manual.md).
+For the full walkthrough of every screen and control, see the [user manual](docs/user-manual.md) ([manuale in italiano](docs/manuale-utente.md)).
 
 ## One-Sentence Positioning
 

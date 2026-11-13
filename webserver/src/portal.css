@@ -303,12 +303,21 @@ body {
 /* App.css - Global styles */
 .brand-logo {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--color-logo);
   flex-shrink: 0;
   margin-bottom: var(--spacing-2xl);
+}
+
+.brand-logo__mark {
+  height: 1.2em;
+  width: auto;
+  flex-shrink: 0;
 }
 
 @media (min-width: 768px) {

@@ -1,18 +1,19 @@
-# Manuale d'uso di Chroninkle
+# Manuale d'uso di Taccuino
 
 ![Taccuino](../assets/logos/taccuino-logo.png)
 
-Chroninkle è un taccuino vocale tascabile. Tieni premuto un tasto, dici quello
-che ti passa per la testa e Chroninkle lo tiene in ordine: lo trascrive, lo
+Taccuino è un quaderno vocale tascabile. Tieni premuto un tasto, dici quello
+che ti passa per la testa e Taccuino lo tiene in ordine: lo trascrive, lo
 riassume e lo smista tra Note, Da fare e Promemoria, su uno schermo che consuma
 pochissimo e resta leggibile anche quando il dispositivo "dorme".
 
 Questo manuale descrive il dispositivo come si comporta oggi, nella versione
 italiana del firmware (1.2.0 o successive). Alcune immagini della presentazione
 iniziale hanno ancora scritte in inglese e mostrano gesti dei tasti non più
-attuali: fa fede questo manuale. Chroninkle si chiamava **Followup**: un
-dispositivo con un firmware vecchio continua a mostrare il vecchio nome nella
-rete Wi-Fi di configurazione finché non viene aggiornato.
+attuali: fa fede questo manuale. Taccuino nasce da **Chroninkle**, che a sua
+volta si chiamava **Followup**: un dispositivo con un firmware precedente alla
+1.6.0 mostra ancora il vecchio nome nella rete Wi-Fi di configurazione
+(`Chroninkle-XXXXXX`) finché non viene aggiornato.
 
 La versione inglese di questo manuale è in [user-manual.md](user-manual.md).
 
@@ -35,7 +36,7 @@ La versione inglese di questo manuale è in [user-manual.md](user-manual.md).
 
 ## In breve: i tasti
 
-Chroninkle ha tre comandi fisici e nessuno schermo touch: si usa tutto con
+Taccuino ha tre comandi fisici e nessuno schermo touch: si usa tutto con
 questi.
 
 | Comando | Pressione breve | Pressione prolungata |
@@ -64,13 +65,13 @@ Alcune cose utili da sapere subito:
 
 ## Prima configurazione
 
-Alla prima accensione Chroninkle mostra una breve presentazione. Usa il
+Alla prima accensione Taccuino mostra una breve presentazione. Usa il
 **bilanciere** per scorrerla (inclina per spostarti, premi per confermare) e
 chiudila sull'ultima schermata. Puoi rivederla quando vuoi da
 **Impostazioni → Guida**.
 
-Per configurarlo davvero, Chroninkle crea una propria rete Wi-Fi chiamata
-**`Chroninkle-XXXXXX`** (gli ultimi caratteri cambiano da dispositivo a
+Per configurarlo davvero, Taccuino crea una propria rete Wi-Fi chiamata
+**`Taccuino-XXXXXX`** (gli ultimi caratteri cambiano da dispositivo a
 dispositivo) ogni volta che non conosce ancora nessuna rete. La rete è protetta
 da una password di 8 cifre, che il dispositivo mostra sullo schermo appena la
 rete si accende (e trovi sempre in **Impostazioni → Rete**, sotto Access
@@ -78,7 +79,7 @@ point). Collegati a quella rete con il telefono o il computer usando quella
 password: di solito la pagina di configurazione si apre da sola, altrimenti
 visita `http://192.168.4.1`. Da lì puoi:
 
-- **Collegare Chroninkle al tuo Wi-Fi**: cerca le reti, scegli la tua e
+- **Collegare Taccuino al tuo Wi-Fi**: cerca le reti, scegli la tua e
   inserisci la password. Ogni rete a cui il dispositivo si collega viene
   salvata (fino a 5) e usata in automatico quando è in zona.
 - **Inserire la chiave API di Gemini**: è quella che permette trascrizioni e
@@ -104,7 +105,7 @@ Il dispositivo parte in italiano. Per passare all'inglese vai in
 
 1. **Tieni premuto il tasto Registra.** Senti un suono di avvio. La
    registrazione parte un istante prima che il suono finisca, così la prima
-   parola non viene tagliata; anzi, mentre tieni premuto Chroninkle conserva
+   parola non viene tagliata; anzi, mentre tieni premuto Taccuino conserva
    sempre l'ultimo secondo di audio, quindi si salva anche quello che hai
    detto un attimo prima di premere "per bene".
 2. **Parla.** Una registrazione dura al massimo **60 secondi**; se continui a
@@ -127,7 +128,7 @@ non è raggiungibile (per esempio senza Wi-Fi). Ha cinque voci:
 - **Nota**: un pensiero generico.
 - **Da fare**: qualcosa da fare; finisce nella lista **Da fare**.
 - **Idea**: qualcosa su cui riflettere più avanti.
-- **Argomento**: non salva nessuna nota. Chroninkle trascrive quello che hai
+- **Argomento**: non salva nessuna nota. Taccuino trascrive quello che hai
   detto, ne ricava un nome breve e lo aggiunge come nuovo
   [argomento](#argomenti) (per esempio tieni premuto, dici "ristrutturazione
   cucina" e scegli Argomento: da quel momento quel progetto esiste come
@@ -135,14 +136,14 @@ non è raggiungibile (per esempio senza Wi-Fi). Ha cinque voci:
   nulla, come per Scarta.
 - **Scarta**: butta via la registrazione senza salvare niente.
 
-Se hai scelto Nota, Da fare o Idea e Chroninkle ha Wi-Fi e chiave di Gemini,
+Se hai scelto Nota, Da fare o Idea e Taccuino ha Wi-Fi e chiave di Gemini,
 la trascrizione avviene in background: compare per un attimo "Trascrizione in
 corso...", poi un messaggio che conferma il salvataggio della trascrizione
 oppure dice che non è riuscita.
 
 ### Smistamento automatico
 
-Quando in **Impostazioni → Tipo** c'è **Automatico** e Chroninkle è online con
+Quando in **Impostazioni → Tipo** c'è **Automatico** e Taccuino è online con
 una chiave di Gemini funzionante, il menu non compare: con un'unica richiesta
 Gemini trascrive la registrazione e capisce che cos'è.
 
@@ -166,14 +167,14 @@ registrala di nuovo.
 ### Se registri senza connessione
 
 La registrazione viene comunque salvata sulla scheda SD e segnata come "da
-trascrivere". Appena Chroninkle torna online ritenta da solo tutte quelle in
+trascrivere". Appena Taccuino torna online ritenta da solo tutte quelle in
 attesa; un piccolo numero nella barra di stato indica quante sono. Ogni
 registrazione ha un solo tentativo automatico: se fallisce, la puoi trascrivere
 a mano dalla pagina dei dettagli.
 
 ## La schermata Home
 
-La Home è il cruscotto di Chroninkle. In alto trovi:
+La Home è il cruscotto di Taccuino. In alto trovi:
 
 - la data di oggi e un messaggio di benvenuto che cambia nel tempo;
 - un contatore delle attività, **Attività completate**, con "`fatte`/`totali`
@@ -240,7 +241,7 @@ Selezionalo e inclina il bilanciere per passare da una vista all'altra.
 Un'attività completata non sparisce subito: resta spuntata in "In corso" per
 un po', così vedi quello che hai fatto. Dopo un certo numero di giorni dal
 completamento (7 di base, si cambia nelle [Impostazioni](#da-fare))
-Chroninkle la **archivia** da solo: l'audio viene cancellato per liberare
+Taccuino la **archivia** da solo: l'audio viene cancellato per liberare
 spazio sulla scheda SD, ma il testo resta e la voce si sposta in "Archiviate",
 dove puoi ancora leggerla. Puoi anche archiviarla subito con **Archivia ora**
 dal suo menu.
@@ -355,7 +356,7 @@ porta direttamente alla schermata Home.
 Dall'alto:
 
 1. **WiFi**: accende o spegne il Wi-Fi.
-2. **Access point**: accende o spegne la rete di configurazione di Chroninkle
+2. **Access point**: accende o spegne la rete di configurazione di Taccuino
    (quella del [portale web](#il-portale-web)). Quando è accesa, sotto
    l'interruttore compaiono il nome della rete e la sua password di oggi.
 3. L'elenco delle reti vicine: ogni riga indica se la rete è aperta o protetta,
@@ -364,9 +365,9 @@ Dall'alto:
    scrivi) e premi **Connetti**. Se sei già collegato alla rete selezionata,
    lo stesso pulsante diventa **Disconnetti**. **Cerca** aggiorna l'elenco.
 
-**Reti salvate.** Ogni rete a cui Chroninkle si collega viene ricordata, fino
+**Reti salvate.** Ogni rete a cui Taccuino si collega viene ricordata, fino
 a 5; quando se ne aggiunge una sesta, viene tolta quella usata meno di
-recente. All'accensione e ogni volta che perde la connessione, Chroninkle
+recente. All'accensione e ogni volta che perde la connessione, Taccuino
 cerca le reti salvate in zona e si collega da solo a quella con il segnale
 migliore: passare da casa all'ufficio o all'hotspot del telefono non richiede
 niente. Per collegarti a mano a una rete salvata, selezionala e premi
@@ -409,11 +410,11 @@ Internet, se c'è connessione), **Salva** con l'ora automatica spenta.
    inserita e montata).
 2. **Attiva OTG**: rende la scheda SD visibile come chiavetta USB su un
    computer collegato con il cavo USB-C, per copiare i file direttamente.
-   Mentre è attivo, la scheda non è disponibile per Chroninkle e per
+   Mentre è attivo, la scheda non è disponibile per Taccuino e per
    riaverla devi premere esplicitamente **Disattiva modalità OTG**. Non c'è un
    modo per uscirne per sbaglio con il cavo collegato: è voluto, così
-   Chroninkle non tocca la scheda mentre il computer la sta usando.
-3. **Formatta SD**: cancella completamente la scheda SD. Chroninkle chiede
+   Taccuino non tocca la scheda mentre il computer la sta usando.
+3. **Formatta SD**: cancella completamente la scheda SD. Taccuino chiede
    conferma ("La formattazione cancellerà tutto il contenuto della scheda
    SD") e, una volta confermato, non si può tornare indietro.
 
@@ -440,8 +441,8 @@ Puoi anche creare un argomento a voce, senza passare da qui.
 
 ### Informazioni
 
-Mostra la versione del firmware installata e un ringraziamento: Chroninkle è
-nato come fork di Followup, creato da ALXV Labs.
+Mostra la versione del firmware installata e un ringraziamento: Taccuino nasce
+da Chroninkle di mach1na, a sua volta un fork di Followup di ALXV Labs.
 
 ## Il portale web
 
@@ -450,7 +451,7 @@ computer. Per raggiungerlo:
 
 1. Sul dispositivo vai in **Impostazioni → Rete** e accendi **Access point**
    (alla prima accensione, senza reti salvate, si accende da solo).
-2. Collega il telefono o il computer alla rete **`Chroninkle-XXXXXX`** con la
+2. Collega il telefono o il computer alla rete **`Taccuino-XXXXXX`** con la
    password di 8 cifre che compare sullo schermo del dispositivo (in un
    messaggio quando la rete si accende, e sempre nella pagina Rete, sotto
    l'interruttore Access point).
@@ -498,7 +499,7 @@ Il codice è una protezione in più, oltre alla password della rete: anche chi
 fosse riuscito a collegarsi al portale non può installare un firmware senza
 avere in mano il dispositivo. Vale 10 minuti e per un solo aggiornamento, e
 dopo 5 tentativi sbagliati bisogna chiederne uno nuovo. Il dispositivo accetta
-solo firmware Chroninkle e ne controlla l'integrità prima di installarlo. Se il
+solo firmware Taccuino e ne controlla l'integrità prima di installarlo. Se il
 nuovo firmware non riesce ad avviarsi, al riavvio successivo torna da solo
 alla versione precedente.
 

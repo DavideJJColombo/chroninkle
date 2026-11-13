@@ -24,10 +24,10 @@ struct SettingsAboutPageState {
     // e.g. "Version 0.7.0" -- built at BuildState() time from esp_app_get_description().
     std::string version_text;
     std::string_view acknowledgment_text = i18n::Tr(
-        "Chroninkle began as a fork of Followup, created by ALXV Labs. Thank you to ALXV for "
-        "the original design and implementation this project builds on.",
-        "Chroninkle è nato come fork di Followup, creato da ALXV Labs. Grazie ad ALXV per il "
-        "design e l'implementazione originali su cui si basa questo progetto.");
+        "Taccuino is built on Chroninkle by mach1na, itself a fork of Followup by ALXV Labs. "
+        "Thank you to both for the design and implementation this project builds on.",
+        "Taccuino nasce da Chroninkle di mach1na, a sua volta un fork di Followup di ALXV Labs. "
+        "Grazie a entrambi per il design e l'implementazione su cui si basa questo progetto.");
     ButtonState back = {};
 };
 

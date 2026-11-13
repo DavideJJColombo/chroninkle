@@ -8,6 +8,19 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-13
+
+### Changed
+
+- **Renamed to Taccuino** everywhere a user sees the name: the setup hotspot
+  is now `Taccuino-XXXXXX` (`CONFIG_CHRONINKLE_WIFI_AP_PREFIX`), the setup
+  portal's title and header (with the notebook mark), the onboarding
+  carousel's text and its first and last pictures (which showed the Followup
+  logo), the About page (now crediting Chroninkle and Followup), the README
+  and both manuals. The internal project name (`chroninkle.bin`, checked by
+  the OTA update), the Kconfig namespace and NVS keys are unchanged, so
+  updates from the portal and saved settings keep working.
+
 ## [1.5.0] - 2026-11-13
 
 ### Changed

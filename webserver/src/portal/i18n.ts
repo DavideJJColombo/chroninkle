@@ -167,14 +167,14 @@ export function applyStaticTranslations(): void {
     }
   };
 
-  document.title = 'Configurazione Chroninkle';
-  document.querySelector('main')?.setAttribute('aria-label', 'Configurazione Chroninkle');
+  document.title = 'Configurazione Taccuino';
+  document.querySelector('main')?.setAttribute('aria-label', 'Configurazione Taccuino');
 
   setAttr('wifiSettingsSheet', 'title', 'Impostazioni Wi-Fi');
   setAttr(
     'wifiSettingsSheet',
     'description',
-    'Cerca le reti disponibili e collega il tuo Chroninkle al Wi-Fi.'
+    'Cerca le reti disponibili e collega il tuo Taccuino al Wi-Fi.'
   );
   setAttr('wifiSettingsCloseBtn', 'aria-label', 'Chiudi impostazioni Wi-Fi');
   setAttr('networkList', 'label', 'Reti disponibili');

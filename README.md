@@ -1,8 +1,8 @@
-# Chroninkle Product Introduction
+# Taccuino Product Introduction
 
 ![Taccuino](assets/logos/taccuino-logo.png)
 
-Chroninkle is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Chroninkle helps you organize it afterward. With Gemini, your recordings are transcribed automatically, and you can ask for a written summary of your Notes or Todos any time. Everything is stored on your SD card.
+Taccuino is a place to capture your thoughts — whether it's an idea, a to-do, or just a note. Record what's on your mind at that light-bulb moment, before it slips away, and Taccuino helps you organize it afterward. With Gemini, your recordings are transcribed automatically, and you can ask for a written summary of your Notes or Todos any time. Everything is stored on your SD card.
 
 It runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97), so your thoughts live on a quiet, always-on screen you can place anywhere — a constant, low-interruption reminder instead of one more notification buried in your phone.
 
@@ -10,7 +10,7 @@ For the full walkthrough of every screen and control, see the [user manual](docs
 
 ## One-Sentence Positioning
 
-**Chroninkle is a voice-first thought-capture companion on always-on ePaper: record ideas, to-dos, and notes in the moment, let Gemini transcribe them and summarize what matters on demand, and keep your pending todos in view even when the screen is locked or off.**
+**Taccuino is a voice-first thought-capture companion on always-on ePaper: record ideas, to-dos, and notes in the moment, let Gemini transcribe them and summarize what matters on demand, and keep your pending todos in view even when the screen is locked or off.**
 
 ## What It Is Suitable For
 
@@ -38,7 +38,7 @@ Recordings, transcripts, and summaries are stored locally on the device's SD car
 
 ### 4. Follow Up on Tasks and Notes
 
-Mark a task or note as a follow-up to keep it on your radar. Chroninkle helps you stay on track and focused on what actually needs doing next.
+Mark a task or note as a follow-up to keep it on your radar. Taccuino helps you stay on track and focused on what actually needs doing next.
 
 ### 5. Your Pending Todos, Visible at a Glance
 
@@ -54,7 +54,7 @@ Tag a Note, Idea, or Todo with a topic — a project name, say — independent o
 
 ### 8. Read Your Own Text Files
 
-Copy plain `.txt` files onto the SD card's `books` folder and read them right on the device. Chroninkle remembers your page in each book, so picking one back up continues where you left off.
+Copy plain `.txt` files onto the SD card's `books` folder and read them right on the device. Taccuino remembers your page in each book, so picking one back up continues where you left off.
 
 ## Typical Applications
 
@@ -72,11 +72,11 @@ Copy plain `.txt` files onto the SD card's `books` folder and read them right on
 
 ## Brief Specifications
 
-Chroninkle runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97).
+Taccuino runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.com/ESP32-S3-ePaper-3.97).
 
 | Item | Information |
 | --- | --- |
-| Product Name | Chroninkle (on ESP32-S3-ePaper-3.97) |
+| Product Name | Taccuino (on ESP32-S3-ePaper-3.97) |
 | Product Type | Voice-capture notes app on an ePaper terminal |
 | MCU | ESP32-S3R8, dual-core Xtensa LX7 up to 240MHz |
 | Memory | 8MB PSRAM, 16MB flash |
@@ -89,11 +89,11 @@ Chroninkle runs on the [Waveshare ESP32-S3-ePaper-3.97](https://docs.waveshare.c
 | Storage | microSD card (recordings, transcripts, summaries, `.txt` books) |
 | AI | Gemini (cloud) transcription and summarization, over Wi-Fi |
 
-The board also carries an SHTC3 temperature/humidity sensor on the shared I2C bus. Chroninkle does not currently read it.
+The board also carries an SHTC3 temperature/humidity sensor on the shared I2C bus. Taccuino does not currently read it.
 
 ## Controls
 
-Chroninkle is driven entirely by three physical controls: a rocker, the Record button, and the PWR button. There is no touchscreen.
+Taccuino is driven entirely by three physical controls: a rocker, the Record button, and the PWR button. There is no touchscreen.
 
 | Control | Action |
 | --- | --- |
@@ -111,15 +111,15 @@ See the [user manual](docs/user-manual.md) for how these controls apply on every
 
 ## Product Value Summary
 
-The value of Chroninkle is a quiet, always-visible place to catch your thoughts and keep the important ones in front of you. Instead of losing an idea to a forgotten note app or burying a task in a notification stream, you speak it in the moment, let Gemini turn it into clean text and a summary, and keep everything private on your SD card.
+The value of Taccuino is a quiet, always-visible place to catch your thoughts and keep the important ones in front of you. Instead of losing an idea to a forgotten note app or burying a task in a notification stream, you speak it in the moment, let Gemini turn it into clean text and a summary, and keep everything private on your SD card.
 
 Tasks and notes become follow-ups so you stay on track. Your pending todos stay visible at a glance on the lock screen — even locked, asleep, or shut down — and the follow-ups you've flagged are always a button away as stickies: together, a steady, low-interruption view of what's next.
 
 ## License and Attribution
 
-Chroninkle is licensed under the [GNU GPLv3](LICENSE): Copyright (C) 2026 Alex Vong ([ALXV](https://github.com/alxv2016)), Copyright (C) 2026 Craig Richards ([mach1na](https://github.com/mach1na)).
+Taccuino, like the Chroninkle code it is built on, is licensed under the [GNU GPLv3](LICENSE): Copyright (C) 2026 Alex Vong ([ALXV](https://github.com/alxv2016)), Copyright (C) 2026 Craig Richards ([mach1na](https://github.com/mach1na)).
 
-Chroninkle was renamed from **Followup**, this project's own name through [version 0.5.0](CHANGELOG.md) — the boot screen still credits that name on a "Based on" line rather than dropping it. Followup was itself a fork of [ALXV's folloup-sticky](https://github.com/alxv2016/folloup-sticky), whose `main` branch targets SeeedStudio's reTerminal Sticky and which also has a `folloup-waveshare` branch porting it to the Waveshare ESP32-S3-ePaper-3.97; this fork built on that Waveshare work and made it the primary target going forward. Thank you to ALXV for the original design and implementation this project builds on.
+Taccuino is a personal fork of [Chroninkle](https://github.com/mach1na/chroninkle), renamed at version 1.6.0 (the firmware's internal project name, Kconfig namespace and settings stay `chroninkle` so updates and saved settings carry over). Chroninkle was renamed from **Followup**, its own name through [version 0.5.0](CHANGELOG.md) — the boot screen still credits that name on a "Based on" line rather than dropping it. Followup was itself a fork of [ALXV's folloup-sticky](https://github.com/alxv2016/folloup-sticky), whose `main` branch targets SeeedStudio's reTerminal Sticky and which also has a `folloup-waveshare` branch porting it to the Waveshare ESP32-S3-ePaper-3.97; this fork built on that Waveshare work and made it the primary target going forward. Thank you to ALXV for the original design and implementation this project builds on.
 
 The rename is still in progress — the GitHub repo, build/config identifiers, and some internal docs still say Followup/Folloup under the hood (tracked in `docs/todo.md`).
 

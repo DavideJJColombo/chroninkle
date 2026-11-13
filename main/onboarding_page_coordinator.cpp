@@ -20,10 +20,10 @@ struct Slide {
 };
 
 constexpr std::array<Slide, 6> kSlides = {{
-    {"Welcome to Chroninkle",
-     "Your pocket voice notebook. Capture thoughts out loud and let Chroninkle keep them organized.",
-     "Benvenuto in Chroninkle",
-     "Il tuo taccuino vocale tascabile. Cattura i pensieri a voce e lascia che Chroninkle li tenga "
+    {"Welcome to Taccuino",
+     "Your pocket voice notebook. Capture thoughts out loud and let Taccuino keep them organized.",
+     "Benvenuto in Taccuino",
+     "Il tuo quaderno vocale tascabile. Cattura i pensieri a voce e lascia che Taccuino li tenga "
      "in ordine.",
      EmbeddedImageId::kSlide1},
     {"Capture in a tap",
@@ -46,9 +46,9 @@ constexpr std::array<Slide, 6> kSlides = {{
      "aprire la conferma di spegnimento.",
      EmbeddedImageId::kSlide4},
     {"Summaries with Gemini",
-     "Connect Gemini and let Chroninkle transcribe your recordings and summarize your day for you.",
+     "Connect Gemini and let Taccuino transcribe your recordings and summarize your day for you.",
      "Riepiloghi con Gemini",
-     "Collega Gemini e lascia che Chroninkle trascriva le tue registrazioni e riassuma la tua "
+     "Collega Gemini e lascia che Taccuino trascriva le tue registrazioni e riassuma la tua "
      "giornata.",
      EmbeddedImageId::kSlide5},
     {"Notes, Todos & Follow-ups",

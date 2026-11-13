@@ -18,6 +18,7 @@ namespace epaper_ui {
 enum class TimePageItemId : uint8_t {
     kNone = 0,
     kTimezone,
+    kAutoSync,
     kHour,
     kMinute,
     kMeridiem,
@@ -33,6 +34,9 @@ struct TimePageState {
     std::string title_text = i18n::Tr("Time setting", "Impostazione ora");
     std::string manual_heading_text = i18n::Tr("Set manual time", "Imposta ora manualmente");
     SelectInputState timezone = {};
+    // "Automatic time: Yes/No" toggle and the line under it ("Synced: ..." / "Never synced").
+    ButtonState auto_sync = {};
+    std::string sync_status_text = {};
     TimeInputState hour = {};
     TimeInputState minute = {};
     ButtonState meridiem = {};

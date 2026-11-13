@@ -15,6 +15,7 @@ enum class ActivateIntent : uint8_t {
     kEditHour,
     kEditMinute,
     kToggleMeridiem,
+    kToggleAutoSync,
     kEditMonth,
     kEditDay,
     kEditYear,
@@ -39,6 +40,7 @@ struct ActivateCallbacks {
     std::function<void()> edit_hour;
     std::function<void()> edit_minute;
     std::function<void()> toggle_meridiem;
+    std::function<void()> toggle_auto_sync;
     std::function<void()> edit_month;
     std::function<void()> edit_day;
     std::function<void()> edit_year;

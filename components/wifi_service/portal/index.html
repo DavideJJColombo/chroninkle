@@ -104,6 +104,13 @@
               <option value="">Select timezone</option>
             </ui-select>
 
+            <ui-toggle
+              id="autoTimeToggle"
+              label="Automatic time (from the internet)"
+              aria-checked="true"
+            ></ui-toggle>
+            <p id="timeSyncStatus" class="form-helper-text"></p>
+
             <div class="form-control-row">
               <ui-input
                 id="manualTimeInput"
@@ -119,8 +126,8 @@
             </div>
 
             <p class="form-helper-text">
-              Set the time zone and location first to sync the current local time. You can also
-              set the date and time manually if needed.
+              With automatic time on, the device sets its clock from the internet whenever it
+              is on Wi-Fi. Turn it off to keep the date and time you enter here.
             </p>
 
             <ui-button

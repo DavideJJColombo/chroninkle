@@ -150,6 +150,7 @@ NavigationModel BuildTimePageNavigationModel(bool include_meridiem, bool day_fir
         AddItem(model, NavigationItemSection::kTimePageControls, role, index++);
     };
     add(NavigationItemRole::kTimePageTimezone);
+    add(NavigationItemRole::kTimePageAutoSync);
     add(NavigationItemRole::kTimePageHour);
     add(NavigationItemRole::kTimePageMinute);
     if (include_meridiem) {

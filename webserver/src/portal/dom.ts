@@ -35,6 +35,8 @@ export interface PortalDom {
   // Time / timezone
   timezoneLocationCard: CardField;
   timezoneSelect: ValidatableField;
+  autoTimeToggle: HTMLButtonElement;
+  timeSyncStatus: HTMLElement;
   manualTimeInput: ValidatableField;
   manualDateInput: ValidatableField;
   timezoneLocationClearBtn: HTMLButtonElement;
@@ -69,6 +71,8 @@ export function createPortalDom(): PortalDom {
 
     timezoneLocationCard: getRequiredElement<CardField>('timezoneLocationCard'),
     timezoneSelect: getRequiredElement<ValidatableField>('timezoneSelect'),
+    autoTimeToggle: getRequiredElement<HTMLButtonElement>('autoTimeToggle'),
+    timeSyncStatus: getRequiredElement<HTMLElement>('timeSyncStatus'),
     manualTimeInput: getRequiredElement<ValidatableField>('manualTimeInput'),
     manualDateInput: getRequiredElement<ValidatableField>('manualDateInput'),
     timezoneLocationClearBtn: getRequiredElement<HTMLButtonElement>('timezoneLocationClearBtn'),

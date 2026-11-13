@@ -8,6 +8,32 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-13
+
+### Added
+
+- **Automatic time on/off.** The Time page has a new **Automatic time:
+  Yes/No** button (staged, applied with Save), and the setup portal's time
+  card a matching switch. With it off, the time set by hand is kept even
+  while online and lwIP's hourly re-sync is stopped; before, connecting to
+  Wi-Fi always overrode a manual time. Save reads **Save** instead of **Sync
+  & Save** when it is off.
+- **Last sync shown.** A line under the button (and under the portal switch)
+  says when the clock last synced from the internet, or that it never has.
+- **Backup time servers.** Besides `pool.ntp.org`, SNTP now also asks
+  `time.google.com` and `ntp1.inrim.it` (`CONFIG_LWIP_SNTP_MAX_SERVERS=3`).
+
+### Changed
+
+- **Hourly re-syncs are recorded.** lwIP's background SNTP update (every hour
+  while online) now also updates the RTC chip and the last-sync time; before,
+  only the sync on connect did.
+- **Failed syncs are retried.** If a sync fails while online, it is tried
+  again after 5 minutes, up to three times per connection. The wait for an
+  answer went from 2 to 8 seconds.
+
+## [1.3.0] - 2026-11-13
+
 ### Security
 
 - **The setup hotspot is password-protected.** It used to be open, so anyone

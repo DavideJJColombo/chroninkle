@@ -378,11 +378,30 @@ dimenticare dal [portale web](#il-portale-web).
 
 ### Ora
 
-Scegli il fuso orario dall'elenco (quello predefinito è **Europa centrale
-(Italia)**), oppure inserisci data e ora a mano nei campi: ora e minuti, nel
-formato a 24 ore, poi giorno, mese e anno (GG, MM, AAAA). Alla fine premi
-**Sincronizza e salva**: salva quello che hai inserito e risincronizza
-l'orologio da Internet, se c'è connessione.
+1. **Fuso orario**: scegli il tuo dall'elenco (quello predefinito è **Europa
+   centrale (Italia)**). Il passaggio tra ora legale e ora solare è automatico.
+2. **Ora automatica: Sì / No**: premi il pulsante per cambiare scelta.
+   - **Sì** (predefinito): il dispositivo prende l'ora da Internet ogni volta
+     che si collega al Wi-Fi, e poi la ricontrolla da solo ogni ora finché
+     resta connesso. Se il primo server non risponde prova con quelli di
+     riserva (tra cui quello dell'Istituto nazionale di ricerca metrologica,
+     INRiM); se non risponde nessuno riprova dopo 5 minuti, fino a tre volte.
+     L'ora viene copiata anche nell'orologio interno, che la mantiene a
+     dispositivo spento.
+   - **No**: il dispositivo tiene l'ora che imposti a mano e non la cambia mai
+     da solo, nemmeno quando è connesso.
+3. Sotto il pulsante una riga ti dice com'è andata: **Sincronizzata il
+   GG/MM hh:mm** (l'ultima volta che ha preso l'ora da Internet), **Mai
+   sincronizzata: serve il Wi-Fi**, oppure, con l'ora automatica spenta,
+   **L'orologio tiene l'ora impostata**.
+4. **Ora manuale**: ora e minuti, nel formato a 24 ore, poi giorno, mese e
+   anno (GG, MM, AAAA). Con l'ora automatica attiva questi campi servono solo
+   quando il dispositivo non è connesso (il titolo diventa **Ora manuale (se
+   offline)**): appena c'è Internet vale l'ora presa dalla rete.
+
+Le modifiche valgono solo dopo il pulsante di salvataggio: **Sincronizza e
+salva** con l'ora automatica attiva (salva e riprende subito l'ora da
+Internet, se c'è connessione), **Salva** con l'ora automatica spenta.
 
 ### Memoria
 
@@ -447,7 +466,9 @@ Il portale usa la stessa lingua del dispositivo e contiene:
   il dispositivo.
 - **Chiave API di Gemini**: per salvarla o cancellarla. Per sicurezza il
   portale non la mostra mai per intero.
-- **Impostazione ora**: fuso orario, ora e data.
+- **Impostazione ora**: fuso orario, interruttore **Ora automatica (da
+  internet)** con l'ora dell'ultima sincronizzazione, ora e data. Come sul
+  dispositivo, l'interruttore vale dopo **Salva**.
 - **Aggiornamento firmware**: vedi la sezione successiva.
 
 **La password cambia ogni giorno.** È un numero casuale di 8 cifre (la

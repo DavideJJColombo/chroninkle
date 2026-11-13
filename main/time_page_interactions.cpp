@@ -16,6 +16,10 @@ ActivateResult HandlePrimaryActivate(TimePageCoordinator& coordinator)
         case NavigationItemRole::kTimePageTimezone:
             result.intent = ActivateIntent::kShowTimezoneModal;
             break;
+        case NavigationItemRole::kTimePageAutoSync:
+            result.intent = ActivateIntent::kToggleAutoSync;
+            result.apply_page_state = true;
+            break;
         case NavigationItemRole::kTimePageHour:
             result.intent = ActivateIntent::kEditHour;
             break;
@@ -84,6 +88,11 @@ void ApplyPrimaryActivateResult(const ActivateResult& result, const ActivateCall
         case ActivateIntent::kToggleMeridiem:
             if (callbacks.toggle_meridiem) {
                 callbacks.toggle_meridiem();
+            }
+            break;
+        case ActivateIntent::kToggleAutoSync:
+            if (callbacks.toggle_auto_sync) {
+                callbacks.toggle_auto_sync();
             }
             break;
         case ActivateIntent::kEditMonth:

@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { isItalian, t } from './i18n';
 import type {
   StatusType,
   TalkingClockModuleResponse,
@@ -57,6 +57,8 @@ interface TimeControllerDeps {
   timeRuntimeApi: string;
   timeSettingsApi: string;
   timezoneSelect: ValidatableField;
+  // Optional line under the automatic-time switch: last sync / never synced.
+  syncStatusText?: HTMLElement;
   wakeupTimeInput: ValidatableField;
 }
 
@@ -65,6 +67,58 @@ export function createTimeController(deps: TimeControllerDeps) {
   let isLocationBusy = false;
   let isClockBusy = false;
   let isClockSyncRefreshPending = false;
+
+  let lastRuntime: TimeRuntimeStatus | undefined;
+
+  function formatSyncEpoch(epoch: number): string {
+    const date = new Date(epoch * 1000);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const day = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
+    return isItalian()
+      ? `${day} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+      : date.toLocaleString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+  }
+
+  function renderSyncStatus() {
+    const element = deps.syncStatusText;
+    if (!element) {
+      return;
+    }
+    const runtime = lastRuntime;
+    if (!deps.isSwitchChecked(deps.clockModeToggle)) {
+      element.textContent = t(
+        'Off: the device keeps the date and time you set.',
+        'Disattivata: il dispositivo tiene la data e l\'ora impostate.'
+      );
+      return;
+    }
+    if (runtime?.sync_in_progress) {
+      element.textContent = t('Syncing with the internet...', 'Sincronizzazione in corso...');
+      return;
+    }
+    const epoch = runtime?.last_network_sync_epoch ?? 0;
+    if (runtime?.has_network_sync && epoch > 0) {
+      element.textContent = t(
+        `Last synced: ${formatSyncEpoch(epoch)}`,
+        `Ultima sincronizzazione: ${formatSyncEpoch(epoch)}`
+      );
+      return;
+    }
+    element.textContent = t(
+      'Not synced yet: it will sync as soon as the device is on Wi-Fi.',
+      'Non ancora sincronizzata: lo farà appena il dispositivo è sul Wi-Fi.'
+    );
+  }
+
+  function toggleAutoTimeStaged() {
+    deps.setSwitchChecked(deps.clockModeToggle, !deps.isSwitchChecked(deps.clockModeToggle));
+    renderSyncStatus();
+  }
 
   async function fetchTimezoneList(): Promise<TimezoneListResponse> {
     return deps.fetchTimezoneListJson('/api/timezone/list');
@@ -75,6 +129,8 @@ export function createTimeController(deps: TimeControllerDeps) {
     const runtime = data.runtime;
 
     deps.setSwitchChecked(deps.clockModeToggle, Boolean(settings?.enabled));
+    lastRuntime = runtime;
+    renderSyncStatus();
     deps.timezoneSelect.value = settings?.timezone_name || '';
     deps.clearFieldError(deps.timezoneSelect);
     deps.manualDateInput.value =
@@ -88,9 +144,8 @@ export function createTimeController(deps: TimeControllerDeps) {
       return;
     }
 
-    if (typeof runtime.clock_enabled === 'boolean') {
-      deps.setSwitchChecked(deps.clockModeToggle, runtime.clock_enabled);
-    }
+    lastRuntime = runtime;
+    renderSyncStatus();
 
     deps.manualDateInput.value =
       typeof runtime.current_date === 'string' ? runtime.current_date : '';
@@ -411,6 +466,7 @@ export function createTimeController(deps: TimeControllerDeps) {
     populateTimezoneOptions,
     refreshClockStatusAfterWifiConnect,
     saveTimezoneLocation,
+    toggleAutoTimeStaged,
     toggleClockModeSetting,
   };
 }

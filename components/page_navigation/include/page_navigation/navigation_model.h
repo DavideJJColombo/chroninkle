@@ -76,6 +76,7 @@ enum class NavigationItemRole : uint8_t {
     kWifiPageConnectButton,
     kWifiPageBackButton,
     kTimePageTimezone,
+    kTimePageAutoSync,
     kTimePageHour,
     kTimePageMinute,
     kTimePageMeridiem,

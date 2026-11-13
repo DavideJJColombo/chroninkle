@@ -11,6 +11,7 @@ import {
   defineNetworkList,
   defineNetworkStatus,
   defineSelect,
+  defineToggle,
   defineToast,
 } from './components';
 
@@ -79,6 +80,7 @@ defineInput();
 defineNetworkList();
 defineNetworkStatus();
 defineSelect();
+defineToggle();
 defineToast();
 
 let pageFade: ReturnType<typeof createGradualBlur> | null = null;
@@ -93,7 +95,6 @@ const setTimezoneLocationNotification = createCardNotifier(dom.timezoneLocationC
 // use. They let the shared time controller keep its (now inert) clock-mode/wakeup/bedtime paths
 // without those elements existing in the DOM.
 const noopTimeInput = () => document.createElement('input') as unknown as ValidatableField;
-const stubClockModeToggle = document.createElement('button');
 const stubWakeupTimeInput = noopTimeInput();
 const stubBedtimeTimeInput = noopTimeInput();
 const stubOpenAiApiKeyInput = document.createElement('input') as unknown as ValidatableField & {
@@ -127,7 +128,7 @@ const timeController = createTimeController({
   applyTalkingClockModuleSettings: () => {},
   bedtimeTimeInput: stubBedtimeTimeInput,
   clearFieldError,
-  clockModeToggle: stubClockModeToggle,
+  clockModeToggle: dom.autoTimeToggle,
   clockSyncPollAttempts: CLOCK_SYNC_POLL_ATTEMPTS,
   clockSyncPollIntervalMs: CLOCK_SYNC_POLL_INTERVAL_MS,
   fetchTimeRuntimeJson,
@@ -153,6 +154,7 @@ const timeController = createTimeController({
   timeRuntimeApi: TIME_RUNTIME_API,
   timeSettingsApi: TIME_SETTINGS_API,
   timezoneSelect: dom.timezoneSelect,
+  syncStatusText: dom.timeSyncStatus,
   wakeupTimeInput: stubWakeupTimeInput,
 });
 
@@ -230,6 +232,14 @@ function initialize() {
     void savedNetworksController.load();
   });
   dom.firmwareFileInput.progressHidden = true;
+  // Automatic time is staged: the choice is sent with Save, like on the device.
+  // Clicking the switch's label re-dispatches a click on its inner button: count only that one.
+  dom.autoTimeToggle.addEventListener('click', (event) => {
+    if (!event.composedPath().some((target) => target instanceof HTMLButtonElement)) {
+      return;
+    }
+    timeController.toggleAutoTimeStaged();
+  });
   dom.firmwareCodeBtn.addEventListener('click', () => {
     void firmwareController.requestCode();
   });

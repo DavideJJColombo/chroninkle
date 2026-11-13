@@ -71,3 +71,6 @@ CONFIG_FATFS_LFN_NONE=n
 CONFIG_FATFS_LFN_HEAP=y
 CONFIG_FATFS_LFN_STACK=n
 CONFIG_FATFS_USE_LABEL=y
+
+# Time sync: primary + two fallback NTP servers (timezone_service)
+CONFIG_LWIP_SNTP_MAX_SERVERS=3

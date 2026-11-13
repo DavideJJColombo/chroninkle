@@ -913,6 +913,9 @@ ButtonResult ApplyTimeActivateResult(const time_page_interactions::ActivateResul
     callbacks.toggle_meridiem = []() {
         time_page_runtime::ToggleMeridiem();
     };
+    callbacks.toggle_auto_sync = []() {
+        time_page_runtime::ToggleAutoSync();
+    };
     callbacks.save = []() {
         (void)time_page_runtime::Save();
     };

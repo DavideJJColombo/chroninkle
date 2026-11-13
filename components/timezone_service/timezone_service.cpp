@@ -38,6 +38,15 @@ constexpr const char* kNtpSyncedKey = "ntp_sync";
 constexpr const char* kNtpEpochKey = "ntp_epoch";
 constexpr const char* kDefaultNtpServer = "pool.ntp.org";
 constexpr const char* kChinaNtpServer = "cn.pool.ntp.org";
+// Fallback servers, used when CONFIG_LWIP_SNTP_MAX_SERVERS allows (sdkconfig.defaults: 3).
+constexpr const char* kFallbackNtpServer1 = "time.google.com";
+constexpr const char* kFallbackNtpServer2 = "ntp1.inrim.it";  // Italy's national time institute
+// How long a foreground sync waits for an answer before giving up (lwIP keeps polling after).
+constexpr uint32_t kSyncTimeoutMs = 8000;
+// After a failed sync while online, try again this much later, a few times; after that the
+// hourly background poll (CONFIG_LWIP_SNTP_UPDATE_DELAY) and the next reconnect take over.
+constexpr uint64_t kSyncRetryDelayUs = 5ULL * 60 * 1000 * 1000;
+constexpr int kMaxSyncRetries = 3;
 constexpr time_t kMinValidEpoch = 1600000000;
 constexpr size_t kMaxPortalPayloadLen = 512;
 constexpr uint32_t kSyncTaskStackWords = 6144;
@@ -59,6 +68,8 @@ struct TimezoneAliasEntry {
 
 struct SyncRequest {
     bool force = false;
+    // An hourly background SNTP update arrived: record it and copy it into the RTC chip.
+    bool commit_background = false;
 };
 
 constexpr TimezoneCatalogEntry kTimezones[] = {
@@ -133,6 +144,8 @@ QueueHandle_t s_sync_queue = nullptr;
 TaskHandle_t s_sync_task = nullptr;
 std::atomic<bool> s_sync_in_progress = false;
 std::atomic<bool> s_sntp_sync_seen{false};
+esp_timer_handle_t s_retry_timer = nullptr;
+std::atomic<int> s_sync_retries{0};
 bool s_initialized = false;
 bool s_network_connected = false;
 bool s_enabled = false;
@@ -505,6 +518,12 @@ void OnSntpTimeSync(timeval* tv)
 {
     (void)tv;
     s_sntp_sync_seen.store(true, std::memory_order_relaxed);
+    // Outside a foreground SyncNow this is lwIP's periodic re-sync: it already set the system
+    // clock; have the sync worker record it and update the RTC (no I2C on lwIP's thread).
+    if (!s_sync_in_progress.load(std::memory_order_relaxed) && s_sync_queue != nullptr) {
+        SyncRequest request = {.force = false, .commit_background = true};
+        (void)xQueueSend(s_sync_queue, &request, 0);
+    }
 }
 
 bool QueueSync(bool force)
@@ -513,12 +532,49 @@ bool QueueSync(bool force)
         return false;
     }
 
-    SyncRequest request = {.force = force};
+    SyncRequest request = {.force = force, .commit_background = false};
     if (xQueueSend(s_sync_queue, &request, 0) != pdTRUE) {
         ESP_LOGW(kTag, "Time sync queue full");
         return false;
     }
     return true;
+}
+
+void RetryTimerCallback(void*)
+{
+    (void)QueueSync(false);
+}
+
+// After a failed sync while online and with automatic time on, try again a little later.
+void ScheduleSyncRetry()
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        if (!s_network_connected || !ShouldSyncOnNetworkConnectedLocked()) {
+            return;
+        }
+    }
+    if (s_sync_retries.fetch_add(1, std::memory_order_relaxed) >= kMaxSyncRetries) {
+        return;
+    }
+    if (s_retry_timer == nullptr) {
+        const esp_timer_create_args_t args = {
+            .callback = RetryTimerCallback,
+            .arg = nullptr,
+            .dispatch_method = ESP_TIMER_TASK,
+            .name = "time_sync_retry",
+            .skip_unhandled_events = true,
+        };
+        if (esp_timer_create(&args, &s_retry_timer) != ESP_OK) {
+            s_retry_timer = nullptr;
+            return;
+        }
+    }
+    (void)esp_timer_stop(s_retry_timer);
+    if (esp_timer_start_once(s_retry_timer, kSyncRetryDelayUs) == ESP_OK) {
+        ESP_LOGI(kTag, "Network time sync will be retried in %llu min",
+                 static_cast<unsigned long long>(kSyncRetryDelayUs / 60000000ULL));
+    }
 }
 
 void SyncWorker(void*)
@@ -528,6 +584,22 @@ void SyncWorker(void*)
         if (xQueueReceive(s_sync_queue, &request, portMAX_DELAY) != pdTRUE) {
             continue;
         }
+        if (request.commit_background) {
+            bool enabled = false;
+            {
+                std::lock_guard<std::mutex> lock(s_mutex);
+                enabled = s_enabled;
+            }
+            const time_t now = time(nullptr);
+            if (enabled && now >= kMinValidEpoch && SetSystemEpoch(now, TimeSource::kNtp, false)) {
+                if (!SetRtcFromEpoch(now)) {
+                    ESP_LOGW(kTag, "Background time sync: RTC update failed");
+                }
+                ESP_LOGI(kTag, "Background network time sync recorded");
+                Notify();
+            }
+            continue;
+        }
         if (!request.force) {
             std::lock_guard<std::mutex> lock(s_mutex);
             if (!s_network_connected || !ShouldSyncOnNetworkConnectedLocked()) {
@@ -535,9 +607,12 @@ void SyncWorker(void*)
             }
         }
 
-        if (!SyncNow(nullptr, 2000)) {
+        if (SyncNow(nullptr, kSyncTimeoutMs)) {
+            s_sync_retries.store(0, std::memory_order_relaxed);
+        } else {
             ESP_LOGW(kTag, "Queued network time sync failed");
             Notify();
+            ScheduleSyncRetry();
         }
     }
 }
@@ -917,6 +992,9 @@ void SetNetworkConnected(bool connected)
         // events (RSSI updates, etc.) don't queue redundant NTP syncs.
         should_sync = connected && !was_connected && ShouldSyncOnNetworkConnectedLocked();
     }
+    if (should_sync) {
+        s_sync_retries.store(0, std::memory_order_relaxed);  // a fresh connection, fresh retries
+    }
 
     if (should_sync) {
         QueueSync(false);
@@ -954,7 +1032,8 @@ Result ApplySettingsPatch(const SettingsPatch& patch)
             return MakeValidationError("timezone_name", "required_for_clock",
                                        "timezone_name required to enable clock");
         }
-        use_network_time = s_network_connected && !staged_timezone_name.empty();
+        // With automatic time off, a manual date/time is kept even while online.
+        use_network_time = enable_clock && s_network_connected && !staged_timezone_name.empty();
     }
 
     if (!staged_timezone_name.empty()) {
@@ -991,7 +1070,18 @@ Result ApplySettingsPatch(const SettingsPatch& patch)
         }
     }
 
+    if (!enable_clock && esp_sntp_enabled()) {
+        // Automatic time turned off: stop lwIP's hourly re-sync so it can't override the
+        // manual time.
+        esp_sntp_stop();
+        if (s_retry_timer != nullptr) {
+            (void)esp_timer_stop(s_retry_timer);
+        }
+        ESP_LOGI(kTag, "Automatic network time off");
+    }
+
     if (use_network_time) {
+        s_sync_retries.store(0, std::memory_order_relaxed);
         // Queue the NTP sync on the dedicated sync worker rather than running the
         // stack-heavy, ~2s-blocking SNTP path inline. ApplySettingsPatch is called from
         // the caller's task (e.g. the 4 KB touch task when the user taps "Sync & Save"),
@@ -1006,7 +1096,7 @@ Result ApplySettingsPatch(const SettingsPatch& patch)
     }
 
     Notify();
-    return MakeSuccess(enable_clock ? "Time settings updated" : "Clock disabled");
+    return MakeSuccess(enable_clock ? "Time settings updated" : "Automatic time off");
 }
 
 bool SyncNow(const char* ntp_server, uint32_t timeout_ms)
@@ -1038,6 +1128,12 @@ bool SyncNow(const char* ntp_server, uint32_t timeout_ms)
     }
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, server);
+#if CONFIG_LWIP_SNTP_MAX_SERVERS > 1
+    esp_sntp_setservername(1, kFallbackNtpServer1);
+#endif
+#if CONFIG_LWIP_SNTP_MAX_SERVERS > 2
+    esp_sntp_setservername(2, kFallbackNtpServer2);
+#endif
     esp_sntp_init();
     if (timezone_tz != nullptr && timezone_tz[0] != '\0') {
         setenv("TZ", timezone_tz, 1);

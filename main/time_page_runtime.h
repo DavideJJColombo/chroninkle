@@ -26,6 +26,7 @@ esp_err_t SyncFromService(bool request_refresh_if_active);
 
 // Field activations (invoked by the page-input activate callbacks).
 void ToggleMeridiem();
+void ToggleAutoSync();
 esp_err_t Save();
 esp_err_t ShowTimezoneModal();
 esp_err_t ShowFieldKeyboard(page_navigation::NavigationItemRole field);

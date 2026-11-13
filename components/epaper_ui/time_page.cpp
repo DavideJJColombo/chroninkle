@@ -9,6 +9,7 @@ namespace {
 
 constexpr auto kTitleRole = design::TypographyRole::kHeadingH1;
 constexpr auto kManualHeadingRole = design::TypographyRole::kHeadingH2;
+constexpr auto kSyncStatusRole = design::TypographyRole::kLabelMedium;
 constexpr int kSideInset = design::spacing::k16;
 constexpr int kTopGap = design::spacing::k24;
 constexpr int kHeadingBottomPadding = design::spacing::k24;
@@ -19,6 +20,8 @@ constexpr int kManualHeadingGap = design::spacing::k16;
 
 struct Layout {
     UiRect timezone = {};
+    UiRect auto_sync = {};
+    int sync_status_y = 0;
     int manual_heading_y = 0;
     UiRect hour = {};
     UiRect minute = {};
@@ -38,6 +41,14 @@ TextInputStyle FieldStyle(int width)
 }
 
 ButtonStyle MeridiemStyle(int width)
+{
+    ButtonStyle style = {};
+    style.width = width;
+    style.center_label = true;
+    return style;
+}
+
+ButtonStyle ToggleStyle(int width)
 {
     ButtonStyle style = {};
     style.width = width;
@@ -81,7 +92,12 @@ Layout BuildLayout(int portrait_width, int portrait_height, const TimePageState&
 
     Layout layout = {};
     layout.timezone = SelectInputBounds(page_x, y, state.timezone, FieldStyle(page_width));
-    y = layout.timezone.bottom() + kSectionBlockGap;
+    y = layout.timezone.bottom() + kSectionGap;
+
+    layout.auto_sync = ButtonBounds(page_x, y, state.auto_sync, ToggleStyle(page_width));
+    y = layout.auto_sync.bottom() + design::spacing::k8;
+    layout.sync_status_y = y;
+    y += LineHeight(kSyncStatusRole) + kSectionBlockGap;
 
     layout.manual_heading_y = y;
     y = layout.manual_heading_y + LineHeight(kManualHeadingRole) + kManualHeadingGap;
@@ -128,6 +144,8 @@ UiRect TimePageItemBounds(int portrait_width,
     switch (item) {
         case TimePageItemId::kTimezone:
             return layout.timezone;
+        case TimePageItemId::kAutoSync:
+            return layout.auto_sync;
         case TimePageItemId::kHour:
             return layout.hour;
         case TimePageItemId::kMinute:
@@ -175,6 +193,8 @@ UiRect TimePageItemVisualBounds(int portrait_width,
         case TimePageItemId::kYear:
             return TimeInputVisualBounds(layout.year.x, layout.year.y, state.year,
                                          FieldStyle(layout.year.width));
+        case TimePageItemId::kAutoSync:
+            return layout.auto_sync;
         case TimePageItemId::kMeridiem:
             return layout.meridiem;
         case TimePageItemId::kSave:
@@ -199,7 +219,7 @@ bool HitTestTimePageItem(int portrait_width,
     }
 
     constexpr TimePageItemId kItems[] = {
-        TimePageItemId::kTimezone, TimePageItemId::kHour,     TimePageItemId::kMinute,
+        TimePageItemId::kTimezone, TimePageItemId::kAutoSync, TimePageItemId::kHour,     TimePageItemId::kMinute,
         TimePageItemId::kMeridiem, TimePageItemId::kMonth,    TimePageItemId::kDay,
         TimePageItemId::kYear,     TimePageItemId::kSave,     TimePageItemId::kBack,
     };
@@ -241,6 +261,15 @@ void DrawTimePage(uint8_t* framebuffer,
     DrawSelectInput(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                     layout.timezone.x, layout.timezone.y, state.timezone,
                     FieldStyle(layout.timezone.width));
+
+    DrawButton(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
+               layout.auto_sync.x, layout.auto_sync.y, state.auto_sync,
+               ToggleStyle(layout.auto_sync.width));
+    if (!state.sync_status_text.empty()) {
+        DrawTypographyText(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
+                           kSideInset, layout.sync_status_y, state.sync_status_text,
+                           kSyncStatusRole, design::color::kBlack);
+    }
 
     DrawTypographyText(framebuffer, raw_width, raw_height, portrait_width, portrait_height,
                        kSideInset, layout.manual_heading_y, state.manual_heading_text,

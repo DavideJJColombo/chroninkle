@@ -67,6 +67,7 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Time runtime loaded': 'Ora caricata',
   'Timezone list loaded': 'Elenco fusi orari caricato',
   'Clock disabled': 'Orologio disattivato',
+  'Automatic time off': 'Ora automatica disattivata',
   'Failed to save time settings': 'Impossibile salvare le impostazioni dell’ora',
   'Failed to set manual time': 'Impossibile impostare l’ora manualmente',
   'Invalid manual date/time': 'Data o ora non valide',
@@ -193,11 +194,12 @@ export function applyStaticTranslations(): void {
   setAttr('timezoneSelect', 'aria-label', 'Fuso orario');
   setAttr('manualTimeInput', 'label', 'Ora');
   setAttr('manualDateInput', 'label', 'Data');
-  const helper = document.querySelector('#timezoneLocationCard .form-helper-text');
+  setAttr('autoTimeToggle', 'label', 'Ora automatica (da internet)');
+  const helper = document.querySelector('#timezoneLocationCard p.form-helper-text:not([id])');
   if (helper) {
     helper.textContent =
-      'Imposta prima il fuso orario per sincronizzare l’ora locale. Se serve puoi anche ' +
-      'impostare data e ora manualmente.';
+      'Con l’ora automatica attiva, il dispositivo prende l’ora da internet ogni volta che è ' +
+      'sul Wi-Fi. Disattivala per tenere la data e l’ora che inserisci qui.';
   }
   setText('timezoneLocationClearBtn', 'Cancella');
   setText('timezoneLocationSaveBtn', 'Salva');

@@ -48,6 +48,7 @@ public:
     void SetDay(const std::string& value);
     void SetYear(const std::string& value);
     void ToggleMeridiem();
+    void ToggleAutoSync();
     // Clears the "user edited" guard after a save so later service syncs (e.g. an async NTP
     // result) reload the page instead of preserving the now-committed edits.
     void MarkSaved();
@@ -59,6 +60,7 @@ public:
 
 private:
     void LoadFromSnapshot(const timezone_service::Snapshot& snapshot);
+    std::string SyncStatusText() const;
 
     page_navigation::NavigationModel navigation_model_ =
         page_navigation::BuildTimePageNavigationModel(!i18n::Uses24HourClock(),
@@ -71,6 +73,10 @@ private:
     std::string hour_ = {};    // "01".."12" with AM/PM, "00".."23" on the 24-hour clock
     std::string minute_ = {};  // "00".."59"
     bool meridiem_pm_ = false;
+    bool auto_sync_ = true;  // "Automatic time", staged until Save
+    bool has_network_sync_ = false;
+    int64_t last_network_sync_epoch_ = 0;
+    bool sync_in_progress_ = false;
     bool uses_24_hour_ = i18n::Uses24HourClock();  // follows the UI language, set on show
     bool day_first_ = i18n::UsesDayFirstDates();    // likewise
     std::string month_ = {};   // "01".."12"

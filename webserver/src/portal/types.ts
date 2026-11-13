@@ -41,6 +41,7 @@ export interface TimeRuntimeStatus {
   time_valid?: boolean;
   time_source?: string;
   has_network_sync?: boolean;
+  sync_in_progress?: boolean;
   last_network_sync_epoch?: number;
   current_date?: string;
   current_time?: string;

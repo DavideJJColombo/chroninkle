@@ -360,12 +360,30 @@ one by one, in the setup portal's WiFi settings.
 
 ### Time
 
-Set your timezone from a picker, or enter the date and time by hand in the
-fields provided (hour, minute, AM/PM, month, day, year). In Italian the
-hour is entered on the 24-hour clock (no AM/PM) and the date reads day,
-month, year. Press **Sync &
-Save** when you're done — it both saves what you entered and re-syncs the
-clock.
+1. **Timezone**: pick yours from the list. Daylight saving time switches by
+   itself.
+2. **Automatic time: Yes / No**: press the button to switch.
+   - **Yes** (default): the device sets its clock from the internet every
+     time it joins Wi-Fi, then checks again every hour while it stays
+     connected. If the first time server doesn't answer it tries backup ones
+     (time.google.com, Italy's INRiM); if none answers it tries again after
+     5 minutes, up to three times. The time is also copied into the
+     battery-backed clock chip, which keeps it while the device is off.
+   - **No**: the device keeps the time you set by hand and never changes it
+     by itself, even when it is online.
+3. A line under the button tells you how it went: **Last synced: MM/DD
+   time** (the last time it got the time from the internet), **Never synced:
+   needs Wi-Fi**, or, with automatic time off, **The clock keeps the time you
+   set.**
+4. **Manual time**: hour, minute, AM/PM, month, day, year. In Italian the
+   hour is entered on the 24-hour clock (no AM/PM) and the date reads day,
+   month, year. With automatic time on these fields only matter while the
+   device is offline (the heading reads **Manual time (used offline)**): as
+   soon as it is online, the internet time wins.
+
+Changes apply when you press the save button: **Sync & Save** with automatic
+time on (saves and fetches the time from the internet straight away, if
+connected), **Save** with automatic time off.
 
 ### Storage
 

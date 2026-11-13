@@ -264,6 +264,15 @@ void ToggleMeridiem()
     (void)UpdateDisplayStateAndRequestRefresh(display_service::RefreshMode::kPartial);
 }
 
+void ToggleAutoSync()
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_coordinator.ToggleAutoSync();
+    }
+    (void)UpdateDisplayStateAndRequestRefresh(display_service::RefreshMode::kPartial);
+}
+
 esp_err_t Save()
 {
     timezone_service::SettingsPatch patch = {};

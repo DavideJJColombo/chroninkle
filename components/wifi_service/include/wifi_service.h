@@ -80,6 +80,7 @@ void SetAccessPointEnabled(bool enabled);
 void EnterAccessPointMode();
 bool ConnectToNetwork(const std::string& ssid, const std::string& password,
                       bool save_on_success = true);
+// clear_saved_credentials: also forget the network being left (the other saved ones stay).
 bool DisconnectFromNetwork(bool clear_saved_credentials = true);
 bool StartNetworkScan();
 bool ClearSavedCredentials();
@@ -98,6 +99,12 @@ bool IsConnected();
 bool IsAccessPointMode();
 bool IsBusy();
 bool HasSavedCredentials();
+// Remembered networks (up to 5, most recently connected first). The device joins the strongest
+// one in range on its own; connecting to one again needs no password (pass an empty one).
+std::vector<std::string> SavedNetworkSsids();
+bool IsNetworkSaved(const std::string& ssid);
+// Removes a remembered network (and leaves it if it is the one in use).
+bool ForgetNetwork(const std::string& ssid);
 
 const char* StateName(State state);
 

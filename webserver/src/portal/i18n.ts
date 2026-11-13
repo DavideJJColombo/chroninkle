@@ -83,6 +83,8 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Gemini API key cleared': 'Chiave API di Gemini cancellata',
   'Failed to clear Gemini API key': 'Impossibile cancellare la chiave API di Gemini',
   'Request failed.': 'Richiesta non riuscita.',
+  'Network forgotten': 'Rete dimenticata',
+  'Network not saved': 'Rete non salvata',
   'Firmware status loaded': 'Stato del firmware caricato',
   'Update code shown on the device': 'Codice mostrato sul dispositivo',
   'Update code required': 'Serve il codice mostrato sul dispositivo',

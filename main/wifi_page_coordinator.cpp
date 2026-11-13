@@ -294,6 +294,12 @@ epaper_ui::WifiPageState WifiPageCoordinator::BuildState() const
     }
 
     state.password_input = password_input_state_;
+    // A remembered network needs no password: say so instead of asking for one.
+    if (password_input_state_.value_text.empty() &&
+        wifi_service::IsNetworkSaved(SelectedNetworkSsid())) {
+        state.password_input.placeholder_text =
+            i18n::Tr("Saved - leave empty", "Salvata: lascia vuoto");
+    }
     state.password_input.focused =
         IsRoleFocused(page_navigation::NavigationItemRole::kWifiPagePasswordInput) ||
         IsRoleFocused(page_navigation::NavigationItemRole::kWifiPagePasswordVisibilityButton) ||

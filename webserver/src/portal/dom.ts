@@ -26,6 +26,7 @@ export interface PortalDom {
   passwordInput: ValidatableField;
   scanBtn: HTMLButtonElement;
   connectBtn: HTMLButtonElement;
+  savedNetworks: HTMLElement;
   // Gemini API key
   geminiCard: CardField;
   geminiApiKeyInput: ValidatableField & { readOnly: boolean };
@@ -57,6 +58,7 @@ export function createPortalDom(): PortalDom {
     passwordInput: getRequiredElement<ValidatableField>('password'),
     scanBtn: getRequiredElement<HTMLButtonElement>('scanBtn'),
     connectBtn: getRequiredElement<HTMLButtonElement>('connectBtn'),
+    savedNetworks: getRequiredElement<HTMLElement>('savedNetworks'),
 
     geminiCard: getRequiredElement<CardField>('geminiCard'),
     geminiApiKeyInput: getRequiredElement<ValidatableField & { readOnly: boolean }>(

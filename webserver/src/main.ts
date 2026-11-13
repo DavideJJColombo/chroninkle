@@ -59,6 +59,7 @@ import {
 import { parseClockTimeInputValue } from './portal/duration';
 import { createFirmwareController } from './portal/firmware';
 import { createProviderKeysController } from './portal/providerKeys';
+import { createSavedNetworksController } from './portal/savedNetworks';
 import { createTimeController } from './portal/time';
 import { createWiFiController } from './portal/wifi';
 import { bindPortalEvents } from './portal/events';
@@ -155,6 +156,14 @@ const timeController = createTimeController({
   wakeupTimeInput: stubWakeupTimeInput,
 });
 
+const savedNetworksController = createSavedNetworksController({
+  container: dom.savedNetworks,
+  notify: setNotification,
+  onChange: () => {
+    void wifiController.checkStatus();
+  },
+});
+
 const wifiController = createWiFiController({
   checkIcon,
   clearFieldError,
@@ -166,9 +175,12 @@ const wifiController = createWiFiController({
     if (!wasConnected && isCurrentlyConnected) {
       void timeController.refreshClockStatusAfterWifiConnect();
     }
+    // A successful connect saves the network; a disconnect may forget one.
+    void savedNetworksController.load();
   },
   onStateChange: updateUi,
   passwordInput: dom.passwordInput,
+  isSavedNetwork: (ssid) => savedNetworksController.isSaved(ssid),
   scanPollAttempts: NETWORK_SCAN_POLL_ATTEMPTS,
   scanPollIntervalMs: NETWORK_SCAN_POLL_INTERVAL_MS,
   securityIcon: wifiSecureIcon,
@@ -214,6 +226,9 @@ function initialize() {
   dom.geminiCard.iconSvg = apiKeyIcon;
   dom.timezoneLocationCard.iconSvg = clockIcon;
   dom.firmwareCard.iconSvg = firmwareIcon;
+  dom.wifiStatusCard.addEventListener('settings', () => {
+    void savedNetworksController.load();
+  });
   dom.firmwareFileInput.progressHidden = true;
   dom.firmwareCodeBtn.addEventListener('click', () => {
     void firmwareController.requestCode();
@@ -282,6 +297,7 @@ async function loadInitialStatus() {
     timeController.populateTimezoneOptions(),
     timeController.fetchTimeSettingsStatus(),
     wifiController.checkStatus(),
+    savedNetworksController.load(),
     loadGeminiSettings(),
     firmwareController.loadStatus(),
   ]);

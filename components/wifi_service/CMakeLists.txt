@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "wifi_service.cpp"
+    SRCS "wifi_service.cpp" "saved_networks.cpp"
     INCLUDE_DIRS "include"
     REQUIRES i18n esp_event esp_http_server esp_netif esp_timer esp_wifi json lwip nvs_flash task_config
     EMBED_FILES "portal/index.html" "portal/index.js" "portal/index.css"

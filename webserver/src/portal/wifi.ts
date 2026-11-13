@@ -26,6 +26,8 @@ interface WiFiControllerDeps {
   onConnectionStateChange?: (state: ConnectionStateChange) => void;
   onStateChange: () => void;
   passwordInput: ValidatableField;
+  // Saved networks are joined without retyping their password.
+  isSavedNetwork?: (ssid: string | null) => boolean;
   scanPollAttempts: number;
   scanPollIntervalMs: number;
   securityIcon: string;
@@ -110,6 +112,9 @@ export function createWiFiController(deps: WiFiControllerDeps) {
   }
 
   function requiresPassword(): boolean {
+    if (deps.isSavedNetwork?.(selectedNetwork)) {
+      return false;
+    }
     const network = networks.find(item => item.ssid === selectedNetwork);
     if (!network) {
       return true;
@@ -123,6 +128,12 @@ export function createWiFiController(deps: WiFiControllerDeps) {
     if (!requiresPassword()) {
       deps.clearFieldError(deps.passwordInput);
     }
+    deps.passwordInput.setAttribute(
+      'placeholder',
+      deps.isSavedNetwork?.(ssid)
+        ? t('Saved - leave empty', 'Salvata: lascia vuoto')
+        : t('Enter network password', 'Inserisci la password della rete')
+    );
     updateNetworkListSelectionState();
     deps.onStateChange();
   }

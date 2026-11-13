@@ -70,7 +70,9 @@ automatically open a setup page (or visit `http://192.168.4.1` yourself).
 From there you can:
 
 - **Connect Chroninkle to your WiFi** — scan for networks, pick yours, enter
-  the password.
+  the password. Every network it connects to is saved (up to 5) and joined
+  automatically when in range; the **Saved networks** list in the WiFi
+  settings shows them and lets you **Forget** one.
 - **Add your Gemini API key** — this is what powers transcription and
   summaries. Without it, recordings still save to the SD card, they just
   won't be transcribed.
@@ -329,6 +331,15 @@ From the top:
    press **Connect**. If you're already connected to the highlighted
    network, that same button reads **Disconnect** instead. Use **Scan**
    to refresh the list.
+
+**Saved networks.** Every network Chroninkle connects to is remembered (up
+to 5; the least recently used one is dropped when a sixth is added). When it
+starts up or loses its connection, Chroninkle looks for the saved networks in
+range and joins the one with the strongest signal by itself, so moving between
+home, office and a phone hotspot needs no action. To join a saved network by
+hand, select it and press **Connect** with the password field left empty (it
+reads "Saved - leave empty"). Saved networks are listed, and can be forgotten
+one by one, in the setup portal's WiFi settings.
 
 ### Time
 

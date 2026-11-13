@@ -473,3 +473,46 @@ ui-range-slider ~ .form-group,
   flex-direction: column;
   width: 100%;
 }
+
+/* Saved Wi-Fi networks (Wi-Fi sheet) */
+.saved-networks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.saved-networks[hidden] {
+  display: none;
+}
+
+.saved-networks__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.saved-networks__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saved-networks__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-input);
+}
+
+.saved-networks__ssid {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

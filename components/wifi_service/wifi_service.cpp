@@ -26,6 +26,7 @@
 #include "freertos/task.h"
 #include "lwip/sockets.h"
 #include "nvs.h"
+#include "saved_networks.h"
 #include "sdkconfig.h"
 
 namespace wifi_service {
@@ -35,6 +36,9 @@ constexpr const char* kTag = "WifiService";
 constexpr const char* kNvsNamespace = "wifi";
 constexpr const char* kSsidKey = "ssid";
 constexpr const char* kPasswordKey = "password";
+// Saved networks list (wifi_saved_networks blob). The single ssid/password keys above are the
+// pre-list format, migrated into the list on first load.
+constexpr const char* kNetworksKey = "networks";
 constexpr const char* kApUrl = "http://192.168.4.1";
 constexpr int kConnectTimeoutSec = 60;
 // Consecutive automatic reconnect attempts before the loop gives up and waits for the
@@ -60,6 +64,8 @@ constexpr const char* kPortalApiStatusUri = "/api/status";
 // The portal reads the device UI language here so it shows itself in the same language.
 constexpr const char* kPortalApiLanguageUri = "/api/language";
 constexpr const char* kPortalApiDisconnectUri = "/api/disconnect";
+constexpr const char* kPortalApiSavedNetworksUri = "/api/wifi/saved";
+constexpr const char* kPortalApiForgetNetworkUri = "/api/wifi/forget";
 constexpr const char* kPortalIndexJsUri = "/index.js";
 constexpr const char* kPortalIndexCssUri = "/index.css";
 
@@ -110,7 +116,14 @@ std::string s_current_ssid;
 std::string s_ip_address;
 std::string s_ap_ssid;
 std::string s_ap_url = kApUrl;
-Credentials s_saved_credentials;
+// Remembered networks, most recently connected first (persisted under kNetworksKey).
+std::vector<wifi_saved_networks::Network> s_saved_networks;
+// True while the station is joining a network the user picked by hand: that attempt must not be
+// swapped for another saved network. Cleared once connected (later reconnects pick freely).
+bool s_user_selected_network = false;
+// Scans started by wifi_service itself to choose a saved network; their SCAN_DONE events must
+// not be mistaken for (and must not consume the results of) a Wi-Fi page scan.
+int s_internal_scans_pending = 0;
 Credentials s_active_credentials;
 ScanSnapshot s_scan_snapshot = {};
 std::mutex s_state_mutex;
@@ -157,7 +170,8 @@ UiState BuildUiStateLocked()
         .connected = s_connected,
         .access_point_mode = s_access_point_mode,
         .reconnecting = s_reconnecting,
-        .has_saved_credentials = s_saved_credentials.valid(),
+        .has_saved_credentials = !s_saved_networks.empty() ||
+                                 std::string(CONFIG_CHRONINKLE_WIFI_STA_SSID).size() > 0,
         .ssid = s_current_ssid,
         .ip_address = s_ip_address,
         .ap_ssid = s_ap_ssid,
@@ -327,94 +341,122 @@ bool LoadString(nvs_handle_t handle, const char* key, std::string* out)
     return true;
 }
 
-void ReloadSavedCredentials()
-{
-    Credentials credentials = {};
-    nvs_handle_t handle = 0;
-    esp_err_t err = nvs_open(kNvsNamespace, NVS_READONLY, &handle);
-    if (err == ESP_OK) {
-        LoadString(handle, kSsidKey, &credentials.ssid);
-        LoadString(handle, kPasswordKey, &credentials.password);
-        nvs_close(handle);
-    }
-
-    if (!credentials.valid()) {
-        credentials.ssid = CONFIG_CHRONINKLE_WIFI_STA_SSID;
-        credentials.password = CONFIG_CHRONINKLE_WIFI_STA_PASSWORD;
-    }
-
-    std::lock_guard<std::mutex> lock(s_state_mutex);
-    s_saved_credentials = std::move(credentials);
-    if (!s_active_credentials.valid()) {
-        s_active_credentials = s_saved_credentials;
-    }
-}
-
-bool SaveCredentials(const std::string& ssid, const std::string& password)
+bool PersistNetworks(const std::vector<wifi_saved_networks::Network>& networks)
 {
     nvs_handle_t handle = 0;
     esp_err_t err = nvs_open(kNvsNamespace, NVS_READWRITE, &handle);
     if (err != ESP_OK) {
-        ESP_LOGE(kTag, "Failed to open NVS for Wi-Fi credentials: %s", esp_err_to_name(err));
+        ESP_LOGE(kTag, "Failed to open NVS for Wi-Fi networks: %s", esp_err_to_name(err));
         return false;
     }
-
-    err = nvs_set_str(handle, kSsidKey, ssid.c_str());
-    if (err == ESP_OK) {
-        err = nvs_set_str(handle, kPasswordKey, password.c_str());
+    if (networks.empty()) {
+        err = nvs_erase_key(handle, kNetworksKey);
+        if (err == ESP_ERR_NVS_NOT_FOUND) {
+            err = ESP_OK;
+        }
+    } else {
+        const std::vector<uint8_t> blob = wifi_saved_networks::Serialize(networks);
+        err = nvs_set_blob(handle, kNetworksKey, blob.data(), blob.size());
     }
     if (err == ESP_OK) {
         err = nvs_commit(handle);
     }
     nvs_close(handle);
-
     if (err != ESP_OK) {
-        ESP_LOGE(kTag, "Failed to save Wi-Fi credentials: %s", esp_err_to_name(err));
+        ESP_LOGE(kTag, "Failed to save Wi-Fi networks: %s", esp_err_to_name(err));
         return false;
     }
+    return true;
+}
+
+void ReloadSavedCredentials()
+{
+    std::vector<wifi_saved_networks::Network> networks;
+    bool migrate_legacy = false;
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) == ESP_OK) {
+        size_t size = 0;
+        if (nvs_get_blob(handle, kNetworksKey, nullptr, &size) == ESP_OK && size > 0) {
+            std::vector<uint8_t> blob(size);
+            if (nvs_get_blob(handle, kNetworksKey, blob.data(), &size) != ESP_OK ||
+                !wifi_saved_networks::Deserialize(blob.data(), size, &networks)) {
+                ESP_LOGW(kTag, "Saved Wi-Fi networks unreadable; starting with an empty list");
+                networks.clear();
+            }
+        } else {
+            // Pre-list firmware stored a single network: carry it over.
+            Credentials legacy = {};
+            LoadString(handle, kSsidKey, &legacy.ssid);
+            LoadString(handle, kPasswordKey, &legacy.password);
+            if (legacy.valid()) {
+                wifi_saved_networks::Remember(&networks, {legacy.ssid, legacy.password});
+                migrate_legacy = true;
+            }
+        }
+        nvs_close(handle);
+    }
+
+    if (migrate_legacy && PersistNetworks(networks) &&
+        nvs_open(kNvsNamespace, NVS_READWRITE, &handle) == ESP_OK) {
+        (void)nvs_erase_key(handle, kSsidKey);
+        (void)nvs_erase_key(handle, kPasswordKey);
+        (void)nvs_commit(handle);
+        nvs_close(handle);
+        ESP_LOGI(kTag, "Migrated the saved Wi-Fi network to the saved networks list");
+    }
+    ESP_LOGI(kTag, "Saved Wi-Fi networks: %u", static_cast<unsigned>(networks.size()));
 
     std::lock_guard<std::mutex> lock(s_state_mutex);
-    s_saved_credentials = Credentials{.ssid = ssid, .password = password};
-    return true;
+    s_saved_networks = std::move(networks);
+}
+
+// Remembers a network that just connected (most recent first) and saves the list.
+bool SaveCredentials(const std::string& ssid, const std::string& password)
+{
+    std::vector<wifi_saved_networks::Network> networks;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        wifi_saved_networks::Remember(&s_saved_networks, {ssid, password});
+        networks = s_saved_networks;
+    }
+    return PersistNetworks(networks);
+}
+
+bool ForgetSavedNetwork(const std::string& ssid)
+{
+    std::vector<wifi_saved_networks::Network> networks;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        if (!wifi_saved_networks::Forget(&s_saved_networks, ssid)) {
+            return false;
+        }
+        networks = s_saved_networks;
+    }
+    ESP_LOGI(kTag, "Forgot saved Wi-Fi network %s", ssid.c_str());
+    return PersistNetworks(networks);
 }
 
 bool ClearCredentialsFromNvs()
 {
-    nvs_handle_t handle = 0;
-    esp_err_t err = nvs_open(kNvsNamespace, NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(kTag, "Failed to open NVS to clear Wi-Fi credentials: %s", esp_err_to_name(err));
-        return false;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        s_saved_networks.clear();
     }
-
-    err = nvs_erase_key(handle, kSsidKey);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        err = ESP_OK;
-    }
-    if (err == ESP_OK) {
-        esp_err_t password_err = nvs_erase_key(handle, kPasswordKey);
-        if (password_err != ESP_OK && password_err != ESP_ERR_NVS_NOT_FOUND) {
-            err = password_err;
-        }
-    }
-    if (err == ESP_OK) {
-        err = nvs_commit(handle);
-    }
-    nvs_close(handle);
-
-    if (err != ESP_OK) {
-        ESP_LOGE(kTag, "Failed to clear Wi-Fi credentials: %s", esp_err_to_name(err));
-        return false;
-    }
-
-    std::lock_guard<std::mutex> lock(s_state_mutex);
-    s_saved_credentials = {};
-    return true;
+    return PersistNetworks({});
 }
 
+// The network a (re)connect starts from: the one the user just picked, else the most recently
+// used saved network, else the built-in sdkconfig one. StartStationNow may still swap it for a
+// stronger saved network in range.
 Credentials ResolveStationCredentialsLocked()
 {
-    return s_active_credentials.valid() ? s_active_credentials : s_saved_credentials;
+    if (s_active_credentials.valid()) {
+        return s_active_credentials;
+    }
+    if (!s_saved_networks.empty()) {
+        return {s_saved_networks.front().ssid, s_saved_networks.front().password};
+    }
+    return {CONFIG_CHRONINKLE_WIFI_STA_SSID, CONFIG_CHRONINKLE_WIFI_STA_PASSWORD};
 }
 
 void UpdateAccessPointIdentity()
@@ -854,6 +896,48 @@ esp_err_t HandlePortalConfigure(httpd_req_t* request)
     return SendJsonResponse(request, 200, root);
 }
 
+esp_err_t HandlePortalSavedNetworks(httpd_req_t* request)
+{
+    const UiState ui_state = GetUiState();
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddBoolToObject(root, "success", true);
+    cJSON_AddNumberToObject(root, "max", static_cast<double>(wifi_saved_networks::kMaxNetworks));
+    cJSON* networks = cJSON_AddArrayToObject(root, "networks");
+    for (const std::string& ssid : SavedNetworkSsids()) {
+        cJSON* item = cJSON_CreateObject();
+        cJSON_AddStringToObject(item, "ssid", ssid.c_str());
+        cJSON_AddBoolToObject(item, "connected", ui_state.connected && ui_state.ssid == ssid);
+        cJSON_AddItemToArray(networks, item);
+    }
+    return SendJsonResponse(request, 200, root);
+}
+
+esp_err_t HandlePortalForgetNetwork(httpd_req_t* request)
+{
+    const std::string body = ReadRequestBody(request);
+    std::string ssid;
+    cJSON* parsed = cJSON_ParseWithLength(body.c_str(), body.size());
+    cJSON* ssid_item = cJSON_GetObjectItemCaseSensitive(parsed, "ssid");
+    if (cJSON_IsString(ssid_item) && ssid_item->valuestring != nullptr) {
+        ssid = ssid_item->valuestring;
+    }
+    if (parsed != nullptr) {
+        cJSON_Delete(parsed);
+    }
+
+    cJSON* root = cJSON_CreateObject();
+    if (ssid.empty()) {
+        cJSON_AddBoolToObject(root, "success", false);
+        cJSON_AddStringToObject(root, "message", "SSID required");
+        return SendJsonResponse(request, 400, root);
+    }
+    const bool forgotten = ForgetNetwork(ssid);
+    cJSON_AddBoolToObject(root, "success", forgotten);
+    cJSON_AddStringToObject(root, "message",
+                            forgotten ? "Network forgotten" : "Network not saved");
+    return SendJsonResponse(request, forgotten ? 200 : 400, root);
+}
+
 esp_err_t HandlePortalDisconnect(httpd_req_t* request)
 {
     const bool was_connected = IsConnected();
@@ -924,6 +1008,18 @@ void StartConfigPortal()
         .handler = HandlePortalLanguage,
         .user_ctx = nullptr,
     };
+    httpd_uri_t saved_networks = {
+        .uri = kPortalApiSavedNetworksUri,
+        .method = HTTP_GET,
+        .handler = HandlePortalSavedNetworks,
+        .user_ctx = nullptr,
+    };
+    httpd_uri_t forget_network = {
+        .uri = kPortalApiForgetNetworkUri,
+        .method = HTTP_POST,
+        .handler = HandlePortalForgetNetwork,
+        .user_ctx = nullptr,
+    };
     httpd_uri_t disconnect = {
         .uri = kPortalApiDisconnectUri,
         .method = HTTP_POST,
@@ -948,6 +1044,8 @@ void StartConfigPortal()
         RegisterRoute(s_portal_server, &configure) != ESP_OK ||
         RegisterRoute(s_portal_server, &status) != ESP_OK ||
         RegisterRoute(s_portal_server, &language) != ESP_OK ||
+        RegisterRoute(s_portal_server, &saved_networks) != ESP_OK ||
+        RegisterRoute(s_portal_server, &forget_network) != ESP_OK ||
         RegisterRoute(s_portal_server, &disconnect) != ESP_OK ||
         RegisterRoute(s_portal_server, &index_js) != ESP_OK ||
         RegisterRoute(s_portal_server, &index_css) != ESP_OK) {
@@ -977,6 +1075,7 @@ void StartConfigPortal()
 void HandleWifiEvent(int32_t event_id, void* event_data);
 void HandleIpEvent(int32_t event_id, void* event_data);
 void StartStationAttempt(bool allow_ap_fallback);
+Credentials ChooseSavedNetworkInRange(const Credentials& fallback);
 void TransitionWorker(void*);
 
 void OnWifiEvent(void* arg, esp_event_base_t base, int32_t event_id, void* event_data)
@@ -1283,6 +1382,26 @@ void StartStationAttempt(bool allow_ap_fallback)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &station_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
+    // Unless the user picked this network by hand, join whichever saved network is in range
+    // (home, office, phone hotspot...) instead of insisting on the last one used.
+    bool user_selected = false;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        user_selected = s_user_selected_network;
+    }
+    if (!user_selected) {
+        const Credentials chosen = ChooseSavedNetworkInRange(credentials);
+        if (chosen.ssid != credentials.ssid) {
+            credentials = chosen;
+            station_config = {};
+            ConfigureStationConfig(credentials, &station_config);
+            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &station_config));
+            std::lock_guard<std::mutex> lock(s_state_mutex);
+            s_active_credentials = credentials;
+            s_current_ssid = credentials.ssid;
+        }
+    }
+
     {
         std::lock_guard<std::mutex> lock(s_state_mutex);
         s_suppress_disconnect_event = false;
@@ -1298,6 +1417,63 @@ void StartStationAttempt(bool allow_ap_fallback)
     Notify(State::kConnecting, credentials.ssid);
     ESP_ERROR_CHECK(esp_timer_start_once(s_connect_timer, kConnectTimeoutSec * 1000000ULL));
     ESP_ERROR_CHECK(esp_wifi_connect());
+}
+
+// Scans (blocking, on the transition task) and returns the strongest saved network in range,
+// or `fallback` when none is. The radio must already be started in a mode with a station.
+Credentials ChooseSavedNetworkInRange(const Credentials& fallback)
+{
+    std::vector<wifi_saved_networks::Network> saved;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        saved = s_saved_networks;
+    }
+    if (saved.empty()) {
+        return fallback;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        ++s_internal_scans_pending;
+    }
+    wifi_scan_config_t scan_config = {};
+    scan_config.show_hidden = false;
+    esp_err_t err = ESP_FAIL;
+    for (int attempt = 0; attempt < kScanStartAttempts; ++attempt) {
+        err = esp_wifi_scan_start(&scan_config, /*block=*/true);
+        if (err != ESP_ERR_WIFI_STATE) {
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(kScanStartRetryDelayMs));
+    }
+    if (err != ESP_OK) {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        s_internal_scans_pending = std::max(0, s_internal_scans_pending - 1);
+        ESP_LOGW(kTag, "Saved-network scan failed: %s", esp_err_to_name(err));
+        return fallback;
+    }
+
+    uint16_t ap_count = 0;
+    (void)esp_wifi_scan_get_ap_num(&ap_count);
+    std::vector<wifi_ap_record_t> records(ap_count);
+    if (ap_count > 0 && esp_wifi_scan_get_ap_records(&ap_count, records.data()) != ESP_OK) {
+        ap_count = 0;
+    }
+    std::vector<wifi_saved_networks::VisibleNetwork> visible;
+    for (uint16_t i = 0; i < ap_count; ++i) {
+        visible.push_back({reinterpret_cast<const char*>(records[i].ssid), records[i].rssi});
+    }
+
+    const int best = wifi_saved_networks::ChooseBest(saved, visible);
+    if (best < 0) {
+        ESP_LOGI(kTag, "No saved network in range (%u visible); trying %s", ap_count,
+                 fallback.ssid.c_str());
+        return fallback;
+    }
+    const wifi_saved_networks::Network& chosen = saved[static_cast<size_t>(best)];
+    ESP_LOGI(kTag, "Joining saved network %s (strongest of %u saved)", chosen.ssid.c_str(),
+             static_cast<unsigned>(saved.size()));
+    return {chosen.ssid, chosen.password};
 }
 
 void DisconnectStationNow(bool clear_saved_credentials)
@@ -1322,19 +1498,23 @@ void DisconnectStationNow(bool clear_saved_credentials)
         ESP_LOGW(kTag, "esp_wifi_disconnect failed: %s", esp_err_to_name(err));
     }
 
+    std::string left_ssid;
     {
         std::lock_guard<std::mutex> lock(s_state_mutex);
+        left_ssid = s_current_ssid;
         s_connected = false;
         s_current_ssid.clear();
         s_ip_address.clear();
         s_rssi = 0;
         s_active_credentials = {};
         s_persist_active_credentials_on_success = false;
+        s_user_selected_network = false;
         s_suppress_disconnect_event = false;
     }
 
-    if (clear_saved_credentials) {
-        ClearCredentialsFromNvs();
+    if (clear_saved_credentials && !left_ssid.empty()) {
+        // Forget only the network being left; the other saved networks stay.
+        (void)ForgetSavedNetwork(left_ssid);
     }
     Notify(State::kDisconnected, clear_saved_credentials ? "DISCONNECTED" : "DISCONNECTED_TEMP");
 }
@@ -1512,6 +1692,14 @@ void TransitionWorker(void*)
 
 void HandleScanDoneEvent(void* event_data)
 {
+    {
+        // A saved-network scan from ChooseSavedNetworkInRange: it reads its own results.
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        if (s_internal_scans_pending > 0) {
+            --s_internal_scans_pending;
+            return;
+        }
+    }
     if (s_scan_timeout_timer != nullptr) {
         CheckOrAbort(esp_timer_stop(s_scan_timeout_timer), "esp_timer_stop");
     }
@@ -1602,6 +1790,10 @@ void HandleWifiEvent(int32_t event_id, void* event_data)
                     // a scan, or a Wi-Fi toggle -- to re-arm the loop.
                     s_reconnect_suspended = true;
                     attempts_exhausted = true;
+                    // A hand-picked network that keeps failing (wrong password, gone) no
+                    // longer pins the next attempt: it goes back to the saved networks.
+                    s_user_selected_network = false;
+                    s_active_credentials = {};
                 } else if (eligible) {
                     ++s_reconnect_attempts;
                     should_reconnect = true;
@@ -1667,6 +1859,7 @@ void HandleIpEvent(int32_t event_id, void* event_data)
         s_connected = true;
         s_ip_address = ip_address;
         s_rssi = rssi;
+        s_user_selected_network = false;  // later reconnects may pick any saved network
         if (s_persist_active_credentials_on_success && s_active_credentials.valid()) {
             credentials_to_persist = s_active_credentials;
             persist_credentials = true;
@@ -1811,7 +2004,12 @@ bool ConnectToNetwork(const std::string& ssid, const std::string& password, bool
     {
         std::lock_guard<std::mutex> lock(s_state_mutex);
         s_wifi_enabled = true;
-        s_active_credentials = {.ssid = ssid, .password = password};
+        // A saved network can be joined again without retyping its password.
+        const wifi_saved_networks::Network* saved =
+            password.empty() ? wifi_saved_networks::Find(s_saved_networks, ssid) : nullptr;
+        s_active_credentials = {.ssid = ssid, .password = saved != nullptr ? saved->password
+                                                                           : password};
+        s_user_selected_network = true;
         s_persist_active_credentials_on_success = save_on_success;
         s_current_ssid = ssid;
         s_reconnect_attempts = 0;
@@ -2056,7 +2254,40 @@ bool IsBusy()
 bool HasSavedCredentials()
 {
     std::lock_guard<std::mutex> lock(s_state_mutex);
-    return s_saved_credentials.valid();
+    return !s_saved_networks.empty() || std::string(CONFIG_CHRONINKLE_WIFI_STA_SSID).size() > 0;
+}
+
+std::vector<std::string> SavedNetworkSsids()
+{
+    std::lock_guard<std::mutex> lock(s_state_mutex);
+    std::vector<std::string> ssids;
+    for (const wifi_saved_networks::Network& network : s_saved_networks) {
+        ssids.push_back(network.ssid);
+    }
+    return ssids;
+}
+
+bool IsNetworkSaved(const std::string& ssid)
+{
+    std::lock_guard<std::mutex> lock(s_state_mutex);
+    return wifi_saved_networks::Find(s_saved_networks, ssid) != nullptr;
+}
+
+bool ForgetNetwork(const std::string& ssid)
+{
+    bool connected_to_it = false;
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        connected_to_it = !ssid.empty() && ssid == s_current_ssid;
+    }
+    if (!ForgetSavedNetwork(ssid)) {
+        return false;
+    }
+    if (connected_to_it) {
+        // Forgetting the network in use also leaves it (without auto-reconnecting to it).
+        (void)DisconnectFromNetwork(false);
+    }
+    return true;
 }
 
 const char* StateName(State state)

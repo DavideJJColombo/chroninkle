@@ -17,6 +17,11 @@ cxx="${CXX:-g++}"
     -o "$out/bitmap_font_test"
 "$out/bitmap_font_test" "$@"
 
+"$cxx" -std=gnu++20 -O1 -Wall -Wextra -I"$root/components/wifi_service" \
+    "$root/tests/host/saved_networks_test.cpp" "$root/components/wifi_service/saved_networks.cpp" \
+    -o "$out/saved_networks_test"
+"$out/saved_networks_test"
+
 cjson_dir="${CJSON_DIR:-${IDF_PATH:+$IDF_PATH/components/json/cJSON}}"
 if [ -n "$cjson_dir" ] && [ -f "$cjson_dir/cJSON.c" ]; then
     "${CC:-gcc}" -O1 -c "$cjson_dir/cJSON.c" -o "$out/cJSON.o"

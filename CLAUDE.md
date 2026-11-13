@@ -298,7 +298,8 @@ and `summary_service` are separate components (not nested inside
 ### NVS namespaces / build-time Kconfig
 
 Runtime settings persist under service-owned NVS namespaces: `wifi`
-(`ssid`, `password`), `timezone` (`enabled`, `tz_name`, `location`, `time_src`,
+(`networks`: up to 5 saved networks, see `components/wifi_service/saved_networks.*`;
+the old single `ssid`/`password` keys are migrated into it on first boot), `timezone` (`enabled`, `tz_name`, `location`, `time_src`,
 `ntp_sync`, `ntp_epoch`). Build-time defaults live under `Chroninkle Settings`
 (`idf.py menuconfig`): `CONFIG_CHRONINKLE_WIFI_*`, `CONFIG_CHRONINKLE_TIME_SYNC_DEFAULT_ENABLED`,
 `CONFIG_CHRONINKLE_DEFAULT_TIMEZONE_NAME`, `CONFIG_CHRONINKLE_GEMINI_API_KEY`,

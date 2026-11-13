@@ -8,6 +8,43 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+### Added
+
+- **Saved Wi-Fi networks.** Up to 5 networks are remembered (most recently
+  used first) instead of one. At startup and on every reconnect the device
+  scans and joins the strongest saved network in range, so it moves between
+  home, office and hotspot by itself. A saved network can be joined again
+  without its password (the device's password field says so). The setup
+  portal's Wi-Fi settings list the saved networks with a **Forget** button
+  each (`GET /api/wifi/saved`, `POST /api/wifi/forget`). The network saved by
+  earlier firmware is carried over automatically.
+
+### Changed
+
+- Disconnecting from the portal now forgets only the network being left; the
+  other saved networks stay.
+
+## [1.1.0] - 2026-11-12
+
+### Added
+
+- Italian user interface, selectable in Settings > Language (Italian by
+  default in this build): every screen, dialog and toast, dates (24-hour
+  clock, day/month/year entry), the setup portal and Gemini's transcripts and
+  summaries. Fonts now include accented letters and typographic punctuation.
+- Automatic sorting of recordings (Settings > Sorting): one Gemini call
+  transcribes a recording and files it as a note, idea or todo, links it to an
+  existing topic, splits several todos spoken together and reads their
+  deadlines, shown on the Todos list, the Details page and the lock screen.
+- Firmware update from the setup portal, guarded by a one-time code shown on
+  the device screen; rollback to the previous firmware if the new one fails.
+
+### Changed
+
+- Recordings can last up to 60 seconds (configurable) and are no longer
+  played back before the tag menu.
+- Default timezone Central Europe.
+
 ## [1.0.0] - 2026-09-24
 
 This is the last planned release before v2, a complete front-end rewrite

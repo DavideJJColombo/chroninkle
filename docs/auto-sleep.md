@@ -170,8 +170,9 @@ The light-sleep sequence is:
    `gpio_wakeup_enable` light-sleep wake sources (not EXT1: this board uses the
    light-sleep GPIO-wake path, which leaves the pads on the digital peripheral).
 4. Stop Wi-Fi (`wifi_service::PrepareForLightSleep()`), so the radio doesn't
-   stay fully associated for the whole light-sleep window (up to 30 minutes by
-   default) — `wifi_service` otherwise never enters any power-save mode.
+   stay associated for the whole light-sleep window (up to 30 minutes by
+   default) — while awake `wifi_service` only uses modem sleep
+   (`WIFI_PS_MIN_MODEM`), which still wakes for every DTIM beacon.
    `RecoverAfterLightSleep()` reconnects with the same station credentials on
    wake.
 5. Repaint the status bar with the sleep indicator (partial refresh) — by this

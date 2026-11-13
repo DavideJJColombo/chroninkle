@@ -1228,7 +1228,11 @@ void InitializeStack()
     wifi_init_config_t wifi_init = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&wifi_init));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    // Modem sleep while associated: the radio sleeps between the access point's DTIM beacons
+    // and wakes on its own for traffic, so uploads and the portal behave the same at a
+    // fraction of the idle current (WIFI_PS_NONE kept it fully on for as long as the device
+    // was awake, display sleep included). It has no effect in AP setup mode.
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
                                                         OnWifiEvent, nullptr,
                                                         &s_wifi_event_handler));

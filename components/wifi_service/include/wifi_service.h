@@ -87,8 +87,8 @@ bool DisconnectFromNetwork(bool clear_saved_credentials = true);
 bool StartNetworkScan();
 bool ClearSavedCredentials();
 // Stops the Wi-Fi radio before esp_light_sleep_start(), so the light-sleep window
-// (up to 30 minutes by default) doesn't leave it fully associated the whole time --
-// esp_wifi_set_ps(WIFI_PS_NONE) means it otherwise never enters even modem sleep. A
+// (up to 30 minutes by default) doesn't leave it associated the whole time (modem sleep,
+// WIFI_PS_MIN_MODEM, still wakes for every DTIM beacon). A
 // no-op if Wi-Fi is disabled or in AP setup mode (the latter already blocks light
 // sleep from being entered at all -- see device_sleep_runtime's sleep-blocker check).
 // RecoverAfterLightSleep() reconnects with the same station credentials on wake.

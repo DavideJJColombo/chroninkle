@@ -8,6 +8,18 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-13
+
+### Changed
+
+- **Wi-Fi power save.** While connected, the Wi-Fi radio now uses modem sleep
+  (`WIFI_PS_MIN_MODEM`): it sleeps between the access point's beacons and wakes
+  by itself for traffic. Before, power save was disabled (`WIFI_PS_NONE`) and
+  the radio stayed fully on for as long as the device was awake, including the
+  minutes with the display asleep before light sleep. Expect lower battery
+  drain while idle; replies from Gemini and the portal may take a few
+  milliseconds longer.
+
 ## [1.6.0] - 2026-11-13
 
 ### Changed

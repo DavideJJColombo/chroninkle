@@ -139,12 +139,13 @@ int64_t LocalMidnightToday()
 
 struct FetchResult {
     bool ok = false;
+    int http_status = 0;
     std::string error;
     std::string name;
     std::vector<ics::Occurrence> events;
 };
 
-FetchResult FetchCalendar(const std::string& url, int64_t from, int64_t to)
+FetchResult FetchCalendar(const std::string& url, int64_t from, int64_t to, bool browser_like)
 {
     FetchResult result;
     // webcal:// is how calendar apps link .ics feeds; it is plain HTTPS underneath.
@@ -165,7 +166,16 @@ FetchResult FetchCalendar(const std::string& url, int64_t from, int64_t to)
         result.error = "HTTP client init failed";
         return result;
     }
-    esp_http_client_set_header(client, "Accept", "text/calendar, */*");
+    if (browser_like) {
+        // Second try after a 404: some Google front ends answer differently to unknown
+        // clients, so present the request the way a desktop browser does.
+        esp_http_client_set_header(client, "User-Agent",
+                                   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                                   "(KHTML, like Gecko) Chrome/124.0 Safari/537.36");
+        esp_http_client_set_header(client, "Accept", "*/*");
+    } else {
+        esp_http_client_set_header(client, "Accept", "text/calendar, */*");
+    }
 
     int status = 0;
     esp_err_t err = ESP_OK;
@@ -189,9 +199,18 @@ FetchResult FetchCalendar(const std::string& url, int64_t from, int64_t to)
         return result;
     }
     if (status != 200) {
-        result.error = status == 404 || status == 403 || status == 401
-                           ? "Link not valid (HTTP " + std::to_string(status) + ")"
-                           : "HTTP " + std::to_string(status);
+        result.http_status = status;
+        const bool is_public = target.find("/public/") != std::string::npos;
+        const bool is_private = target.find("/private-") != std::string::npos;
+        if (status == 404 && is_public) {
+            result.error = "Public address of a private calendar: use the secret address (HTTP 404)";
+        } else if (status == 404 && is_private) {
+            result.error = "Secret address not found: it may have been reset (HTTP 404)";
+        } else if (status == 404 || status == 403 || status == 401) {
+            result.error = "Link not valid (HTTP " + std::to_string(status) + ")";
+        } else {
+            result.error = "HTTP " + std::to_string(status);
+        }
         esp_http_client_close(client);
         esp_http_client_cleanup(client);
         return result;
@@ -260,7 +279,12 @@ void RunRefresh()
     std::string error;
     int ok_count = 0;
     for (size_t i = 0; i < urls.size(); ++i) {
-        FetchResult result = FetchCalendar(urls[i], from, to);
+        FetchResult result = FetchCalendar(urls[i], from, to, false);
+        if (!result.ok && result.http_status == 404) {
+            ESP_LOGW(kTag, "Calendar %u: HTTP 404, retrying as a browser",
+                     static_cast<unsigned>(i + 1));
+            result = FetchCalendar(urls[i], from, to, true);
+        }
         names.push_back(result.name);
         if (!result.ok) {
             ESP_LOGW(kTag, "Calendar %u download failed: %s", static_cast<unsigned>(i + 1),
@@ -356,7 +380,13 @@ std::string MaskUrl(const std::string& url)
                                                          ? std::string::npos
                                                          : host_end - host_start);
     const std::string tail = url.size() > 10 ? url.substr(url.size() - 10) : std::string();
-    return host + "/..." + tail;
+    std::string kind;
+    if (url.find("/private-") != std::string::npos) {
+        kind = " [secret]";
+    } else if (url.find("/public/") != std::string::npos) {
+        kind = " [public]";
+    }
+    return host + "/..." + tail + kind + " (" + std::to_string(url.size()) + ")";
 }
 
 void AppendStatus(cJSON* root)

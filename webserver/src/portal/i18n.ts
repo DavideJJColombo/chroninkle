@@ -120,6 +120,10 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Not a calendar (use the secret iCal address)':
     'Non è un calendario (usa l’indirizzo segreto in formato iCal)',
   'Download interrupted': 'Download interrotto',
+  'Public address of a private calendar: use the secret address (HTTP 404)':
+    'Hai incollato l’indirizzo pubblico di un calendario privato: usa l’indirizzo segreto (HTTP 404)',
+  'Secret address not found: it may have been reset (HTTP 404)':
+    'Google non trova questo indirizzo segreto: forse è stato reimpostato (HTTP 404)',
   'HTTP client init failed': 'Errore interno di rete',
 };
 

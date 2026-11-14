@@ -8,6 +8,17 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-11-14
+
+### Changed
+
+- **Calendar download after a 404.** A calendar answering 404 is tried once
+  more with browser-like request headers. The error now says whether the link
+  is a calendar's public address (which 404s for a private calendar) or a
+  secret address Google doesn't know (e.g. reset), and the portal shows each
+  link's kind ([secret]/[public]) and length so a link pasted incomplete or of
+  the wrong kind can be spotted.
+
 ## [1.10.1] - 2026-11-14
 
 ### Changed

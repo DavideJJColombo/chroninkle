@@ -8,6 +8,16 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-11-14
+
+### Added
+
+- **Connection diagnostics for the Gemini key check.** When the check can't
+  reach Google, the error shown in the setup portal now also names the failing
+  stage (e.g. `ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME`), the DNS server the
+  device uses and what the Gemini host resolves to, so a DNS problem can be
+  told apart from a blocked connection.
+
 ## [1.7.2] - 2026-11-14
 
 ### Fixed

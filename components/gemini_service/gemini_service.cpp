@@ -16,6 +16,9 @@
 #include <utility>
 
 #include "cJSON.h"
+#include "lwip/dns.h"
+#include "lwip/inet.h"
+#include "lwip/netdb.h"
 #include "esp_crt_bundle.h"
 #include "i18n.h"
 #include "esp_crypto_lock.h"
@@ -38,6 +41,7 @@ constexpr const char* kStorageNamespace = "gemini";
 constexpr const char* kStorageApiKey = "api_key";
 constexpr const char* kDefaultModelName = "models/gemini-3.5-flash-lite";
 constexpr const char* kGeminiApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/";
+constexpr const char* kGeminiHost = "generativelanguage.googleapis.com";
 constexpr const char* kPortalApiSettingsGeminiUri = "/api/settings/gemini";
 constexpr const char* kPortalApiSettingsGeminiResetUri = "/api/settings/gemini/reset";
 constexpr const char* kPortalApiRuntimeGeminiUri = "/api/runtime/gemini";
@@ -479,10 +483,46 @@ void PopulateHttpError(cJSON* root, const HttpResponse& response,
 
 // "ESP_ERR_HTTP_CONNECT, TLS -0x2700, cert flags 0x8" plus a plain hint for the usual causes,
 // so the setup portal can show more than "unreachable" for a failed key check.
-std::string DescribeTransportError(esp_err_t err, int tls_error, int tls_flags)
+// Where name resolution for the Gemini host lands, and which DNS server the device asks: tells
+// a DNS problem (no server, or a server that answers with the wrong address) from a blocked
+// connection.
+std::string DescribeGeminiDns()
+{
+    std::string text = "DNS server ";
+    const ip_addr_t* server = dns_getserver(0);
+    char address[48] = {};
+    if (server != nullptr && !ip_addr_isany(server)) {
+        ipaddr_ntoa_r(server, address, sizeof(address));
+        text += address;
+    } else {
+        text += "none";
+    }
+    addrinfo hints = {};
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    addrinfo* result = nullptr;
+    const int rc = getaddrinfo(kGeminiHost, "443", &hints, &result);
+    if (rc != 0 || result == nullptr) {
+        text += ", lookup failed";
+    } else {
+        const auto* ipv4 = reinterpret_cast<const sockaddr_in*>(result->ai_addr);
+        inet_ntoa_r(ipv4->sin_addr, address, sizeof(address));
+        text += ", host -> ";
+        text += address;
+        freeaddrinfo(result);
+    }
+    return text;
+}
+
+std::string DescribeTransportError(esp_err_t err, esp_err_t tls_stage, int tls_error,
+                                   int tls_flags)
 {
     std::string message = esp_err_to_name(err);
     char buffer[64] = {};
+    if (tls_stage != ESP_OK && tls_stage != ESP_FAIL) {
+        message += ", ";
+        message += esp_err_to_name(tls_stage);  // e.g. ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME
+    }
     if (tls_error != 0) {
         std::snprintf(buffer, sizeof(buffer), ", TLS -0x%04X", static_cast<unsigned>(-tls_error));
         message += buffer;
@@ -490,6 +530,9 @@ std::string DescribeTransportError(esp_err_t err, int tls_error, int tls_flags)
     if (tls_flags != 0) {
         std::snprintf(buffer, sizeof(buffer), ", cert flags 0x%X", static_cast<unsigned>(tls_flags));
         message += buffer;
+    }
+    if (tls_error == 0 && tls_flags == 0) {
+        message += " [" + DescribeGeminiDns() + "]";
     }
     if (time(nullptr) < kMinPlausibleEpoch) {
         message += " (device clock not set: certificates can't be checked yet)";
@@ -529,14 +572,15 @@ HttpResponse PerformGeminiModelGet(const std::string& api_key,
     response.status_code = esp_http_client_get_status_code(client);
     int tls_error = 0;
     int tls_flags = 0;
+    esp_err_t tls_stage = ESP_OK;
     if (err != ESP_OK) {
-        (void)esp_http_client_get_and_clear_last_tls_error(client, &tls_error, &tls_flags);
+        tls_stage = esp_http_client_get_and_clear_last_tls_error(client, &tls_error, &tls_flags);
     }
     esp_http_client_cleanup(client);
 
     if (err != ESP_OK) {
         response.error_code = "transport_error";
-        response.error_message = DescribeTransportError(err, tls_error, tls_flags);
+        response.error_message = DescribeTransportError(err, tls_stage, tls_error, tls_flags);
     }
     return response;
 }
@@ -549,7 +593,7 @@ AuthResult Authenticate(const std::string& api_key, const std::string& model_nam
 
     if (!http.error_code.empty()) {
         result.error_code = http.error_code;
-        result.error_message = TrimForLog(http.error_message);
+        result.error_message = TrimForLog(http.error_message, 240);  // room for the DNS/TLS diagnostics
         return result;
     }
 

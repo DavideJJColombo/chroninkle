@@ -144,9 +144,12 @@ oppure dice che non è riuscita.
 
 ### Smistamento automatico
 
-Quando in **Impostazioni → Tipo** c'è **Automatico** e Taccuino è online con
-una chiave di Gemini funzionante, il menu non compare: con un'unica richiesta
-Gemini trascrive la registrazione e capisce che cos'è.
+Quando in **Impostazioni → Tipo** c'è **Automatico**, il menu non compare: con
+un'unica richiesta Gemini trascrive la registrazione e capisce che cos'è. Se in
+quel momento non c'è connessione, la registrazione viene salvata subito "da
+smistare" (compare il messaggio "Salvata: Gemini la smisterà appena online") e
+Gemini la smista più tardi, quando la trascrive, esattamente come se fossi
+stato online.
 
 - **Cose da fare con scadenza.** Se dici "domani devo comprare il latte,
   chiamare Marco entro venerdì alle 15 e pagare la bolletta" ottieni tre voci
@@ -160,6 +163,12 @@ Gemini trascrive la registrazione e capisce che cos'è.
   esempio, "nuovo argomento ristrutturazione cucina".
 - Un messaggio ti dice dove è finita, per esempio "3 attività aggiunte a Da
   fare" oppure "Salvato come Idea - Casa".
+
+Finché non viene smistata, una registrazione fatta senza rete compare tra le
+**Note**; dopo lo smistamento si sposta da sola dove deve stare (Da fare, Idee,
+un argomento...). Se premi **Trascrivi** su una di queste note, viene anche
+smistata. Il menu compare ancora solo se sei online ma Gemini è già occupato
+con un'altra trascrizione.
 
 Gemini a volte può sbagliare. Se una nota doveva essere una cosa da fare usa
 **Trasforma in attività** dal suo menu; negli altri casi eliminala e

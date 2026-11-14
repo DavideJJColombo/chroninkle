@@ -122,6 +122,25 @@ bool SubmitTagSelection(int selected_index);
 // fire. Returns false if it can't start (busy, clip unreadable, provider not ready).
 bool BeginArchivedTranscription(const std::string& recording_id);
 
+// Automatic sorting, shared with the offline retry (transcription_retry_service): the Gemini
+// options that ask for transcript + type/topic/todos as JSON, and applying such an answer to a
+// saved recording (transcript, tag, topic, deadlines, extra todo entries; "new topic" creates the
+// topic and deletes the recording). The latter must not be called with transcription_service's
+// lock held by the caller's own thread in a way that re-enters it; it only touches the archive
+// and topic services.
+struct ClassifiedAnswerOutcome {
+    bool new_topic = false;
+    bool topic_created = false;
+    bool transcript_saved = false;
+    std::string transcript;
+    std::string transcript_path;
+    std::string status_message;  // e.g. "Added to Todos - Casa"
+    std::string error_message;
+};
+gemini_service::TranscribeOptions BuildAutoClassifyTranscribeOptions();
+ClassifiedAnswerOutcome ApplyClassifiedAnswer(const std::string& recording_id,
+                                              const std::string& answer);
+
 void HandleRecordingEvent(const recording_service::Event& event);
 void HandleTranscriptionEvent(const transcription_service::Event& event);
 

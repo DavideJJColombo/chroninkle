@@ -146,9 +146,12 @@ This is the core interaction:
 
 ### Automatic sorting
 
-When Settings > Sorting is **Auto** and Taccuino is online with a working
-Gemini key, there is no tag menu: one Gemini call transcribes the recording
-and decides what it is.
+When Settings > Sorting is **Auto** there is no tag menu: one Gemini call
+transcribes the recording and decides what it is. Offline, the recording is
+saved right away "to be sorted" ("Saved: Gemini will sort it when online") and
+Gemini sorts it later, when it transcribes it, just as if you had been online.
+Until then it shows under **Notes**; pressing **Transcribe** on it sorts it
+too.
 
 - **Todos with deadlines.** Say "tomorrow I need to buy milk, call Marco by
   Friday at 3 and pay the bill" and you get three separate todos, each with
@@ -162,7 +165,8 @@ and decides what it is.
 - A message tells you where it went ("Added to Todos - Home"). If Gemini got
   it wrong, change it from the entry's menu (e.g. Turn to task) or delete it.
 
-Offline, or with Sorting set to **Manual**, the tag menu is used as before.
+With Sorting set to **Manual** (or online while Gemini is busy with another
+transcription) the tag menu is used as before.
 
 **If you're offline when you record**, the clip still saves to the SD
 card — it just gets marked as pending (a small badge on the status bar shows

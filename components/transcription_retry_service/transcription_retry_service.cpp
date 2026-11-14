@@ -16,6 +16,7 @@
 #include "freertos/task.h"
 #include "recording_archive_service.h"
 #include "recording_service.h"
+#include "recording_session_service.h"
 #include "transcription_service.h"
 
 namespace transcription_retry_service {
@@ -112,7 +113,7 @@ void NotifyLocked()
 // press-and-hold would corrupt it. This function only touches recording_archive_service and
 // transcription_service directly, using transcription_service's own request_in_flight guard as
 // the sole serialization point.
-Outcome RetryOne(const std::string& recording_id)
+Outcome RetryOne(const std::string& recording_id, bool sort_it)
 {
     if (!gemini_service::GetSnapshot().runtime.ready) {
         // E.g. Wi-Fi just connected and the key check hasn't finished: not this note's fault.
@@ -133,7 +134,11 @@ Outcome RetryOne(const std::string& recording_id)
         return Outcome::kFailed;
     }
 
-    if (!transcription_service::BeginTranscription(clip)) {
+    // Recorded offline with automatic sorting: the same call also classifies it.
+    const gemini_service::TranscribeOptions options =
+        sort_it ? recording_session_service::BuildAutoClassifyTranscribeOptions()
+                : gemini_service::TranscribeOptions{};
+    if (!transcription_service::BeginTranscription(clip, options)) {
         ESP_LOGW(kTag, "Retry for %s: BeginTranscription refused", recording_id.c_str());
         return Outcome::kStopBatch;  // busy or not ready after all: keep it for later
     }
@@ -160,6 +165,17 @@ Outcome RetryOne(const std::string& recording_id)
                                      ? i18n::Tr("Transcription failed", "Trascrizione non riuscita")
                                      : result.last_error_message);
         return Outcome::kFailed;
+    }
+
+    if (sort_it) {
+        const recording_session_service::ClassifiedAnswerOutcome outcome =
+            recording_session_service::ApplyClassifiedAnswer(recording_id, result.last_transcript);
+        if (!outcome.new_topic && !outcome.transcript_saved) {
+            ESP_LOGW(kTag, "Retry for %s: sorted answer not saved", recording_id.c_str());
+            return Outcome::kFailed;  // ApplyClassifiedAnswer recorded the failure on the note
+        }
+        ESP_LOGI(kTag, "Retry sorted %s: %s", recording_id.c_str(), outcome.status_message.c_str());
+        return Outcome::kDone;
     }
 
     const recording_archive_service::SaveResult save_result =
@@ -201,7 +217,8 @@ void RunTranscriptionRetryJob()
             if (attempts >= kMaxAttemptsPerBoot) {
                 continue;  // left for the next boot or the Transcribe button
             }
-            const Outcome outcome = RetryOne(entry.recording_id);
+            const Outcome outcome =
+                RetryOne(entry.recording_id, entry.metadata.pending_classification);
             if (outcome == Outcome::kStopBatch) {
                 retry_later = true;
                 break;

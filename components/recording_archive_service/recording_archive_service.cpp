@@ -279,6 +279,9 @@ std::string SerializeMetadata(const ArchiveMetadata& metadata)
     cJSON_AddNumberToObject(root, "duration_ms", metadata.duration_ms);
     cJSON_AddBoolToObject(root, "has_transcript", metadata.has_transcript);
     cJSON_AddBoolToObject(root, "pending_transcription", metadata.pending_transcription);
+    if (metadata.pending_classification) {
+        cJSON_AddBoolToObject(root, "pending_classification", true);
+    }
     cJSON_AddStringToObject(root, "tag", TagName(metadata.tag));
     cJSON_AddBoolToObject(root, "completed", metadata.completed);
     cJSON_AddNumberToObject(root, "completed_unix_seconds",
@@ -366,6 +369,8 @@ bool ParseMetadata(const std::string& json, ArchiveMetadata* metadata)
 
     cJSON* pending_transcription = cJSON_GetObjectItemCaseSensitive(root, "pending_transcription");
     parsed.pending_transcription = cJSON_IsTrue(pending_transcription);
+    parsed.pending_classification =
+        cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(root, "pending_classification"));
 
     cJSON* tag = cJSON_GetObjectItemCaseSensitive(root, "tag");
     if (cJSON_IsString(tag) && tag->valuestring != nullptr) {
@@ -536,6 +541,7 @@ esp_err_t SaveClipOnMountedFilesystem(const char* mount_point, void* context)
     metadata.duration_ms = save->clip->duration_ms();
     metadata.has_transcript = false;
     metadata.pending_transcription = save->options.pending_transcription;
+    metadata.pending_classification = save->options.pending_classification;
     metadata.tag = save->options.tag;
 
     result.clip_saved = WriteClipWav(result.recording_path, *save->clip);
@@ -1015,6 +1021,7 @@ esp_err_t MutateMetadataOnMountedFilesystem(const char* mount_point, void* conte
         metadata.due_time = classification.due_time;
         metadata.topic_ids = classification.topic_ids;
         metadata.auto_classified = true;
+        metadata.pending_classification = false;
     }
 
     const std::string updated = SerializeMetadata(metadata);
@@ -1644,6 +1651,39 @@ bool SetArchiveAfterDays(int days)
     }
     (void)Refresh();
     return true;
+}
+
+struct LoadMetadataContext {
+    const char* recording_id = nullptr;
+    ArchiveMetadata* metadata = nullptr;
+    bool loaded = false;
+};
+
+static esp_err_t LoadMetadataOnMountedFilesystem(const char* mount_point, void* context)
+{
+    auto* load = static_cast<LoadMetadataContext*>(context);
+    if (mount_point == nullptr || load == nullptr || load->recording_id == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    std::string base_path;
+    if (!ResolveExistingBasePath(mount_point, load->recording_id, &base_path)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+    std::string json;
+    load->loaded = ReadTextFile(base_path + ".json", &json) && ParseMetadata(json, load->metadata);
+    return load->loaded ? ESP_OK : ESP_FAIL;
+}
+
+bool LoadMetadata(const std::string& recording_id, RecordingMetadata* metadata)
+{
+    if (recording_id.empty() || metadata == nullptr) {
+        return false;
+    }
+    LoadMetadataContext context = {};
+    context.recording_id = recording_id.c_str();
+    context.metadata = metadata;
+    (void)storage_service::RunWithMountedFilesystem(LoadMetadataOnMountedFilesystem, &context);
+    return context.loaded;
 }
 
 bool ClearPendingTranscription(const std::string& recording_id)

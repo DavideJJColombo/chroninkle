@@ -341,10 +341,18 @@ void PlaybackWorker(void* arg)
 // its own lock, so taking them in the other order here could deadlock.
 bool ShouldAutoClassify()
 {
-    return app_state_service::AutoClassifyEnabled() &&
-           s_network_connected.load(std::memory_order_relaxed) &&
-           gemini_service::GetSnapshot().runtime.ready &&
-           !transcription_service::GetSnapshot().request_in_flight;
+    if (!app_state_service::AutoClassifyEnabled()) {
+        return false;
+    }
+    const bool gemini_usable = s_network_connected.load(std::memory_order_relaxed) &&
+                               gemini_service::GetSnapshot().runtime.ready;
+    if (!gemini_usable) {
+        // Offline (or Gemini not ready): save it "to be sorted" without asking; Gemini sorts it
+        // when it transcribes it later (pending_classification).
+        return true;
+    }
+    // Online but the transcription slot is busy: the menu, as before.
+    return !transcription_service::GetSnapshot().request_in_flight;
 }
 
 bool SaveAndTranscribeClip(recording_archive_service::RecordingTag tag, bool auto_classify);
@@ -619,14 +627,18 @@ std::string AutoClassifiedStatus(const auto_classify::Result& result, bool has_t
     return text;
 }
 
-// Applies Gemini's transcript + classification to the recording just saved (as a Note): the
+}  // namespace
+
+// Applies Gemini's transcript + classification to a saved recording (a Note until now): the
 // transcript, the type, the topic, and for todos one entry per task with its deadline (the
 // first task is the recording itself, the others are text-only entries pointing at it).
-// Runs from HandleTranscriptionEvent, i.e. on transcription_service's notify path with its lock
-// held: must not call back into transcription_service.
-void ApplyAutoClassification(const std::string& recording_id, const std::string& answer)
+// "New topic" creates the topic and deletes the recording. Archive work only (no session state),
+// so the offline retry can use it too. Must not call into transcription_service.
+ClassifiedAnswerOutcome ApplyClassifiedAnswer(const std::string& recording_id,
+                                              const std::string& answer)
 {
     using recording_archive_service::RecordingTag;
+    ClassifiedAnswerOutcome outcome = {};
     const auto_classify::Result result = auto_classify::Parse(answer);
     ESP_LOGI(kTag, "Auto-classification: id=%s parsed=%d kind=%d tasks=%u topic=%s",
              recording_id.c_str(), result.parsed ? 1 : 0, static_cast<int>(result.kind),
@@ -638,45 +650,34 @@ void ApplyAutoClassification(const std::string& recording_id, const std::string&
         // the menu's Topic option.
         const std::string created_id = topic_service::Create(result.topic);
         (void)recording_archive_service::DeleteRecording(recording_id);
-        std::lock_guard<std::mutex> lock(s_mutex);
-        s_snapshot.phase = Phase::kComplete;
-        s_snapshot.request_in_flight = false;
-        s_snapshot.clip_saved = false;
-        s_snapshot.transcript_saved = false;
-        s_snapshot.last_topic_action =
-            created_id.empty() ? TopicActionState::kFailed : TopicActionState::kSucceeded;
-        s_snapshot.last_status_message =
+        outcome.new_topic = true;
+        outcome.topic_created = !created_id.empty();
+        outcome.status_message =
             created_id.empty()
                 ? std::string(i18n::Tr("Couldn't catch a topic name",
                                        "Non ho capito il nome dell'argomento"))
                 : std::string(i18n::Tr("Added as topic: ", "Aggiunto come argomento: ")) +
                       result.topic;
-        s_pending_recording_id.clear();
-        s_auto_classify_recording_id.clear();
-        NotifyLocked();
-        return;
+        return outcome;
     }
 
-    const std::string transcript = result.transcript;
+    outcome.transcript = result.transcript;
     recording_archive_service::SaveResult save_result = {};
-    if (!transcript.empty()) {
-        save_result = recording_archive_service::SaveTranscript(recording_id, transcript);
+    if (!outcome.transcript.empty()) {
+        save_result = recording_archive_service::SaveTranscript(recording_id, outcome.transcript);
     }
     if (!save_result.transcript_saved) {
-        (void)recording_archive_service::SaveTranscriptionFailure(
-            recording_id, transcript.empty() ? i18n::Tr("Gemini returned no transcript text",
-                                                        "Gemini non ha restituito il testo")
-                                             : save_result.error_message);
-        std::lock_guard<std::mutex> lock(s_mutex);
-        s_snapshot.phase = Phase::kComplete;
-        s_snapshot.request_in_flight = false;
-        s_snapshot.transcript_saved = false;
-        s_snapshot.last_status_message = SavedWithoutTranscriptStatus();
-        s_pending_recording_id.clear();
-        s_auto_classify_recording_id.clear();
-        NotifyLocked();
-        return;
+        outcome.error_message = outcome.transcript.empty()
+                                    ? std::string(i18n::Tr("Gemini returned no transcript text",
+                                                           "Gemini non ha restituito il testo"))
+                                    : save_result.error_message;
+        (void)recording_archive_service::SaveTranscriptionFailure(recording_id,
+                                                                  outcome.error_message);
+        outcome.status_message = SavedWithoutTranscriptStatus();
+        return outcome;
     }
+    outcome.transcript_saved = true;
+    outcome.transcript_path = save_result.transcript_path;
 
     recording_archive_service::Classification classification = {};
     classification.topic_ids = MatchTopicIds(result.topic);
@@ -703,18 +704,45 @@ void ApplyAutoClassification(const std::string& recording_id, const std::string&
         (void)recording_archive_service::CreateDerivedEntry(recording_id, extra,
                                                             result.tasks[i].text);
     }
+    outcome.status_message = AutoClassifiedStatus(result, !classification.topic_ids.empty());
+    return outcome;
+}
 
+gemini_service::TranscribeOptions BuildAutoClassifyTranscribeOptions()
+{
+    gemini_service::TranscribeOptions options = {};
+    options.prompt = auto_classify::BuildPrompt(BuildAutoClassifyContext());
+    options.response_schema_json = auto_classify::ResponseSchemaJson();
+    return options;
+}
+
+namespace {
+
+// Live session: apply the answer, then report it through the session snapshot (toasts).
+// Runs from HandleTranscriptionEvent, i.e. on transcription_service's notify path with its lock
+// held: must not call back into transcription_service.
+void ApplyAutoClassification(const std::string& recording_id, const std::string& answer)
+{
+    const ClassifiedAnswerOutcome outcome = ApplyClassifiedAnswer(recording_id, answer);
     std::lock_guard<std::mutex> lock(s_mutex);
     s_snapshot.phase = Phase::kComplete;
     s_snapshot.request_in_flight = false;
-    s_snapshot.transcript_saved = true;
-    s_snapshot.auto_classified = true;
-    s_snapshot.last_saved_transcript_path = save_result.transcript_path;
-    s_snapshot.last_transcript = transcript;
-    s_snapshot.last_status_message =
-        AutoClassifiedStatus(result, !classification.topic_ids.empty());
-    s_snapshot.last_error_code.clear();
-    s_snapshot.last_error_message.clear();
+    s_snapshot.last_status_message = outcome.status_message;
+    if (outcome.new_topic) {
+        s_snapshot.clip_saved = false;
+        s_snapshot.transcript_saved = false;
+        s_snapshot.last_topic_action =
+            outcome.topic_created ? TopicActionState::kSucceeded : TopicActionState::kFailed;
+    } else if (!outcome.transcript_saved) {
+        s_snapshot.transcript_saved = false;
+    } else {
+        s_snapshot.transcript_saved = true;
+        s_snapshot.auto_classified = true;
+        s_snapshot.last_saved_transcript_path = outcome.transcript_path;
+        s_snapshot.last_transcript = outcome.transcript;
+        s_snapshot.last_error_code.clear();
+        s_snapshot.last_error_message.clear();
+    }
     s_pending_recording_id.clear();
     s_auto_classify_recording_id.clear();
     NotifyLocked();
@@ -749,6 +777,8 @@ bool SaveAndTranscribeClip(recording_archive_service::RecordingTag tag, bool aut
     const bool gemini_ready = s_network_connected.load(std::memory_order_relaxed) &&
                               gemini_service::GetSnapshot().runtime.ready;
     options.pending_transcription = !gemini_ready;
+    // Auto sorting while offline: Gemini sets the type, topic and todos when it transcribes it.
+    options.pending_classification = auto_classify && !gemini_ready;
     ESP_LOGI(kTag,
              "Starting archive save: tag=%s samples=%u duration_ms=%lu",
              recording_archive_service::TagName(options.tag),
@@ -817,7 +847,10 @@ bool SaveAndTranscribeClip(recording_archive_service::RecordingTag tag, bool aut
     // Saved but not sent to Gemini: say why when it is Gemini that isn't ready (missing or
     // rejected key...), rather than only "saved without transcription".
     std::string not_ready_status = SavedWithoutTranscriptStatus();
-    if (!gemini_ready && s_network_connected.load(std::memory_order_relaxed)) {
+    if (options.pending_classification) {
+        not_ready_status = i18n::Tr("Saved: Gemini will sort it when online",
+                                    "Salvata: Gemini la smisterà appena online");
+    } else if (!gemini_ready && s_network_connected.load(std::memory_order_relaxed)) {
         const std::string reason = gemini_service::NotReadyReason(gemini_service::GetSnapshot());
         if (!reason.empty()) {
             not_ready_status = i18n::Tr("Saved. ", "Salvata. ") + reason;
@@ -910,14 +943,23 @@ bool BeginArchivedTranscription(const std::string& recording_id)
         return false;
     }
 
+    // A note recorded offline with automatic sorting gets sorted now, by the same call.
+    recording_archive_service::RecordingMetadata metadata = {};
+    const bool sort_it = recording_archive_service::LoadMetadata(recording_id, &metadata) &&
+                         metadata.pending_classification;
+    gemini_service::TranscribeOptions options = {};
+    if (sort_it) {
+        options = BuildAutoClassifyTranscribeOptions();
+    }
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         s_snapshot.clip_saved = true;  // the recording already lives on SD
         s_snapshot.transcript_saved = false;
         s_pending_recording_id = recording_id;
+        s_auto_classify_recording_id = sort_it ? recording_id : std::string();
     }
 
-    if (transcription_service::BeginTranscription(clip)) {
+    if (transcription_service::BeginTranscription(clip, options)) {
         std::lock_guard<std::mutex> lock(s_mutex);
         s_snapshot.phase = Phase::kTranscribing;
         s_snapshot.request_in_flight = true;

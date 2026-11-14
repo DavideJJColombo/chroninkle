@@ -8,6 +8,23 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-14
+
+### Changed
+
+- **Automatic sorting works offline too.** With Sorting on Auto and Gemini
+  unreachable, the tag menu no longer opens: the take is saved as a Note with
+  the new `pending_classification` metadata flag ("Saved: Gemini will sort it
+  when online"). When the offline retry (or the Transcribe button) transcribes
+  it, the same Gemini call classifies it, and the answer is applied exactly as
+  online: transcript, type, topic, todos with deadlines, extra todo entries,
+  "new topic". The archive work moved into
+  `recording_session_service::ApplyClassifiedAnswer` (shared by the live
+  session and `transcription_retry_service`), with
+  `BuildAutoClassifyTranscribeOptions` and a new
+  `recording_archive_service::LoadMetadata`. The menu still opens when online
+  but the transcription slot is busy.
+
 ## [1.9.0] - 2026-11-14
 
 ### Added

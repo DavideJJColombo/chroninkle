@@ -29,6 +29,9 @@ struct RecordingMetadata {
     // Set when a recording is saved while Gemini isn't ready (no Wi-Fi / not authenticated) so a
     // background worker can retry it once, automatically, the next time Gemini becomes ready.
     bool pending_transcription = false;
+    // Recorded offline with automatic sorting on: saved as a Note without asking, and Gemini
+    // sets the type, topic and todos when it transcribes it (cleared by ApplyClassification).
+    bool pending_classification = false;
     RecordingTag tag = RecordingTag::kNote;
     bool completed = false;
     // Set to std::time(nullptr) the moment `completed` first flips true (cleared back to 0 if
@@ -87,6 +90,8 @@ struct SaveOptions {
     // Caller-computed: true when Gemini wasn't ready at save time, so the saved recording should
     // be flagged for one automatic retry attempt later.
     bool pending_transcription = false;
+    // See RecordingMetadata::pending_classification.
+    bool pending_classification = false;
 };
 
 struct SaveResult {
@@ -167,6 +172,8 @@ bool SetRecordingTopics(const std::string& recording_id, const std::vector<std::
 // Ends the one automatic retry attempt for a note whose transcription failed: clears the
 // pending flag but leaves has_transcript false so the manual "Transcribe" button still shows.
 bool ClearPendingTranscription(const std::string& recording_id);
+// Reads one recording's metadata from SD. False if it doesn't exist or can't be read.
+bool LoadMetadata(const std::string& recording_id, RecordingMetadata* metadata);
 // Records why the most recent transcription attempt failed (has_transcript stays false).
 // Cleared automatically the next time SaveTranscript succeeds for the same recording. Safe to
 // call for any of the three attempt paths (initial post-recording, manual retry, automatic

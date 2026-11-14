@@ -3,12 +3,14 @@
 #include "i18n.h"
 
 #include <atomic>
+#include <map>
 #include <mutex>
 #include <string>
 #include <vector>
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "gemini_service.h"
 #include "chroninkle_task_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -28,6 +30,20 @@ constexpr int64_t kPollIntervalMs = 250;
 // generously sized stack.
 constexpr uint32_t kRetryTaskStackWords = 8192;
 constexpr const char* kRetryTaskName = "transcribe_retry";
+// A recording recorded offline keeps its "to transcribe" mark until Gemini really answers
+// for it. Temporary failures (no answer, timeout, Gemini busy or rate-limited) are tried
+// again later instead of giving up after one attempt; only these many per recording per boot,
+// then the next boot or the Transcribe button can try again.
+constexpr int kMaxAttemptsPerBoot = 4;
+constexpr uint64_t kRetryLaterUs = 10ULL * 60 * 1000 * 1000;  // next batch in 10 minutes
+
+// Outcome of one recording's attempt.
+enum class Outcome {
+    kDone,       // transcribed and saved
+    kFailed,     // permanent failure: recorded on the note, not retried automatically
+    kTryLater,   // temporary failure: stays "to transcribe"
+    kStopBatch,  // Gemini not ready / busy with a live recording: stop, try the rest later
+};
 
 std::mutex s_mutex;
 Snapshot s_snapshot = {};
@@ -35,6 +51,48 @@ EventHandler s_event_handler = nullptr;
 void* s_event_context = nullptr;
 std::atomic<bool> s_batch_in_flight{false};
 std::atomic<bool> s_initialized{false};
+std::map<std::string, int> s_attempts;  // recording id -> attempts this boot (batch task only)
+esp_timer_handle_t s_later_timer = nullptr;
+
+void RetryLaterCallback(void*)
+{
+    (void)RetryPending();
+}
+
+void ScheduleRetryLater()
+{
+    if (s_later_timer == nullptr) {
+        const esp_timer_create_args_t args = {
+            .callback = RetryLaterCallback,
+            .arg = nullptr,
+            .dispatch_method = ESP_TIMER_TASK,
+            .name = "transcribe_retry_later",
+            .skip_unhandled_events = true,
+        };
+        if (esp_timer_create(&args, &s_later_timer) != ESP_OK) {
+            s_later_timer = nullptr;
+            return;
+        }
+    }
+    (void)esp_timer_stop(s_later_timer);
+    (void)esp_timer_start_once(s_later_timer, kRetryLaterUs);
+}
+
+// Network trouble, timeouts, rate limits and server-side errors go away by themselves.
+bool IsTemporaryFailure(const transcription_service::Snapshot& result)
+{
+    const std::string& code = result.last_error_code;
+    const int status = result.last_http_status;
+    return code == "transport_error" || code == "request_in_flight" ||
+           code == "provider_not_ready" || status == 0 || status == 408 || status == 429 ||
+           status >= 500;
+}
+
+void MarkFailed(const std::string& recording_id, const std::string& message)
+{
+    recording_archive_service::ClearPendingTranscription(recording_id);
+    recording_archive_service::SaveTranscriptionFailure(recording_id, message);
+}
 
 void NotifyLocked()
 {
@@ -54,71 +112,66 @@ void NotifyLocked()
 // press-and-hold would corrupt it. This function only touches recording_archive_service and
 // transcription_service directly, using transcription_service's own request_in_flight guard as
 // the sole serialization point.
-bool RetryOne(const std::string& recording_id)
+Outcome RetryOne(const std::string& recording_id)
 {
+    if (!gemini_service::GetSnapshot().runtime.ready) {
+        // E.g. Wi-Fi just connected and the key check hasn't finished: not this note's fault.
+        ESP_LOGI(kTag, "Gemini not ready: retry of %s postponed", recording_id.c_str());
+        return Outcome::kStopBatch;
+    }
     if (transcription_service::GetSnapshot().request_in_flight) {
-        // Something else already holds the single transcription slot (most likely a live
-        // recording session). Treat this as the note's one automatic attempt failing; the
-        // manual "Transcribe" button remains available afterward.
-        ESP_LOGW(kTag, "Skipping retry for %s: transcription service busy", recording_id.c_str());
-        recording_archive_service::ClearPendingTranscription(recording_id);
-        recording_archive_service::SaveTranscriptionFailure(
-            recording_id, i18n::Tr("Transcription was busy with another request", "La trascrizione era occupata con un'altra richiesta"));
-        return false;
+        // Something else holds the single transcription slot (most likely a live recording).
+        ESP_LOGI(kTag, "Transcription busy: retry of %s postponed", recording_id.c_str());
+        return Outcome::kStopBatch;
     }
 
     recording_service::RecordedClipPtr clip = recording_archive_service::LoadClip(recording_id);
     if (!clip || clip->empty()) {
-        ESP_LOGW(kTag, "Skipping retry for %s: clip load failed", recording_id.c_str());
-        recording_archive_service::ClearPendingTranscription(recording_id);
-        recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                             i18n::Tr("Couldn't read the saved recording", "Impossibile leggere la registrazione salvata"));
-        return false;
+        ESP_LOGW(kTag, "Retry for %s: clip load failed", recording_id.c_str());
+        MarkFailed(recording_id, i18n::Tr("Couldn't read the saved recording",
+                                          "Impossibile leggere la registrazione salvata"));
+        return Outcome::kFailed;
     }
 
     if (!transcription_service::BeginTranscription(clip)) {
-        ESP_LOGW(kTag, "Skipping retry for %s: BeginTranscription refused", recording_id.c_str());
-        recording_archive_service::ClearPendingTranscription(recording_id);
-        recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                             i18n::Tr("Transcription couldn't start", "Impossibile avviare la trascrizione"));
-        return false;
+        ESP_LOGW(kTag, "Retry for %s: BeginTranscription refused", recording_id.c_str());
+        return Outcome::kStopBatch;  // busy or not ready after all: keep it for later
     }
 
     const int64_t deadline_us = esp_timer_get_time() + kItemTimeoutUs;
     while (transcription_service::GetSnapshot().request_in_flight) {
         if (esp_timer_get_time() > deadline_us) {
             ESP_LOGW(kTag, "Retry for %s timed out waiting for transcription", recording_id.c_str());
-            recording_archive_service::ClearPendingTranscription(recording_id);
-            recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                                 i18n::Tr("Transcription timed out", "Tempo scaduto per la trascrizione"));
-            return false;
+            return Outcome::kTryLater;
         }
         vTaskDelay(pdMS_TO_TICKS(kPollIntervalMs));
     }
 
     const transcription_service::Snapshot result = transcription_service::GetSnapshot();
     if (!result.last_error_code.empty() || result.last_transcript.empty()) {
-        ESP_LOGW(kTag, "Retry for %s failed: error=%s", recording_id.c_str(),
-                 result.last_error_code.empty() ? "<empty transcript>" : result.last_error_code.c_str());
-        recording_archive_service::ClearPendingTranscription(recording_id);
-        recording_archive_service::SaveTranscriptionFailure(
-            recording_id, result.last_error_message.empty() ? i18n::Tr("Transcription failed", "Trascrizione non riuscita")
-                                                             : result.last_error_message);
-        return false;
+        ESP_LOGW(kTag, "Retry for %s failed: error=%s http=%d", recording_id.c_str(),
+                 result.last_error_code.empty() ? "<empty transcript>"
+                                                : result.last_error_code.c_str(),
+                 result.last_http_status);
+        if (!result.last_error_code.empty() && IsTemporaryFailure(result)) {
+            return Outcome::kTryLater;
+        }
+        MarkFailed(recording_id, result.last_error_message.empty()
+                                     ? i18n::Tr("Transcription failed", "Trascrizione non riuscita")
+                                     : result.last_error_message);
+        return Outcome::kFailed;
     }
 
     const recording_archive_service::SaveResult save_result =
         recording_archive_service::SaveTranscript(recording_id, result.last_transcript);
     if (!save_result.transcript_saved) {
         ESP_LOGW(kTag, "Retry for %s: transcript save failed", recording_id.c_str());
-        recording_archive_service::ClearPendingTranscription(recording_id);
-        recording_archive_service::SaveTranscriptionFailure(recording_id,
-                                                             save_result.error_message);
-        return false;
+        MarkFailed(recording_id, save_result.error_message);
+        return Outcome::kFailed;
     }
 
     ESP_LOGI(kTag, "Retry succeeded for %s", recording_id.c_str());
-    return true;  // SaveTranscript already clears pending_transcription on success.
+    return Outcome::kDone;  // SaveTranscript already clears pending_transcription on success.
 }
 
 // Runs on its own dedicated one-shot task -- deliberately NOT on gemini_service's shared
@@ -138,16 +191,32 @@ void RunTranscriptionRetryJob()
     int attempted = 0;
     int succeeded = 0;
     int failed = 0;
+    bool retry_later = false;
     if (status == ESP_OK) {
         for (const auto& entry : entries) {
             if (!entry.metadata.pending_transcription) {
                 continue;
             }
+            int& attempts = s_attempts[entry.recording_id];
+            if (attempts >= kMaxAttemptsPerBoot) {
+                continue;  // left for the next boot or the Transcribe button
+            }
+            const Outcome outcome = RetryOne(entry.recording_id);
+            if (outcome == Outcome::kStopBatch) {
+                retry_later = true;
+                break;
+            }
+            ++attempts;
             attempted++;
-            if (RetryOne(entry.recording_id)) {
+            if (outcome == Outcome::kDone) {
                 succeeded++;
+                s_attempts.erase(entry.recording_id);
+            } else if (outcome == Outcome::kTryLater) {
+                failed++;
+                retry_later = retry_later || attempts < kMaxAttemptsPerBoot;
             } else {
                 failed++;
+                s_attempts.erase(entry.recording_id);
             }
         }
     } else {
@@ -164,9 +233,12 @@ void RunTranscriptionRetryJob()
         NotifyLocked();
     }
 
-    ESP_LOGI(kTag, "Retry batch complete: attempted=%d succeeded=%d failed=%d", attempted, succeeded,
-             failed);
+    ESP_LOGI(kTag, "Retry batch complete: attempted=%d succeeded=%d failed=%d later=%d", attempted,
+             succeeded, failed, retry_later ? 1 : 0);
     s_batch_in_flight.store(false, std::memory_order_release);
+    if (retry_later) {
+        ScheduleRetryLater();
+    }
 }
 
 void RetryTaskEntry(void*)
@@ -206,6 +278,10 @@ bool RetryPending()
         return false;
     }
     if (recording_archive_service::GetSnapshot().pending_transcription_count == 0) {
+        return false;
+    }
+    if (!gemini_service::GetSnapshot().runtime.ready) {
+        // Offline, or the key check is still running: Gemini's ready edge calls this again.
         return false;
     }
 

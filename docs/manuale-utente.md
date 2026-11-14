@@ -168,10 +168,16 @@ registrala di nuovo.
 ### Se registri senza connessione
 
 La registrazione viene comunque salvata sulla scheda SD e segnata come "da
-trascrivere". Appena Taccuino torna online ritenta da solo tutte quelle in
-attesa; un piccolo numero nella barra di stato indica quante sono. Ogni
-registrazione ha un solo tentativo automatico: se fallisce, la puoi trascrivere
-a mano dalla pagina dei dettagli.
+trascrivere"; un piccolo numero nella barra di stato indica quante sono. Il
+dispositivo le trascrive da solo appena Gemini è di nuovo raggiungibile: quando
+lo accendi, quando si risveglia dal riposo profondo e ogni volta che ritrova il
+Wi-Fi. Le trascrive una alla volta, senza bisogno di fare niente.
+
+Se un tentativo non riesce per un problema passeggero (rete lenta, Gemini non
+risponde o è occupato), la registrazione resta "da trascrivere" e il
+dispositivo riprova dopo 10 minuti, fino a 4 volte per ogni accensione. Se
+invece l'errore è definitivo (per esempio il file audio è illeggibile), il
+motivo compare nella pagina dei dettagli e puoi riprovare con **Trascrivi**.
 
 ## La schermata Home
 

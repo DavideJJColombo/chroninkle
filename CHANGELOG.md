@@ -8,6 +8,22 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-11-14
+
+### Fixed
+
+- **Recordings made offline lost their automatic transcription after a
+  reboot.** Wi-Fi connecting at boot started the retry batch before the
+  Gemini key check had finished; every pending recording was refused
+  ("couldn't start"), marked as failed and never retried. The batch now waits
+  for Gemini to be ready (its ready edge starts it) and a refusal keeps the
+  recording pending.
+- **One failed attempt no longer ends automatic retries.** Temporary failures
+  (no answer, timeout, rate limit, server errors, transcription busy with a
+  live recording) keep the recording pending and schedule another batch 10
+  minutes later, up to 4 attempts per recording per boot; only permanent
+  failures are recorded on the note.
+
 ## [1.8.0] - 2026-11-14
 
 ### Added

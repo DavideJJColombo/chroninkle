@@ -165,9 +165,13 @@ and decides what it is.
 Offline, or with Sorting set to **Manual**, the tag menu is used as before.
 
 **If you're offline when you record**, the clip still saves to the SD
-card — it just gets marked as pending. The moment Taccuino reconnects to
-WiFi, it automatically retries every pending recording. A small badge on
-the status bar shows how many are waiting.
+card — it just gets marked as pending (a small badge on the status bar shows
+how many are waiting). Taccuino transcribes them by itself as soon as Gemini
+is reachable again: at power-on, on waking from light sleep and whenever it
+gets WiFi back. A temporary failure (slow network, Gemini not answering or
+busy) keeps the recording pending and is retried 10 minutes later, up to 4
+times per power-on; a permanent one (e.g. unreadable audio) shows its reason
+on the details page, where **Transcribe** tries again.
 
 ## The Home screen
 

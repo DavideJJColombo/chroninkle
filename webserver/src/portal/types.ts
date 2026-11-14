@@ -138,6 +138,8 @@ export interface GeminiModuleSettings {
   // Field names older firmware sends instead of has_key/last4.
   configured?: boolean;
   api_key_last4?: string;
+  api_key_length?: number;
+  api_key_prefix?: string;
 }
 
 export interface GeminiRuntimeStatus {

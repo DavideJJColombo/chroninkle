@@ -344,6 +344,13 @@ function renderGeminiStatus(data: GeminiModuleResponse): boolean {
     return false;
   }
   let text = runtime.not_ready_reason || t('Gemini not ready.', 'Gemini non è pronto.');
+  // Help spot a key pasted incomplete or of the wrong kind (AI Studio keys: "AIza", 39 chars).
+  const length = settings?.api_key_length ?? 0;
+  if (length > 0) {
+    const prefix = settings?.api_key_prefix ? `${settings.api_key_prefix}…` : '';
+    const last4 = settings?.last4 ?? settings?.api_key_last4 ?? '';
+    text += ` · ${t('Saved key', 'Chiave salvata')}: ${prefix}${last4} (${length} ${t('characters', 'caratteri')})`;
+  }
   const status = runtime.last_http_status ?? 0;
   if (runtime.last_error_message && status > 0) {
     text += ` · ${t('Google says', 'Risposta di Google')}: ${runtime.last_error_message} (HTTP ${status})`;

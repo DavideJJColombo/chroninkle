@@ -8,6 +8,19 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.5] - 2026-11-14
+
+### Fixed
+
+- **Google's reason for rejecting the key is shown.** On a 401 Google sends a
+  `WWW-Authenticate: Bearer` header, and `esp_http_client_perform()` then gave
+  up with `ESP_ERR_NOT_SUPPORTED` before reading the body, so the portal showed
+  a library error instead of Google's message. The key check now reads the
+  response itself, and the 401 is reported as a rejected key with Google's own
+  message. The portal also shows the saved key's first 4 characters and length
+  (`api_key_prefix`, `api_key_length`) to spot a key pasted incomplete or of the
+  wrong kind.
+
 ## [1.7.4] - 2026-11-14
 
 ### Fixed

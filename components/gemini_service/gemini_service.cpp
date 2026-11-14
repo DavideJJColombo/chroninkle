@@ -478,7 +478,7 @@ void PopulateHttpError(cJSON* root, const HttpResponse& response,
         *error_message =
             response.body.empty() ? "Gemini request failed" : response.body;
     }
-    *error_message = TrimForLog(std::move(*error_message));
+    *error_message = TrimForLog(std::move(*error_message), 200);
 }
 
 // "ESP_ERR_HTTP_CONNECT, TLS -0x2700, cert flags 0x8" plus a plain hint for the usual causes,
@@ -542,6 +542,11 @@ std::string DescribeTransportError(esp_err_t err, esp_err_t tls_stage, int tls_e
     return message;
 }
 
+bool ReadHttpResponseBody(esp_http_client_handle_t client, HttpResponse* response);  // below
+
+// GET the model resource to check the key. Done with open/fetch_headers/read rather than
+// esp_http_client_perform(): on a 401 (Google sends "WWW-Authenticate: Bearer") perform()
+// gives up with ESP_ERR_NOT_SUPPORTED before reading the body, which hid Google's reason.
 HttpResponse PerformGeminiModelGet(const std::string& api_key,
                                    const std::string& model_name)
 {
@@ -554,8 +559,6 @@ HttpResponse PerformGeminiModelGet(const std::string& api_key,
     config.method = HTTP_METHOD_GET;
     config.crt_bundle_attach = esp_crt_bundle_attach;
     config.timeout_ms = kAuthTimeoutMs;
-    config.event_handler = &HttpEventHandler;
-    config.user_data = &response;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == nullptr) {
@@ -568,14 +571,23 @@ HttpResponse PerformGeminiModelGet(const std::string& api_key,
     esp_http_client_set_header(client, "Accept", "application/json");
     esp_http_client_set_header(client, "User-Agent", "folloup-sticky");
 
-    const esp_err_t err = esp_http_client_perform(client);
-    response.status_code = esp_http_client_get_status_code(client);
+    esp_err_t err = esp_http_client_open(client, 0);
+    if (err == ESP_OK) {
+        const int length = esp_http_client_fetch_headers(client);
+        response.status_code = esp_http_client_get_status_code(client);
+        if (length < 0 && response.status_code <= 0) {
+            err = ESP_FAIL;
+        } else {
+            ReadHttpResponseBody(client, &response);
+        }
+    }
     int tls_error = 0;
     int tls_flags = 0;
     esp_err_t tls_stage = ESP_OK;
     if (err != ESP_OK) {
         tls_stage = esp_http_client_get_and_clear_last_tls_error(client, &tls_error, &tls_flags);
     }
+    esp_http_client_close(client);
     esp_http_client_cleanup(client);
 
     if (err != ESP_OK) {
@@ -814,6 +826,14 @@ void AppendSnapshot(cJSON* root, const Snapshot& snapshot, const char* message)
                             snapshot.settings.api_key_last4.c_str());
     // Names the setup portal's key card reads (it shows ******last4 for a saved key).
     cJSON_AddBoolToObject(settings, "has_key", snapshot.settings.configured);
+    // Length and first 4 characters (AI Studio keys start "AIza"), to spot a key pasted
+    // incomplete or a different kind of credential, without revealing the key.
+    {
+        const std::string key = GetEffectiveApiKey();
+        cJSON_AddNumberToObject(settings, "api_key_length", static_cast<double>(key.size()));
+        cJSON_AddStringToObject(settings, "api_key_prefix",
+                                key.size() >= 12 ? key.substr(0, 4).c_str() : "");
+    }
     cJSON_AddStringToObject(settings, "last4", snapshot.settings.api_key_last4.c_str());
     cJSON_AddStringToObject(settings, "model_name", snapshot.settings.model_name.c_str());
 

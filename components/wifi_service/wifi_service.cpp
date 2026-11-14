@@ -1069,6 +1069,11 @@ void StartConfigPortal()
     // registrar below.
     config.max_uri_handlers = 24;
     config.lru_purge_enable = true;
+    // Socket budget (CONFIG_LWIP_MAX_SOCKETS): the default 7 client sockets + listen + control
+    // + the captive DNS socket used all 10, so while a phone had the portal open the device
+    // couldn't open one more to reach Gemini (ESP_ERR_ESP_TLS_CANNOT_CREATE_SOCKET). Fewer
+    // portal sockets (LRU-purged) are plenty for one browser.
+    config.max_open_sockets = 4;
 
     esp_err_t err = httpd_start(&s_portal_server, &config);
     if (err != ESP_OK) {

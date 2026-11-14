@@ -8,6 +8,17 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-11-14
+
+### Fixed
+
+- **Gemini unreachable while the setup portal was open.** The portal's web
+  server (7 client sockets + listen + control) and the captive DNS socket used
+  all 10 lwIP sockets, so the key check and transcription failed with
+  `ESP_ERR_ESP_TLS_CANNOT_CREATE_SOCKET` whenever a phone had the portal open.
+  The socket limit is now 16 (`CONFIG_LWIP_MAX_SOCKETS`) and the portal uses
+  at most 4 client sockets.
+
 ## [1.7.3] - 2026-11-14
 
 ### Added

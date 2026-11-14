@@ -72,5 +72,8 @@ CONFIG_FATFS_LFN_HEAP=y
 CONFIG_FATFS_LFN_STACK=n
 CONFIG_FATFS_USE_LABEL=y
 
+# Room for the setup portal (httpd + captive DNS) and Gemini/HTTPS at the same time
+CONFIG_LWIP_MAX_SOCKETS=16
+
 # Time sync: primary + two fallback NTP servers (timezone_service)
 CONFIG_LWIP_SNTP_MAX_SERVERS=3

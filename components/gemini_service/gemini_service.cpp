@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -47,6 +48,8 @@ constexpr int kAuthTimeoutMs = 15000;
 // ESP_ERR_HTTP_CONNECT every time). Retry a bounded number of times, only while still connected,
 // so a transient race self-heals without ever retrying forever and draining battery on a dead key.
 constexpr int kMaxAuthTransportRetries = 3;
+// Before this (2025-01-01) the clock hasn't been set, and TLS certificate checks fail.
+constexpr time_t kMinPlausibleEpoch = 1735689600;
 constexpr uint64_t kAuthRetryDelayUs = 3'000'000;  // 3s: enough margin for the network to settle
 constexpr int kGenerateTimeoutMs = 60000;  // text generation can be slow for large prompts
 // Shared by every Gemini-backed worker job (auth, transcription, summary, offline retry) --
@@ -474,6 +477,28 @@ void PopulateHttpError(cJSON* root, const HttpResponse& response,
     *error_message = TrimForLog(std::move(*error_message));
 }
 
+// "ESP_ERR_HTTP_CONNECT, TLS -0x2700, cert flags 0x8" plus a plain hint for the usual causes,
+// so the setup portal can show more than "unreachable" for a failed key check.
+std::string DescribeTransportError(esp_err_t err, int tls_error, int tls_flags)
+{
+    std::string message = esp_err_to_name(err);
+    char buffer[64] = {};
+    if (tls_error != 0) {
+        std::snprintf(buffer, sizeof(buffer), ", TLS -0x%04X", static_cast<unsigned>(-tls_error));
+        message += buffer;
+    }
+    if (tls_flags != 0) {
+        std::snprintf(buffer, sizeof(buffer), ", cert flags 0x%X", static_cast<unsigned>(tls_flags));
+        message += buffer;
+    }
+    if (time(nullptr) < kMinPlausibleEpoch) {
+        message += " (device clock not set: certificates can't be checked yet)";
+    } else if ((tls_flags & 0x01) != 0 || (tls_flags & 0x200) != 0) {
+        message += " (certificate date check failed: is the device clock right?)";
+    }
+    return message;
+}
+
 HttpResponse PerformGeminiModelGet(const std::string& api_key,
                                    const std::string& model_name)
 {
@@ -502,11 +527,16 @@ HttpResponse PerformGeminiModelGet(const std::string& api_key,
 
     const esp_err_t err = esp_http_client_perform(client);
     response.status_code = esp_http_client_get_status_code(client);
+    int tls_error = 0;
+    int tls_flags = 0;
+    if (err != ESP_OK) {
+        (void)esp_http_client_get_and_clear_last_tls_error(client, &tls_error, &tls_flags);
+    }
     esp_http_client_cleanup(client);
 
     if (err != ESP_OK) {
         response.error_code = "transport_error";
-        response.error_message = esp_err_to_name(err);
+        response.error_message = DescribeTransportError(err, tls_error, tls_flags);
     }
     return response;
 }
@@ -1769,6 +1799,9 @@ std::string NotReadyReason(const Snapshot& snapshot)
         return i18n::Tr("Gemini: request limit reached", "Gemini: limite di richieste");
     }
     if (status <= 0) {
+        if (time(nullptr) < kMinPlausibleEpoch) {
+            return i18n::Tr("Gemini: clock not set yet", "Gemini: orologio non ancora impostato");
+        }
         return i18n::Tr("Gemini unreachable", "Gemini non raggiungibile");
     }
     char buffer[48] = {};

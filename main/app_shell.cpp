@@ -1453,6 +1453,16 @@ void HandleTimezoneEvent(const timezone_service::Event& event, void*)
                  ? "--:--"
                  : event.snapshot.runtime.current_time.c_str());
 
+    // The Gemini key check runs as soon as Wi-Fi connects, often before the clock is synced;
+    // without a valid clock its TLS certificate check fails. Check the key again once the
+    // time comes from the network.
+    static uint32_t s_last_seen_network_sync = 0;
+    const uint32_t network_sync = event.snapshot.runtime.last_network_sync_epoch;
+    if (network_sync != 0 && network_sync != s_last_seen_network_sync) {
+        gemini_service::RetryAuthentication();  // no-op once the key is accepted
+    }
+    s_last_seen_network_sync = network_sync;
+
     const esp_err_t lock_screen_err =
         lock_screen_runtime::SyncClockState(s_startup_complete.load(std::memory_order_relaxed));
     if (lock_screen_err != ESP_OK && lock_screen_err != ESP_ERR_INVALID_STATE) {

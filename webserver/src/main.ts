@@ -347,6 +347,9 @@ function renderGeminiStatus(data: GeminiModuleResponse): boolean {
   const status = runtime.last_http_status ?? 0;
   if (runtime.last_error_message && status > 0) {
     text += ` · ${t('Google says', 'Risposta di Google')}: ${runtime.last_error_message} (HTTP ${status})`;
+  } else if (runtime.last_error_message) {
+    // No answer from Google at all: show the connection error (TLS, DNS, clock...).
+    text += ` · ${t('Details', 'Dettagli')}: ${runtime.last_error_message}`;
   }
   element.textContent = text;
   return true;

@@ -8,6 +8,21 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-11-14
+
+### Fixed
+
+- **Gemini key check retried once the clock is synced.** The key check runs as
+  soon as Wi-Fi connects, often before the network time arrives; with the
+  clock unset its TLS certificate check fails and Gemini stayed "unreachable"
+  after the three quick retries. It is now checked again on every network time
+  sync (`HandleTimezoneEvent` -> `gemini_service::RetryAuthentication`).
+- **Connection errors are described.** A key check that gets no answer now
+  reports the transport error with the TLS error code and certificate flags,
+  and flags an unset or wrong device clock; the setup portal shows it as
+  "Details" under the key, and the device says "Gemini: clock not set yet"
+  when that is the cause.
+
 ## [1.7.1] - 2026-11-14
 
 ### Fixed

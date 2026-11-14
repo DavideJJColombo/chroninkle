@@ -469,7 +469,8 @@ Il portale usa la stessa lingua del dispositivo e contiene:
   portale non la mostra mai per intero (solo le ultime 4 cifre). Sotto la
   chiave c'è lo stato di Gemini: **Gemini collegato**, oppure il motivo per
   cui non funziona (**chiave non valida**, **serve il Wi-Fi**, **limite di
-  richieste**...) con la risposta di Google. Per cambiare chiave premi prima
+  richieste**, **non raggiungibile**...) con la risposta di Google o, se
+  Google non risponde affatto, i dettagli dell'errore di connessione. Per cambiare chiave premi prima
   **Cancella**, poi inserisci la nuova e premi **Salva**.
 
 Se Gemini non è pronto, anche il dispositivo lo dice: dopo una registrazione

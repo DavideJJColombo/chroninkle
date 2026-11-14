@@ -814,12 +814,21 @@ bool SaveAndTranscribeClip(recording_archive_service::RecordingTag tag, bool aut
     }
 
     recording_service::DiscardClip();
+    // Saved but not sent to Gemini: say why when it is Gemini that isn't ready (missing or
+    // rejected key...), rather than only "saved without transcription".
+    std::string not_ready_status = SavedWithoutTranscriptStatus();
+    if (!gemini_ready && s_network_connected.load(std::memory_order_relaxed)) {
+        const std::string reason = gemini_service::NotReadyReason(gemini_service::GetSnapshot());
+        if (!reason.empty()) {
+            not_ready_status = i18n::Tr("Saved. ", "Salvata. ") + reason;
+        }
+    }
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         s_snapshot.request_in_flight = false;
         s_snapshot.phase = save_result.clip_saved ? Phase::kComplete : Phase::kFailed;
         s_snapshot.last_status_message = save_result.clip_saved
-                                             ? SavedWithoutTranscriptStatus()
+                                             ? not_ready_status
                                              : (save_result.status_message.empty()
                                                     ? i18n::Tr("Save failed", "Salvataggio non riuscito")
                                                     : save_result.status_message);

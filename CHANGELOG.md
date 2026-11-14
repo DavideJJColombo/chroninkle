@@ -8,6 +8,22 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-11-14
+
+### Fixed
+
+- **The setup portal never showed a saved Gemini key.** It read `has_key` /
+  `last4`, which the firmware didn't send (it sends `configured` /
+  `api_key_last4`): after saving, the key field emptied again as if nothing
+  was stored. The firmware now sends both names and the portal reads both.
+- **Why transcription doesn't run is now shown.** The portal's Gemini card
+  shows the device's verdict on the key (connected, missing, not valid, needs
+  Wi-Fi, request limit, Google's own error and HTTP status), refreshed until
+  the check finishes. On the device, a recording saved without transcription
+  and a refused **Transcribe** say the reason (`gemini_service::
+  NotReadyReason`) instead of "Transcription unavailable", and pressing
+  **Transcribe** re-checks the key.
+
 ## [1.7.0] - 2026-11-13
 
 ### Changed

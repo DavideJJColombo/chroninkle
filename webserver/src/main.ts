@@ -1,4 +1,4 @@
-import { applyStaticTranslations, initLanguage } from './portal/i18n';
+import { applyStaticTranslations, initLanguage, t } from './portal/i18n';
 import './portal.css';
 import { createGradualBlur } from './gradualBlur';
 import {
@@ -66,6 +66,7 @@ import { createWiFiController } from './portal/wifi';
 import { bindPortalEvents } from './portal/events';
 import { updatePortalUiState } from './portal/uiState';
 import type {
+  GeminiModuleResponse,
   OpenAiModuleResponse,
   TalkingClockModuleResponse,
   ValidatableField,
@@ -240,6 +241,12 @@ function initialize() {
     }
     timeController.toggleAutoTimeStaged();
   });
+  // After saving or clearing the key, show the device's verdict on it once its check runs.
+  for (const button of [dom.geminiSaveBtn, dom.geminiClearBtn]) {
+    button.addEventListener('click', () => {
+      window.setTimeout(() => void loadGeminiSettings(), 1500);
+    });
+  }
   dom.firmwareCodeBtn.addEventListener('click', () => {
     void firmwareController.requestCode();
   });
@@ -313,10 +320,46 @@ async function loadInitialStatus() {
   ]);
 }
 
+// Gemini status under the key field: connected, or why not (missing/invalid key, no Wi-Fi...).
+// While a saved key isn't accepted yet it is re-read every few seconds, so the result of the
+// device's key check shows up without reloading the page.
+const GEMINI_STATUS_POLL_MS = 4000;
+let geminiStatusTimer: number | undefined;
+
+function renderGeminiStatus(data: GeminiModuleResponse): boolean {
+  const element = dom.geminiStatusText;
+  const settings = data.settings;
+  const runtime = data.runtime;
+  const hasKey = settings?.has_key === true || settings?.configured === true;
+  if (!hasKey || !runtime) {
+    element.hidden = true;
+    return false;
+  }
+  element.hidden = false;
+  if (runtime.ready) {
+    const model = runtime.last_model_display_name;
+    element.textContent = model
+      ? t(`Gemini connected (${model}).`, `Gemini collegato (${model}).`)
+      : t('Gemini connected.', 'Gemini collegato.');
+    return false;
+  }
+  let text = runtime.not_ready_reason || t('Gemini not ready.', 'Gemini non è pronto.');
+  const status = runtime.last_http_status ?? 0;
+  if (runtime.last_error_message && status > 0) {
+    text += ` · ${t('Google says', 'Risposta di Google')}: ${runtime.last_error_message} (HTTP ${status})`;
+  }
+  element.textContent = text;
+  return true;
+}
+
 async function loadGeminiSettings() {
+  window.clearTimeout(geminiStatusTimer);
   try {
     const data = await fetchGeminiModuleJson('/api/settings/gemini');
     geminiController.applyGeminiSettings(data.settings);
+    if (renderGeminiStatus(data) && !document.hidden) {
+      geminiStatusTimer = window.setTimeout(() => void loadGeminiSettings(), GEMINI_STATUS_POLL_MS);
+    }
   } catch (error) {
     console.error('Gemini settings status failed:', error);
   } finally {

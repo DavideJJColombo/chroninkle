@@ -38,6 +38,7 @@ struct RuntimeSnapshot {
     bool supports_audio_understanding = false;
     bool supports_structured_output = false;
     int last_http_status = 0;
+    bool network_connected = false;
     std::string last_status_message;
     std::string last_model_resource_name;
     std::string last_model_display_name;
@@ -127,6 +128,12 @@ struct TranscribeOptions {
 TranscriptionResult Transcribe(const recording_service::RecordedClip& clip,
                                const TranscribeOptions* options = nullptr);
 bool BeginAuthentication();
+// Checks the key again if it isn't accepted yet (e.g. the user pressed Transcribe after an
+// earlier failure). A no-op while offline, without a key, or already authenticated.
+void RetryAuthentication();
+// Short, localized reason why Gemini isn't ready ("Missing Gemini key", "Gemini: invalid
+// key", ...), for toasts and the setup portal. Empty when ready.
+std::string NotReadyReason(const Snapshot& snapshot);
 // Runs `job` on gemini_service's shared, persistent worker task (one 32KB-stack task reused
 // by every Gemini-backed caller -- transcription_service, summary_service,
 // transcription_retry_service -- rather than each spinning up its own). Jobs run one at a

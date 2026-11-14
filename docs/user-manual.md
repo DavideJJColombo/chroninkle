@@ -85,7 +85,11 @@ From there you can:
   settings shows them and lets you **Forget** one.
 - **Add your Gemini API key** — this is what powers transcription and
   summaries. Without it, recordings still save to the SD card, they just
-  won't be transcribed.
+  won't be transcribed. Under the key the portal shows Gemini's status:
+  **Gemini connected**, or why not (**key not valid**, **needs Wi-Fi**,
+  **request limit reached**...) with Google's own reply. If Gemini isn't
+  ready the device says why too: after a recording ("Saved. No Gemini API
+  key") and when you press **Transcribe**, which also re-checks the key.
 - **Set your timezone and the current time/date** — needed for accurate
   timestamps on your recordings and for the "Today" grouping on Notes/Todos.
 

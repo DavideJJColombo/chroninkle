@@ -45,10 +45,11 @@ interface ProviderKeysDeps {
 function applyProviderSettings(
   state: ProviderState,
   input: ProviderInput,
-  settings?: ProviderSettings
+  settings?: ProviderSettings & { configured?: boolean; api_key_last4?: string }
 ) {
-  state.hasKey = settings?.has_key === true;
-  state.last4 = typeof settings?.last4 === 'string' ? settings.last4 : '';
+  state.hasKey = settings?.has_key === true || settings?.configured === true;
+  const last4 = settings?.last4 ?? settings?.api_key_last4;
+  state.last4 = typeof last4 === 'string' ? last4 : '';
   input.value = state.hasKey
     ? state.last4
       ? `******${state.last4}`

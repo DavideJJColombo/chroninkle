@@ -32,6 +32,7 @@ export interface PortalDom {
   geminiApiKeyInput: ValidatableField & { readOnly: boolean };
   geminiClearBtn: HTMLButtonElement;
   geminiSaveBtn: HTMLButtonElement;
+  geminiStatusText: HTMLElement;
   // Time / timezone
   timezoneLocationCard: CardField;
   timezoneSelect: ValidatableField;
@@ -68,6 +69,7 @@ export function createPortalDom(): PortalDom {
     ),
     geminiClearBtn: getRequiredElement<HTMLButtonElement>('geminiClearBtn'),
     geminiSaveBtn: getRequiredElement<HTMLButtonElement>('geminiSaveBtn'),
+    geminiStatusText: getRequiredElement<HTMLElement>('geminiStatusText'),
 
     timezoneLocationCard: getRequiredElement<CardField>('timezoneLocationCard'),
     timezoneSelect: getRequiredElement<ValidatableField>('timezoneSelect'),

@@ -377,6 +377,7 @@ Snapshot BuildSnapshotLocked()
     snapshot.runtime.supports_audio_understanding = false;
     snapshot.runtime.supports_structured_output = false;
     snapshot.runtime.last_http_status = s_last_http_status;
+    snapshot.runtime.network_connected = s_network_connected;
     snapshot.runtime.last_status_message = s_last_status_message;
     snapshot.runtime.last_model_resource_name = s_last_model_resource_name;
     snapshot.runtime.last_model_display_name = s_last_model_display_name;
@@ -737,6 +738,9 @@ void AppendSnapshot(cJSON* root, const Snapshot& snapshot, const char* message)
                             ApiKeySourceName(snapshot.settings.api_key_source));
     cJSON_AddStringToObject(settings, "api_key_last4",
                             snapshot.settings.api_key_last4.c_str());
+    // Names the setup portal's key card reads (it shows ******last4 for a saved key).
+    cJSON_AddBoolToObject(settings, "has_key", snapshot.settings.configured);
+    cJSON_AddStringToObject(settings, "last4", snapshot.settings.api_key_last4.c_str());
     cJSON_AddStringToObject(settings, "model_name", snapshot.settings.model_name.c_str());
 
     cJSON* runtime = cJSON_AddObjectToObject(root, "runtime");
@@ -750,6 +754,8 @@ void AppendSnapshot(cJSON* root, const Snapshot& snapshot, const char* message)
     cJSON_AddBoolToObject(runtime, "supports_structured_output",
                           snapshot.runtime.supports_structured_output);
     cJSON_AddNumberToObject(runtime, "last_http_status", snapshot.runtime.last_http_status);
+    cJSON_AddBoolToObject(runtime, "network_connected", snapshot.runtime.network_connected);
+    cJSON_AddStringToObject(runtime, "not_ready_reason", NotReadyReason(snapshot).c_str());
     cJSON_AddStringToObject(runtime, "last_status_message",
                             snapshot.runtime.last_status_message.c_str());
     cJSON_AddStringToObject(runtime, "last_model_resource_name",
@@ -1726,6 +1732,49 @@ bool BeginAuthentication()
              ApiKeySourceName(api_key_source),
              api_key_last4.empty() ? "none" : api_key_last4.c_str());
     return true;
+}
+
+void RetryAuthentication()
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_auth_retry_count = 0;
+    }
+    MaybeBeginAuthentication();
+}
+
+std::string NotReadyReason(const Snapshot& snapshot)
+{
+    const RuntimeSnapshot& runtime = snapshot.runtime;
+    if (runtime.ready) {
+        return {};
+    }
+    if (!snapshot.settings.configured) {
+        return i18n::Tr("No Gemini API key", "Manca la chiave di Gemini");
+    }
+    if (!runtime.network_connected) {
+        return i18n::Tr("Gemini needs Wi-Fi", "Gemini: serve il Wi-Fi");
+    }
+    if (runtime.request_in_flight || !runtime.auth_checked) {
+        return i18n::Tr("Gemini: checking the key", "Gemini: verifica della chiave");
+    }
+    const int status = runtime.last_http_status;
+    if (status == 400 || status == 401 || status == 403) {
+        return i18n::Tr("Gemini: key not valid", "Gemini: chiave non valida");
+    }
+    if (status == 404) {
+        return i18n::Tr("Gemini: model not available", "Gemini: modello non disponibile");
+    }
+    if (status == 429) {
+        return i18n::Tr("Gemini: request limit reached", "Gemini: limite di richieste");
+    }
+    if (status <= 0) {
+        return i18n::Tr("Gemini unreachable", "Gemini non raggiungibile");
+    }
+    char buffer[48] = {};
+    std::snprintf(buffer, sizeof(buffer), "%s (%d)", i18n::Tr("Gemini error", "Errore Gemini"),
+                  status);
+    return buffer;
 }
 
 void SetNetworkState(bool connected, bool access_point_mode)

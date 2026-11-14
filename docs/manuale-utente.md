@@ -466,7 +466,17 @@ Il portale usa la stessa lingua del dispositivo e contiene:
   **Dimentica** per ciascuna. Dimenticare la rete in uso fa anche disconnettere
   il dispositivo.
 - **Chiave API di Gemini**: per salvarla o cancellarla. Per sicurezza il
-  portale non la mostra mai per intero.
+  portale non la mostra mai per intero (solo le ultime 4 cifre). Sotto la
+  chiave c'è lo stato di Gemini: **Gemini collegato**, oppure il motivo per
+  cui non funziona (**chiave non valida**, **serve il Wi-Fi**, **limite di
+  richieste**...) con la risposta di Google. Per cambiare chiave premi prima
+  **Cancella**, poi inserisci la nuova e premi **Salva**.
+
+Se Gemini non è pronto, anche il dispositivo lo dice: dopo una registrazione
+compare per esempio "Salvata. Manca la chiave di Gemini", e premendo
+**Trascrivi** compare il motivo invece di "Trascrizione non disponibile". Ogni
+volta che premi **Trascrivi** il dispositivo riprova anche a verificare la
+chiave.
 - **Impostazione ora**: fuso orario, interruttore **Ora automatica (da
   internet)** con l'ora dell'ultima sincronizzazione, ora e data. Come sul
   dispositivo, l'interruttore vale dopo **Salva**.

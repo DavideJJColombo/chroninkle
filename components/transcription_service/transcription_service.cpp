@@ -145,6 +145,11 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip,
 
     const gemini_service::Snapshot gemini_snapshot = gemini_service::GetSnapshot();
     const std::string api_key = gemini_service::GetEffectiveApiKey();
+    if (!gemini_snapshot.runtime.ready) {
+        // E.g. Transcribe pressed after an earlier key check failed: check it again, so the
+        // next try can work without reconnecting Wi-Fi.
+        gemini_service::RetryAuthentication();
+    }
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -157,7 +162,11 @@ bool BeginTranscription(recording_service::RecordedClipPtr clip,
         }
         if (!gemini_snapshot.runtime.ready || api_key.empty()) {
             s_last_http_status = 0;
-            s_last_status_message = i18n::Tr("Transcription unavailable", "Trascrizione non disponibile");
+            // Say why (missing key, invalid key, no Wi-Fi...) instead of a bare "unavailable".
+            const std::string reason = gemini_service::NotReadyReason(gemini_snapshot);
+            s_last_status_message =
+                reason.empty() ? i18n::Tr("Transcription unavailable", "Trascrizione non disponibile")
+                               : reason;
             s_last_error_code = gemini_snapshot.settings.configured ? "provider_not_ready"
                                                                     : "not_configured";
             s_last_error_message = gemini_snapshot.settings.configured

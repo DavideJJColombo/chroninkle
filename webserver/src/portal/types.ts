@@ -135,6 +135,19 @@ export interface ModuleRoutes {
 export interface GeminiModuleSettings {
   has_key?: boolean;
   last4?: string;
+  // Field names older firmware sends instead of has_key/last4.
+  configured?: boolean;
+  api_key_last4?: string;
+}
+
+export interface GeminiRuntimeStatus {
+  ready?: boolean;
+  request_in_flight?: boolean;
+  network_connected?: boolean;
+  last_http_status?: number;
+  last_model_display_name?: string;
+  last_error_message?: string;
+  not_ready_reason?: string;
 }
 
 export interface OpenAiModuleSettings {
@@ -189,6 +202,7 @@ export interface GeminiModuleResponse {
   success: boolean;
   message?: string;
   settings?: GeminiModuleSettings;
+  runtime?: GeminiRuntimeStatus;
 }
 
 export interface OpenAiModuleResponse {

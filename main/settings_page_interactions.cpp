@@ -21,6 +21,9 @@ ActivateResult HandlePrimaryActivate(const SettingsPageCoordinator& coordinator)
         result.intent = ActivateIntent::kToggleLanguage;
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuAutoClassify)) {
         result.intent = ActivateIntent::kToggleAutoClassify;
+    } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuVolume)) {
+        result.intent = ActivateIntent::kCycleVolume;
+        result.play_activate_cue = false;  // the new level plays its own preview
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuStorage)) {
         result.intent = ActivateIntent::kShowStorage;
     } else if (coordinator.IsRoleFocused(NavigationItemRole::kSettingsMenuTodos)) {
@@ -66,6 +69,11 @@ void ApplyPrimaryActivateResult(const ActivateResult& result, const ActivateCall
         case ActivateIntent::kToggleAutoClassify:
             if (callbacks.toggle_auto_classify) {
                 callbacks.toggle_auto_classify();
+            }
+            break;
+        case ActivateIntent::kCycleVolume:
+            if (callbacks.cycle_volume) {
+                callbacks.cycle_volume();
             }
             break;
         case ActivateIntent::kShowStorage:

@@ -12,9 +12,11 @@ constexpr const char* kTag = "AppStateService";
 constexpr const char* kNvsNamespace = "app_state";
 constexpr const char* kOnboardingKey = "onboarded";
 constexpr const char* kAutoClassifyKey = "auto_class";
+constexpr const char* kVolumeKey = "volume";
 
 // -1 = not loaded yet, otherwise 0/1. Read on every recording, so cached after the first read.
 std::atomic<int> s_auto_classify{-1};
+std::atomic<int> s_volume_level{-1};  // -1 = not loaded yet
 
 }  // namespace
 
@@ -69,6 +71,42 @@ void SetAutoClassifyEnabled(bool enabled)
         return;
     }
     if (nvs_set_u8(handle, kAutoClassifyKey, enabled ? 1 : 0) == ESP_OK) {
+        (void)nvs_commit(handle);
+    }
+    nvs_close(handle);
+}
+
+int VolumeLevel()
+{
+    int cached = s_volume_level.load(std::memory_order_relaxed);
+    if (cached >= 0) {
+        return cached;
+    }
+    uint8_t value = kMaxVolumeLevel;
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) == ESP_OK) {
+        (void)nvs_get_u8(handle, kVolumeKey, &value);
+        nvs_close(handle);
+    }
+    cached = value > kMaxVolumeLevel ? kMaxVolumeLevel : static_cast<int>(value);
+    s_volume_level.store(cached, std::memory_order_relaxed);
+    return cached;
+}
+
+void SetVolumeLevel(int level)
+{
+    if (level < 0) {
+        level = 0;
+    } else if (level > kMaxVolumeLevel) {
+        level = kMaxVolumeLevel;
+    }
+    s_volume_level.store(level, std::memory_order_relaxed);
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READWRITE, &handle) != ESP_OK) {
+        ESP_LOGW(kTag, "Volume: nvs_open failed");
+        return;
+    }
+    if (nvs_set_u8(handle, kVolumeKey, static_cast<uint8_t>(level)) == ESP_OK) {
         (void)nvs_commit(handle);
     }
     nvs_close(handle);

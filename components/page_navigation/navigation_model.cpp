@@ -81,17 +81,19 @@ NavigationModel BuildSettingsPageNavigationModel()
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
             NavigationItemRole::kSettingsMenuAutoClassify, 3);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuStorage, 4);
+            NavigationItemRole::kSettingsMenuVolume, 4);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuTodos, 5);
+            NavigationItemRole::kSettingsMenuStorage, 5);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuTopics, 6);
+            NavigationItemRole::kSettingsMenuTodos, 6);
     AddItem(model, NavigationItemSection::kSettingsPageMenu,
-            NavigationItemRole::kSettingsMenuAbout, 7);
+            NavigationItemRole::kSettingsMenuTopics, 7);
+    AddItem(model, NavigationItemSection::kSettingsPageMenu,
+            NavigationItemRole::kSettingsMenuAbout, 8);
     AddItem(model,
             NavigationItemSection::kSettingsPageMenu,
             NavigationItemRole::kSettingsManualOnboardingButton,
-            8);
+            9);
     AddFooterItems(model, /*is_home_screen=*/false);
     return model;
 }

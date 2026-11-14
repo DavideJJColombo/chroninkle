@@ -37,6 +37,8 @@ void ToggleLanguage();
 bool ConsumePendingLanguageChanged();
 // Flips automatic classification of new recordings (saved in NVS) and asks for a repaint.
 void ToggleAutoClassify();
+// Volume 1 -> 2 -> ... -> 5 -> muted -> 1, saved and applied at once, with a preview sound.
+void CycleVolume();
 
 }  // namespace settings_page_runtime
 

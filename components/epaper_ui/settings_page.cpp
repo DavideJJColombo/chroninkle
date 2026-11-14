@@ -14,7 +14,7 @@ constexpr int kSideInset = design::spacing::k16;
 constexpr int kTopGap = design::spacing::k16;
 constexpr int kTitleBottomGap = design::spacing::k24;
 constexpr int kMenuManualGap = design::spacing::k24;
-constexpr int kSettingsMenuItemHeight = 60;
+constexpr int kSettingsMenuItemHeight = 54;
 
 int PageWidth(int portrait_width)
 {
@@ -32,7 +32,7 @@ MenuContainerStyle MenuStyle(int width)
     style.direction = MenuContainerDirection::kVertical;
     style.sizing = MenuContainerSizing::kFixedItemExtent;
     style.width = width;
-    // Shorter than the default rows so all 8 headings plus Manual stay clear of the footer.
+    // Shorter than the default rows so all 9 headings plus Manual stay clear of the footer.
     style.item_height = kSettingsMenuItemHeight;
     style.item_gap = 0;
     return style;
@@ -80,6 +80,11 @@ std::string SettingsMenuItemLabel(int index, const SettingsPageState& state)
         case SettingsMenuItem::kAutoClassify:
             return state.auto_classify ? Tr("Sorting: Auto", "Tipo: Automatico")
                                        : Tr("Sorting: Manual", "Tipo: Manuale");
+        case SettingsMenuItem::kVolume:
+            return state.volume_level <= 0
+                       ? std::string(Tr("Volume: Muted", "Volume: Muto"))
+                       : std::string(Tr("Volume: ", "Volume: ")) +
+                             std::to_string(state.volume_level) + "/5";
         case SettingsMenuItem::kStorage:
             return Tr("Storage", "Memoria");
         case SettingsMenuItem::kTodos:

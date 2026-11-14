@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "app_state_service.h"
+#include "feedback_service.h"
 #include "i18n.h"
 #include "page_navigation/navigation_model.h"
 #include "page_navigation/page_focus_projection.h"
@@ -245,6 +246,16 @@ void ToggleAutoClassify()
     app_state_service::SetAutoClassifyEnabled(!app_state_service::AutoClassifyEnabled());
     // Same repaint path as a language change: the Settings page rebuilds its labels.
     s_pending_language_changed.store(true, std::memory_order_relaxed);
+}
+
+void CycleVolume()
+{
+    const int current = app_state_service::VolumeLevel();
+    const int next = current >= app_state_service::kMaxVolumeLevel ? 0 : current + 1;
+    app_state_service::SetVolumeLevel(next);
+    feedback_service::ApplyVolumeLevel(next);
+    feedback_service::PlayVolumePreview();
+    s_pending_language_changed.store(true, std::memory_order_relaxed);  // repaint the labels
 }
 
 bool ConsumePendingLanguageChanged()

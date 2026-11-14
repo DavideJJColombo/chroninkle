@@ -54,6 +54,26 @@ esp_err_t Init()
     return ESP_OK;
 }
 
+void ApplyVolumeLevel(int level)
+{
+    // esp_codec_dev maps 0..100 linearly onto -50..0 dB: 12 points = 6 dB per level.
+    static constexpr int kCodecVolume[] = {0, 52, 64, 76, 88, 100};
+    const int clamped = level < 0 ? 0 : (level > 5 ? 5 : level);
+    SystemSoundService::GetInstance().SetMuted(clamped == 0);
+    if (clamped > 0) {
+        AudioCodec* codec = waveshare_board::GetAudioCodec();
+        if (codec != nullptr) {
+            codec->SetOutputVolume(kCodecVolume[clamped]);
+        }
+    }
+    ESP_LOGI(kTag, "Volume level %d%s", clamped, clamped == 0 ? " (muted)" : "");
+}
+
+void PlayVolumePreview()
+{
+    SystemSoundService::GetInstance().PlayCue(SoundCue::kVolume);
+}
+
 esp_err_t Play(FeedbackEvent event)
 {
     SystemSoundService::GetInstance().PlayCue(CueForEvent(event));

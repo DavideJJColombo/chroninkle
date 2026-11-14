@@ -13,6 +13,7 @@ constexpr NavigationItemRole kMenuRoles[epaper_ui::kSettingsMenuItemCount] = {
     NavigationItemRole::kSettingsMenuTime,
     NavigationItemRole::kSettingsMenuLanguage,
     NavigationItemRole::kSettingsMenuAutoClassify,
+    NavigationItemRole::kSettingsMenuVolume,
     NavigationItemRole::kSettingsMenuStorage,
     NavigationItemRole::kSettingsMenuTodos,
     NavigationItemRole::kSettingsMenuTopics,
@@ -50,6 +51,7 @@ epaper_ui::SettingsPageState SettingsPageCoordinator::BuildState() const
     state.title_text = i18n::Tr("Settings", "Impostazioni");
     state.language = static_cast<int>(i18n::Current());
     state.auto_classify = app_state_service::AutoClassifyEnabled();
+    state.volume_level = app_state_service::VolumeLevel();
 
     state.menu.selected_index = -1;
     for (int index = 0; index < epaper_ui::kSettingsMenuItemCount; ++index) {

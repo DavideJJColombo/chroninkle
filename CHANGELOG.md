@@ -8,6 +8,19 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-14
+
+### Added
+
+- **Settings > Volume.** A new Settings item cycles the speaker volume
+  1/5 -> ... -> 5/5 -> Muted -> 1/5 with a preview sound at each step, saved in
+  NVS (`app_state/volume`, default 5/5) and applied at boot
+  (`feedback_service::ApplyVolumeLevel`). Levels are 6 dB apart (codec volume
+  52/64/76/88/100). Muted skips every system cue (`SystemSoundService::SetMuted`,
+  reporting them as completed so flows waiting on a cue carry on); clip
+  playback from the Details page still plays. Settings rows are 54 px high to
+  fit nine items.
+
 ## [1.8.1] - 2026-11-14
 
 ### Fixed

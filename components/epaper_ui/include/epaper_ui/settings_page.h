@@ -13,16 +13,18 @@
 
 namespace epaper_ui {
 
-// Settings is a hub: 8 headings in this fixed slot order (must match SettingsMenuItemLabel in
-// settings_page.cpp). Each navigates to a dedicated sub-page, except Language and Sorting
-// (automatic classification of recordings), which toggle in place and show their current value.
-inline constexpr int kSettingsMenuItemCount = 8;
+// Settings is a hub: 9 headings in this fixed slot order (must match SettingsMenuItemLabel in
+// settings_page.cpp). Each navigates to a dedicated sub-page, except Language, Sorting
+// (automatic classification of recordings) and Volume, which change in place and show their
+// current value.
+inline constexpr int kSettingsMenuItemCount = 9;
 
 enum class SettingsMenuItem : int {
     kNetwork = 0,
     kTime,
     kLanguage,
     kAutoClassify,
+    kVolume,
     kStorage,
     kTodos,
     kTopics,
@@ -42,6 +44,7 @@ struct SettingsPageState {
     // state change and the page repaints.
     int language = 0;
     bool auto_classify = true;
+    int volume_level = 5;  // 0 = muted
     SettingsPageMenuState menu = {};
     // Replays the onboarding carousel -- a one-shot action, not a heading, so it sits below the
     // menu rather than being one of the 4 headings above.

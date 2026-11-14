@@ -39,6 +39,10 @@ public:
     void Initialize(AudioCodec* codec);
     void PlayCue(SoundCue cue);
     void PlayCue(SoundCue cue, std::function<void(SoundCuePlaybackResult)> on_complete);
+    // Muted: cues are skipped but still report kCompleted right away, so flows that wait for a
+    // cue (e.g. the recording start cue) carry on as if it had played.
+    void SetMuted(bool muted);
+    bool IsMuted() const;
 
 private:
     SystemSoundService() = default;

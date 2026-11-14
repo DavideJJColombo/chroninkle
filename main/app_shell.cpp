@@ -2053,6 +2053,7 @@ void InitFeedbackService()
         ESP_LOGW(kTag, "Feedback service init failed: %s", esp_err_to_name(err));
         return;
     }
+    feedback_service::ApplyVolumeLevel(app_state_service::VolumeLevel());  // Settings > Volume
 }
 
 void InitDisplayService()

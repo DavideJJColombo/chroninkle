@@ -13,6 +13,12 @@ void MarkOnboardingViewed();
 bool AutoClassifyEnabled();
 void SetAutoClassifyEnabled(bool enabled);
 
+// Speaker volume level, Settings > Volume: 0 = muted (no system sounds), 1..kMaxVolumeLevel
+// louder and louder. Default kMaxVolumeLevel; persisted in NVS.
+inline constexpr int kMaxVolumeLevel = 5;
+int VolumeLevel();
+void SetVolumeLevel(int level);
+
 }  // namespace app_state_service
 
 #endif  // APP_STATE_SERVICE_H_

@@ -360,6 +360,11 @@ their own page, two that switch in place, plus one action below them:
   Gemini file each recording by itself (see
   [Automatic sorting](#automatic-sorting)); Manual shows the tag menu after
   every recording.
+- **Volume** — each press raises the volume one step (1/5 to 5/5) and plays a
+  test sound; after 5/5 comes **Muted**, then 1/5 again. Muted silences every
+  system sound (buttons, recording start/stop, alerts); playing a recording
+  from its details page still sounds, at the last level chosen. The setting is
+  kept across power-offs.
 - **Storage** — SD card status and management.
 - **Todos** — todo archiving.
 - **Topics** — create, rename, and delete topics.

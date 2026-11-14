@@ -383,6 +383,12 @@ fondo:
   Automatico Gemini smista da solo le registrazioni (vedi
   [Smistamento automatico](#smistamento-automatico)); in Manuale scegli tu dal
   menu dopo ogni registrazione.
+- **Volume**: ogni pressione alza il volume di un livello (da 1/5 a 5/5) e fa
+  sentire un suono di prova; dopo 5/5 viene **Muto**, poi si riparte da 1/5. Con
+  il muto il dispositivo non emette nessun suono di sistema (tasti, avvio e fine
+  registrazione, avvisi); la riproduzione di una registrazione dalla pagina dei
+  dettagli invece si sente comunque, al volume dell'ultimo livello scelto. La
+  scelta resta salvata anche da spento.
 - **Memoria**: stato e gestione della scheda SD.
 - **Da fare**: archiviazione delle attività.
 - **Argomenti**: crea, rinomina ed elimina gli argomenti.

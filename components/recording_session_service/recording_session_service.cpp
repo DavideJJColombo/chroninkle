@@ -334,22 +334,23 @@ void PlaybackWorker(void* arg)
 // Every route out of the stop cue lands here: playback done, playback refused to start, or
 // the stop cue itself failed. The clip is still unsaved, so the tag menu's Discard option
 // is what throws away a bad take.
-// Automatic classification replaces the tag menu only when it can actually run right now:
-// enabled, online, Gemini authenticated, and the single transcription slot free. Otherwise the
-// menu opens as before (and an offline recording is transcribed later, as before).
+// No tag menu while offline (saved as a Note, sorted by Gemini later), nor online with automatic
+// sorting when Gemini can take it right away. The menu opens with Manual sorting online, or
+// online while the single transcription slot is busy.
 // Called without s_mutex held: transcription_service calls into this service while holding
 // its own lock, so taking them in the other order here could deadlock.
 bool ShouldAutoClassify()
 {
-    if (!app_state_service::AutoClassifyEnabled()) {
-        return false;
-    }
     const bool gemini_usable = s_network_connected.load(std::memory_order_relaxed) &&
                                gemini_service::GetSnapshot().runtime.ready;
     if (!gemini_usable) {
-        // Offline (or Gemini not ready): save it "to be sorted" without asking; Gemini sorts it
-        // when it transcribes it later (pending_classification).
+        // Offline (or Gemini not ready): never ask, whatever the Sorting setting. The take is
+        // saved as a Note "to be sorted" and Gemini sorts it when it transcribes it later
+        // (pending_classification).
         return true;
+    }
+    if (!app_state_service::AutoClassifyEnabled()) {
+        return false;  // Manual, online: the menu
     }
     // Online but the transcription slot is busy: the menu, as before.
     return !transcription_service::GetSnapshot().request_in_flight;

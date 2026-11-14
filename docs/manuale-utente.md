@@ -146,10 +146,11 @@ oppure dice che non è riuscita.
 
 Quando in **Impostazioni → Tipo** c'è **Automatico**, il menu non compare: con
 un'unica richiesta Gemini trascrive la registrazione e capisce che cos'è. Se in
-quel momento non c'è connessione, la registrazione viene salvata subito "da
-smistare" (compare il messaggio "Salvata: Gemini la smisterà appena online") e
-Gemini la smista più tardi, quando la trascrive, esattamente come se fossi
-stato online.
+quel momento non c'è connessione, la registrazione viene salvata subito tra le
+Note, "da smistare" (compare il messaggio "Salvata: Gemini la smisterà appena
+online"), e Gemini la smista più tardi, quando la trascrive, esattamente come
+se fossi stato online. Senza rete succede così anche con il Tipo su
+**Manuale**: il menu non compare mai quando non c'è connessione.
 
 - **Cose da fare con scadenza.** Se dici "domani devo comprare il latte,
   chiamare Marco entro venerdì alle 15 e pagare la bolletta" ottieni tre voci
@@ -391,7 +392,9 @@ fondo:
 - **Tipo: Automatico**: premila per passare a **Manuale** (e viceversa). In
   Automatico Gemini smista da solo le registrazioni (vedi
   [Smistamento automatico](#smistamento-automatico)); in Manuale scegli tu dal
-  menu dopo ogni registrazione.
+  menu dopo ogni registrazione, quando sei online. Senza rete il menu non
+  compare mai: la registrazione va tra le Note e Gemini la smista appena torna
+  la connessione.
 - **Volume**: ogni pressione alza il volume di un livello (da 1/5 a 5/5) e fa
   sentire un suono di prova; dopo 5/5 viene **Muto**, poi si riparte da 1/5. Con
   il muto il dispositivo non emette nessun suono di sistema (tasti, avvio e fine

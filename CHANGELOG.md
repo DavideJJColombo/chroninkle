@@ -8,6 +8,15 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-11-14
+
+### Changed
+
+- **No tag menu offline, whatever the Sorting setting.** Without Gemini the take
+  is always saved as a Note flagged `pending_classification` and sorted by
+  Gemini once online (1.10.0 did this only with Sorting on Auto). Manual
+  sorting still shows the menu when online.
+
 ## [1.10.0] - 2026-11-14
 
 ### Changed

@@ -151,7 +151,8 @@ transcribes the recording and decides what it is. Offline, the recording is
 saved right away "to be sorted" ("Saved: Gemini will sort it when online") and
 Gemini sorts it later, when it transcribes it, just as if you had been online.
 Until then it shows under **Notes**; pressing **Transcribe** on it sorts it
-too.
+too. Offline this happens with Sorting on **Manual** as well: there is never a
+tag menu without a connection.
 
 - **Todos with deadlines.** Say "tomorrow I need to buy milk, call Marco by
   Friday at 3 and pay the bill" and you get three separate todos, each with
@@ -363,7 +364,8 @@ their own page, two that switch in place, plus one action below them:
 - **Sorting: Auto** — press it to switch to **Manual** and back. Auto lets
   Gemini file each recording by itself (see
   [Automatic sorting](#automatic-sorting)); Manual shows the tag menu after
-  every recording.
+  every recording while online. Offline there is never a menu: the recording
+  goes to Notes and Gemini sorts it once the connection is back.
 - **Volume** — each press raises the volume one step (1/5 to 5/5) and plays a
   test sound; after 5/5 comes **Muted**, then 1/5 again. Muted silences every
   system sound (buttons, recording start/stop, alerts); playing a recording

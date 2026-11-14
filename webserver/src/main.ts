@@ -26,6 +26,8 @@ import apiKeyIcon from './assets/api_key.svg?raw';
 import checkIcon from './assets/check.svg?raw';
 import clockIcon from './assets/clock.svg?raw';
 import firmwareIcon from './assets/firmware_update.svg?raw';
+import calendarIcon from './assets/calendar.svg?raw';
+import { createCalendarController } from './portal/calendar';
 import {
   fetchGeminiModuleJson,
   fetchPortalJson,
@@ -159,6 +161,16 @@ const timeController = createTimeController({
   wakeupTimeInput: stubWakeupTimeInput,
 });
 
+const setCalendarNotification = createCardNotifier(dom.calendarCard);
+const calendarController = createCalendarController({
+  list: dom.calendarList,
+  urlInput: dom.calendarUrlInput as unknown as HTMLInputElement,
+  statusText: dom.calendarStatus,
+  addButton: dom.calendarAddBtn,
+  refreshButton: dom.calendarRefreshBtn,
+  notify: setCalendarNotification,
+});
+
 const savedNetworksController = createSavedNetworksController({
   container: dom.savedNetworks,
   notify: setNotification,
@@ -227,6 +239,7 @@ function updatePageFade() {
 function initialize() {
   dom.wifiStatusCard.iconSvg = wifiIcon;
   dom.geminiCard.iconSvg = apiKeyIcon;
+  dom.calendarCard.iconSvg = calendarIcon;
   dom.timezoneLocationCard.iconSvg = clockIcon;
   dom.firmwareCard.iconSvg = firmwareIcon;
   dom.wifiStatusCard.addEventListener('settings', () => {
@@ -247,6 +260,8 @@ function initialize() {
       window.setTimeout(() => void loadGeminiSettings(), 1500);
     });
   }
+  dom.calendarAddBtn.addEventListener('click', () => void calendarController.addCalendar());
+  dom.calendarRefreshBtn.addEventListener('click', () => void calendarController.refresh());
   dom.firmwareCodeBtn.addEventListener('click', () => {
     void firmwareController.requestCode();
   });
@@ -316,6 +331,7 @@ async function loadInitialStatus() {
     wifiController.checkStatus(),
     savedNetworksController.load(),
     loadGeminiSettings(),
+    calendarController.load(),
     firmwareController.loadStatus(),
   ]);
 }

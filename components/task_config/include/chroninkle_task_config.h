@@ -36,5 +36,8 @@ inline constexpr UBaseType_t kPriorityTranscriptionRetry = 2;
 // last-good values off the UI path, so a poll that loses a race to SD/display
 // bus activity simply retries on the next cycle without ever blocking a refresh.
 inline constexpr UBaseType_t kPrioritySensorPoll = 2;
+// Google Calendar (iCal feed) download/parse worker: network work on the system core, low
+// priority -- an agenda a few seconds late is fine, a stalled UI is not.
+inline constexpr UBaseType_t kPriorityCalendar = 2;
 
 }  // namespace chroninkle_task_config

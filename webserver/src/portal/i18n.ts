@@ -106,11 +106,28 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Could not finish the update': 'Impossibile completare l’aggiornamento',
   'Could not activate the new firmware': 'Impossibile attivare il nuovo firmware',
   'Update installed, the device is restarting': 'Aggiornamento installato, il dispositivo si riavvia',
+  'Calendar settings loaded': 'Impostazioni calendario caricate',
+  'Calendar added': 'Calendario aggiunto',
+  'Calendar removed': 'Calendario rimosso',
+  'Calendar link not valid': 'Link del calendario non valido',
+  'Calendar list full': 'Hai già aggiunto il numero massimo di calendari',
+  'Calendar already added': 'Calendario già aggiunto',
+  'Calendar not found': 'Calendario non trovato',
+  'Calendar needs Wi-Fi': 'Per aggiornare il calendario serve il Wi-Fi',
+  'Calendar refresh started': 'Aggiornamento del calendario avviato',
+  'Failed to save calendar settings': 'Impossibile salvare le impostazioni del calendario',
+  'Invalid calendar settings payload': 'Impostazioni calendario non valide',
+  'Not a calendar (use the secret iCal address)':
+    'Non è un calendario (usa l’indirizzo segreto in formato iCal)',
+  'Download interrupted': 'Download interrotto',
+  'HTTP client init failed': 'Errore interno di rete',
 };
 
 const SERVER_MESSAGE_PREFIXES: Array<[string, string]> = [
   ['Disconnected and cleared credentials for ', 'Disconnesso, credenziali cancellate per '],
   ['Connecting to ', 'Connessione a '],
+  ['Link not valid (', 'Link non valido ('],
+  ['Connection failed (', 'Connessione non riuscita ('],
 ];
 
 export function translateServerMessage(message: string): string {
@@ -205,6 +222,18 @@ export function applyStaticTranslations(): void {
   setText('timezoneLocationSaveBtn', 'Salva');
 
   setAttr('statusToast', 'aria-label', 'Notifica di stato');
+
+  setAttr('calendarCard', 'title', 'Calendario Google');
+  setAttr('calendarUrlInput', 'label', 'Indirizzo segreto in formato iCal');
+  setText(
+    'calendarHelp',
+    'Da Google Calendar sul computer: Impostazioni, scegli il calendario e copia «Indirizzo ' +
+      'segreto in formato iCal», poi incollalo qui. Il dispositivo mostrerà gli impegni dei ' +
+      'prossimi giorni in Home, alla voce Agenda. Tieni il link per te: chi lo ha può vedere il ' +
+      'calendario.'
+  );
+  setText('calendarRefreshBtn', 'Aggiorna');
+  setText('calendarAddBtn', 'Aggiungi');
 
   setAttr('firmwareCard', 'title', 'Aggiornamento firmware');
   setAttr('firmwareFileInput', 'label', 'File del firmware (.bin)');

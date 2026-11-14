@@ -145,6 +145,41 @@
             </ui-button>
         </ui-card>
 
+        <ui-card id="calendarCard" title="Google Calendar">
+            <div id="calendarList" class="saved-networks"></div>
+
+            <ui-input
+              id="calendarUrlInput"
+              label="Secret address in iCal format"
+              placeholder="https://calendar.google.com/calendar/ical/..."
+              autocomplete="off"
+              inputmode="url"
+            ></ui-input>
+
+            <p id="calendarStatus" class="form-helper-text" hidden></p>
+            <p id="calendarHelp" class="form-helper-text">
+              In Google Calendar on a computer: Settings, pick the calendar, then copy "Secret
+              address in iCal format" and paste it here. The device then shows the next days of
+              events on Home, under Agenda. Keep the link private: whoever has it can see the
+              calendar.
+            </p>
+
+            <ui-button
+              slot="footer"
+              id="calendarRefreshBtn"
+              variant="secondary"
+            >
+              Refresh
+            </ui-button>
+            <ui-button
+              slot="footer"
+              id="calendarAddBtn"
+              variant="primary"
+            >
+              Add
+            </ui-button>
+        </ui-card>
+
         <ui-card id="firmwareCard" title="Firmware Update">
             <p id="firmwareVersionText" class="form-helper-text"></p>
 

@@ -163,5 +163,7 @@ epaper_ui::DashboardPageState DashboardPageCoordinator::BuildState() const
     state.menu.follow_up_badge_text = std::to_string(archive_.follow_up_recording_count);
     state.menu.notes_badge_text = std::to_string(archive_.notes_recording_count);
     state.menu.todos_badge_text = std::to_string(archive_.todo_recording_count);
+    state.menu.shows_agenda_badge = agenda_today_count_ > 0;
+    state.menu.agenda_badge_text = std::to_string(agenda_today_count_);
     return state;
 }

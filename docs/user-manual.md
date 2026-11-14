@@ -26,6 +26,7 @@ old name (`Chroninkle-XXXXXX`) until it's updated.
 - [Notes, Todos, and Follow-up](#notes-todos-and-follow-up)
 - [Viewing a recording's details](#viewing-a-recordings-details)
 - [Topics](#topics)
+- [Agenda (Google Calendar)](#agenda-google-calendar)
 - [Books](#books)
 - [Settings](#settings)
 - [Updating the firmware](#updating-the-firmware)
@@ -91,6 +92,9 @@ From there you can:
   **request limit reached**...) with Google's own reply. If Gemini isn't
   ready the device says why too: after a recording ("Saved. No Gemini API
   key") and when you press **Transcribe**, which also re-checks the key.
+- **Add a Google Calendar** (optional) — paste a calendar's secret iCal
+  address to see your events on the device under
+  [Agenda](#agenda-google-calendar).
 - **Set your timezone and the current time/date** — needed for accurate
   timestamps on your recordings and for the "Today" grouping on Notes/Todos.
 
@@ -178,6 +182,8 @@ Below that is the main menu, in this order:
 - **Follow up** — anything you've flagged for later, regardless of what
   it's tagged as (badge shows how many).
 - **Todos** (badge shows how many) — your Task recordings.
+- **Agenda** (badge shows the events left today) — the next days of your
+  [Google Calendar](#agenda-google-calendar).
 - **Notes** (badge shows how many) — your Note and Idea recordings.
 - **Topics** — browse everything tagged with a given [topic](#topics),
   including Gemini-generated summaries.
@@ -287,6 +293,29 @@ topics](#manage-topics) for renaming/deleting one). The Home screen's
 
 If a topic has nothing tagged with it yet, you'll see "No entries tagged
 with this topic yet" and no Summarize button.
+
+## Agenda (Google Calendar)
+
+Agenda shows the events of your Google calendars for today and the next 7
+days. It is read-only: you create and edit events on your phone or computer as
+usual.
+
+To connect a calendar (once): in Google Calendar on a computer open
+**Settings**, pick the calendar on the left, find **Secret address in iCal
+format** and copy it; then in the [setup portal](#first-time-setup)'s **Google
+Calendar** card paste it and press **Add** (up to 3 calendars). Keep the link
+private: whoever has it can see the calendar (Google lets you reset it from the
+same page).
+
+On the device, select **Agenda** on Home: events are grouped by day (**TODAY**,
+**TOMORROW**, then the following days) with time, title and location below;
+all-day events read **All day**, and today's events that are over are left
+out. Select the list to scroll it with the rocker, **Refresh** to download now,
+**Back** to return Home. The number next to Agenda on Home is how many events
+are left today. The device downloads the calendars when it joins Wi-Fi, every
+30 minutes while online and when you open Agenda (not while in light sleep).
+Recurring, moved and cancelled events are handled; times are read in the
+device's time zone.
 
 ## Books
 

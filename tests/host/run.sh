@@ -34,3 +34,8 @@ if [ -n "$cjson_dir" ] && [ -f "$cjson_dir/cJSON.c" ]; then
 else
     echo "auto_classify test skipped: set IDF_PATH or CJSON_DIR to a cJSON source folder"
 fi
+
+"$cxx" -std=gnu++20 -O1 -Wall -Wextra -I"$root/components/calendar_service" \
+    "$root/tests/host/ics_calendar_test.cpp" "$root/components/calendar_service/ics_calendar.cpp" \
+    -o "$out/ics_calendar_test"
+"$out/ics_calendar_test"

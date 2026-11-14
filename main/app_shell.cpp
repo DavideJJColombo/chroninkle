@@ -68,6 +68,8 @@
 #include "time_page_runtime.h"
 #include "topic_entries_page_runtime.h"
 #include "topic_summary_page_runtime.h"
+#include "agenda_page_runtime.h"
+#include "calendar_service.h"
 #include "topics_browse_page_runtime.h"
 #include "wifi_page_runtime.h"
 
@@ -538,6 +540,39 @@ void HandleTopicSummaryBackIfRequested()
     }
 }
 
+esp_err_t ShowAgendaScreen(display_service::RefreshMode refresh_mode)
+{
+    SyncStatusBarState("show_agenda_screen");
+    const esp_err_t sync_err = agenda_page_runtime::ShowFresh();
+    if (sync_err != ESP_OK && sync_err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Agenda page sync before show failed: %s", esp_err_to_name(sync_err));
+    }
+    page_input_runtime::ResetFocusForScreen(display_service::ScreenId::kAgenda);
+    footer_runtime::SetLayoutState(FooterLayoutForScreen(display_service::ScreenId::kAgenda));
+    footer_runtime::SetProjectionState(
+        page_input_runtime::BuildFooterProjectionForScreen(display_service::ScreenId::kAgenda));
+    const esp_err_t footer_err = footer_runtime::UpdateDisplayState();
+    if (footer_err != ESP_OK && footer_err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Footer sync before agenda screen failed: %s", esp_err_to_name(footer_err));
+    }
+    // Opening the Agenda is a good moment to fetch fresh events (no-op when offline).
+    (void)calendar_service::RequestRefresh();
+    return display_service::SetCurrentScreen(display_service::ScreenId::kAgenda, refresh_mode,
+                                             "show_agenda_screen");
+}
+
+// Agenda is reached only from the Home menu, so Back returns Home.
+void HandleAgendaBackIfRequested()
+{
+    if (!agenda_page_runtime::ConsumePendingBack()) {
+        return;
+    }
+    const esp_err_t err = ShowHomeScreen(display_service::RefreshMode::kPartial);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Agenda back navigation failed: %s", esp_err_to_name(err));
+    }
+}
+
 esp_err_t ShowNotesScreen(display_service::RefreshMode refresh_mode)
 {
     SyncStatusBarState("show_notes_screen");
@@ -985,6 +1020,13 @@ bool HandleDashboardMenuItem(int menu_index, void*)
         const esp_err_t err = ShowBookListScreen(display_service::RefreshMode::kPartial);
         if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
             ESP_LOGW(kTag, "Show book list screen failed: %s", esp_err_to_name(err));
+        }
+        return true;
+    }
+    if (menu_index == static_cast<int>(epaper_ui::DashboardMenuItem::kAgenda)) {
+        const esp_err_t err = ShowAgendaScreen(display_service::RefreshMode::kPartial);
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(kTag, "Show agenda screen failed: %s", esp_err_to_name(err));
         }
         return true;
     }
@@ -1460,6 +1502,9 @@ void HandleTimezoneEvent(const timezone_service::Event& event, void*)
     const uint32_t network_sync = event.snapshot.runtime.last_network_sync_epoch;
     if (network_sync != 0 && network_sync != s_last_seen_network_sync) {
         gemini_service::RetryAuthentication();  // no-op once the key is accepted
+        if (!calendar_service::GetSnapshot().has_data) {
+            (void)calendar_service::RequestRefresh();  // the clock is right now: try again
+        }
     }
     s_last_seen_network_sync = network_sync;
 
@@ -1505,6 +1550,33 @@ void RegisterWifiBackendRoutes(httpd_handle_t server, void*)
     timezone_service::RegisterPortalRoutes(server);
     gemini_service::RegisterPortalRoutes(server);
     ota_service::RegisterPortalRoutes(server);
+    calendar_service::RegisterPortalRoutes(server);
+}
+
+// A calendar download started or finished: refresh the Agenda page if it is showing, and the
+// Home menu's "events left today" badge.
+void HandleCalendarEvent(const calendar_service::Event& event, void*)
+{
+    ESP_LOGI(kTag, "Calendar intent: calendars=%d fetching=%d events=%u error=%s",
+             event.snapshot.calendar_count, event.snapshot.fetching ? 1 : 0,
+             static_cast<unsigned>(event.snapshot.events.size()),
+             event.snapshot.last_error.empty() ? "<none>" : event.snapshot.last_error.c_str());
+    const bool startup_complete = s_startup_complete.load(std::memory_order_relaxed);
+    (void)agenda_page_runtime::OnCalendarSnapshot(
+        event.snapshot, startup_complete && ScreenActiveForRefresh(display_service::ScreenId::kAgenda));
+    if (!event.snapshot.fetching) {
+        (void)dashboard_page_runtime::SyncFromService(
+            startup_complete && ScreenActiveForRefresh(display_service::ScreenId::kHome));
+    }
+}
+
+void InitCalendarService()
+{
+    calendar_service::SetEventHandler(HandleCalendarEvent, nullptr);
+    const esp_err_t err = calendar_service::Init();
+    if (err != ESP_OK) {
+        ESP_LOGW(kTag, "Calendar service init failed: %s", esp_err_to_name(err));
+    }
 }
 
 // Firmware updates from the setup portal: the one-time code the portal asks for is shown here,
@@ -1645,6 +1717,8 @@ void HandleWifiEvent(const wifi_service::Event& event, void*)
     gemini_service::SetNetworkState(event.ui_state.connected,
                                     event.ui_state.access_point_mode);
     recording_session_service::SetNetworkConnected(event.ui_state.connected);
+    calendar_service::SetNetworkConnected(event.ui_state.connected);
+    agenda_page_runtime::SetWifiConnected(event.ui_state.connected);
 
     MaybeShowAccessPointToast(event.ui_state);
 
@@ -1814,6 +1888,7 @@ void HandleDispatchedButtonEvent(const button_service::ButtonEventInfo& event)
         HandleTopicEntriesBackIfRequested();
         ShowTopicSummaryScreenIfRequested();
         HandleTopicSummaryBackIfRequested();
+        HandleAgendaBackIfRequested();
         ShowBookReaderScreenIfRequested();
         HandleBookReaderBackIfRequested();
         FlushOverlayFeedback();
@@ -2352,6 +2427,7 @@ void Run()
     // largest contiguous internal-RAM block it's ever going to get, so it's reserved here,
     // before feedback/storage/display/Wi-Fi/audio have a chance to fragment the heap.
     InitGeminiService();
+    InitCalendarService();
     InitFeedbackService();
     // The e-paper panel owns a dedicated SPI3 bus (no bus arbitration with the
     // SD card, which is on SDMMC) and its Init() does the synchronous startup

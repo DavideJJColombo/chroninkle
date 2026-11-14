@@ -13,13 +13,15 @@
 
 namespace epaper_ui {
 
-// The dashboard's main menu has five fixed items; Follow up / Notes / Todos can show a badge.
-inline constexpr int kDashboardMenuItemCount = 5;
+// The dashboard's main menu has six fixed items; Follow up / Todos / Agenda / Notes can show a
+// badge.
+inline constexpr int kDashboardMenuItemCount = 6;
 
 // Fixed slot order of the dashboard menu (must match kMenuLabels in dashboard_page.cpp).
 enum class DashboardMenuItem : int {
     kFollowUp = 0,
     kTodos,
+    kAgenda,  // Google Calendar events of the next days (calendar_service)
     kNotes,
     kTopics,
     kBooks,
@@ -30,9 +32,11 @@ struct DashboardPageMenuState {
     bool shows_follow_up_badge = false;
     bool shows_notes_badge = false;
     bool shows_todos_badge = false;
+    bool shows_agenda_badge = false;  // events left today
     std::string follow_up_badge_text = "New";
     std::string notes_badge_text = "New";
     std::string todos_badge_text = "New";
+    std::string agenda_badge_text = {};
 
     bool operator==(const DashboardPageMenuState& other) const = default;
 };

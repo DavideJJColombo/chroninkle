@@ -1071,7 +1071,7 @@ void StartConfigPortal()
     // Root + WiFi API (scan/configure/status/language/disconnect) + portal assets (index.js/index.css) plus
     // the timezone_service, gemini_service and ota_service portal routes registered via the
     // registrar below.
-    config.max_uri_handlers = 24;
+    config.max_uri_handlers = 32;
     config.lru_purge_enable = true;
     // Socket budget (CONFIG_LWIP_MAX_SOCKETS): the default 7 client sockets + listen + control
     // + the captive DNS socket used all 10, so while a phone had the portal open the device

@@ -298,6 +298,21 @@ NavigationModel BuildTopicSummaryPageNavigationModel()
     return model;
 }
 
+NavigationModel BuildAgendaPageNavigationModel()
+{
+    NavigationModel model = {};
+    model.scope = NavigationScope::kAgenda;
+
+    AddItem(model, NavigationItemSection::kAgendaPageControls,
+            NavigationItemRole::kAgendaPageScrollContainer, 0);
+    AddItem(model, NavigationItemSection::kAgendaPageControls,
+            NavigationItemRole::kAgendaPageBackButton, 1);
+    AddItem(model, NavigationItemSection::kAgendaPageControls,
+            NavigationItemRole::kAgendaPageRefreshButton, 2);
+    AddFooterItems(model, /*is_home_screen=*/false);
+    return model;
+}
+
 NavigationModel BuildNotesPageNavigationModel(int timeline_group_count)
 {
     NavigationModel model = {};

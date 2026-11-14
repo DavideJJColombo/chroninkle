@@ -38,6 +38,8 @@
 #include "topic_entries_page_runtime.h"
 #include "topic_summary_page_interactions.h"
 #include "topic_summary_page_runtime.h"
+#include "agenda_page_interactions.h"
+#include "agenda_page_runtime.h"
 #include "topics_browse_page_interactions.h"
 #include "topics_browse_page_runtime.h"
 #include "ui_refresh_runtime.h"
@@ -1563,6 +1565,125 @@ ButtonResult HandleTopicSummaryButtonEvent(const button_service::ButtonEventInfo
     }
 }
 
+esp_err_t ApplyAgendaPageAndFooterDisplayState()
+{
+    const esp_err_t page_err = agenda_page_runtime::UpdateDisplayState();
+    if (page_err != ESP_OK && page_err != ESP_ERR_INVALID_STATE) {
+        return page_err;
+    }
+    const esp_err_t footer_err = footer_runtime::UpdateDisplayState();
+    if (footer_err != ESP_OK && footer_err != ESP_ERR_INVALID_STATE) {
+        return footer_err;
+    }
+    return page_err != ESP_OK ? page_err : footer_err;
+}
+
+void ApplyAgendaPageStateUpdate(const display_service::RefreshRequest& refresh_request)
+{
+    (void)agenda_page_runtime::UpdateDisplayStateAndRequestRefresh(refresh_request);
+}
+
+void ApplyAgendaFocusUpdate(const page_actions::FocusUpdateOutcome& outcome)
+{
+    if (!outcome.handled) {
+        return;
+    }
+    if (outcome.sync_footer_projection) {
+        footer_runtime::SetProjectionState(agenda_page_runtime::BuildFooterProjectionState());
+    }
+    if (outcome.apply_page_state) {
+        const display_service::RefreshRequest refresh_request = {
+            .refresh_mode = display_service::RefreshMode::kPartial,
+            .scope = display_service::RefreshScope::kRegion,
+        };
+        if (outcome.sync_footer_projection) {
+            (void)ui_refresh_runtime::Schedule(ui_refresh_runtime::SurfaceKey::kAgendaPage,
+                                               &ApplyAgendaPageAndFooterDisplayState,
+                                               refresh_request);
+            return;
+        }
+        ApplyAgendaPageStateUpdate(refresh_request);
+    }
+}
+
+ButtonResult ApplyAgendaActivateResult(
+    const agenda_page_interactions::ActivateResult& activation)
+{
+    ButtonResult result = {};
+    if (!activation.handled) {
+        return result;
+    }
+
+    result.handled = true;
+    result.interaction_result = MakeConsumedResult(activation.play_activate_cue);
+
+    agenda_page_interactions::ActivateCallbacks callbacks = {};
+    callbacks.show_home = [&result]() {
+        result.footer_item = footer_runtime::FooterFocusItem::kHome;
+    };
+    // Deferred so the screen change happens after input dispatch; app_shell polls for it.
+    callbacks.show_back = []() { agenda_page_runtime::RequestBack(); };
+    callbacks.enter_scroll = []() { agenda_page_runtime::EnterScroll(); };
+    callbacks.refresh = []() { agenda_page_runtime::Refresh(); };
+    agenda_page_interactions::ApplyPrimaryActivateResult(activation, callbacks);
+    if (result.footer_item != footer_runtime::FooterFocusItem::kNone) {
+        result.interaction_result.play_feedback = false;
+        result.interaction_result.feedback_cue = app_interaction::FeedbackCue::kNone;
+    }
+    return result;
+}
+
+FocusMoveResult ApplyAgendaMoveResult(const page_actions::FocusMoveOutcome& outcome)
+{
+    FocusMoveResult result = {};
+    if (!outcome.handled) {
+        return result;
+    }
+    result.handled = true;
+    result.interaction_result = MakeConsumedResult(outcome.play_navigation_cue);
+    ApplyAgendaFocusUpdate({
+        .handled = outcome.handled,
+        .apply_page_state = outcome.apply_page_state,
+        .sync_footer_projection = outcome.sync_footer_projection,
+    });
+    return result;
+}
+
+ButtonResult HandleAgendaButtonEvent(const button_service::ButtonEventInfo& event)
+{
+    ButtonResult result = {};
+
+    // App-wide gesture: a quick ACTION tap (the dedicated back button) exits an entered
+    // control (scroll).
+    if (button_service::IsBackGesture(event)) {
+        if (agenda_page_runtime::ExitActiveControl()) {
+            result.handled = true;
+            result.interaction_result = MakeConsumedResult(true);
+        }
+        return result;
+    }
+
+    if (!button_service::IsSelectButton(event.button)) {
+        return result;
+    }
+
+    switch (event.event) {
+        case button_service::ButtonEvent::kSingleClick:
+            return ApplyAgendaActivateResult(agenda_page_runtime::ActivateFocusedItem());
+        case button_service::ButtonEvent::kPressDown:
+        case button_service::ButtonEvent::kPressUp:
+        case button_service::ButtonEvent::kPressRepeat:
+        case button_service::ButtonEvent::kLongPressStart:
+        case button_service::ButtonEvent::kLongPressUp:
+            result.handled = true;
+            result.interaction_result.consumed = true;
+            return result;
+        case button_service::ButtonEvent::kDoubleClick:
+        default:
+            return result;
+    }
+}
+
 // --- Notes page ------------------------------------------------------------
 
 esp_err_t ApplyNotesPageAndFooterDisplayState()
@@ -2300,6 +2421,8 @@ footer_runtime::ProjectionState BuildFooterProjectionForScreen(display_service::
             return topic_entries_page_runtime::BuildFooterProjectionState();
         case display_service::ScreenId::kTopicSummary:
             return topic_summary_page_runtime::BuildFooterProjectionState();
+        case display_service::ScreenId::kAgenda:
+            return agenda_page_runtime::BuildFooterProjectionState();
         case display_service::ScreenId::kNotes:
             return notes_page_runtime::BuildFooterProjectionState();
         case display_service::ScreenId::kTodos:
@@ -2354,6 +2477,9 @@ void ResetFocusForScreen(display_service::ScreenId screen)
         case display_service::ScreenId::kTopicSummary:
             topic_summary_page_runtime::ResetFocus();
             return;
+        case display_service::ScreenId::kAgenda:
+            agenda_page_runtime::ResetFocus();
+            return;
         case display_service::ScreenId::kNotes:
             notes_page_runtime::ResetFocus();
             return;
@@ -2406,6 +2532,8 @@ FocusMoveResult MoveFocusForCurrentScreen(int delta, bool page_jump)
             return ApplyTopicEntriesMoveResult(topic_entries_page_runtime::MoveFocus(delta));
         case display_service::ScreenId::kTopicSummary:
             return ApplyTopicSummaryMoveResult(topic_summary_page_runtime::MoveFocus(delta));
+        case display_service::ScreenId::kAgenda:
+            return ApplyAgendaMoveResult(agenda_page_runtime::MoveFocus(delta));
         case display_service::ScreenId::kNotes:
             return ApplyNotesMoveResult(notes_page_runtime::MoveFocus(delta));
         case display_service::ScreenId::kTodos:
@@ -2452,6 +2580,8 @@ ButtonResult HandleButtonEventForScreen(display_service::ScreenId screen,
             return HandleTopicEntriesButtonEvent(event);
         case display_service::ScreenId::kTopicSummary:
             return HandleTopicSummaryButtonEvent(event);
+        case display_service::ScreenId::kAgenda:
+            return HandleAgendaButtonEvent(event);
         case display_service::ScreenId::kNotes:
             return HandleNotesButtonEvent(event);
         case display_service::ScreenId::kTodos:

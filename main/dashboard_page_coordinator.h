@@ -11,6 +11,8 @@ public:
     DashboardPageCoordinator();
 
     void RefreshFromArchive(const recording_archive_service::Snapshot& snapshot);
+    // Calendar events left today (Agenda badge); 0 hides the badge.
+    void SetAgendaTodayCount(int count) { agenda_today_count_ = count; }
     // Called when the page is (re)entered: focuses the first menu item.
     void PrepareForShow();
 
@@ -36,6 +38,7 @@ private:
         page_navigation::BuildDashboardPageNavigationModel();
     page_navigation::RovingFocus focus_{navigation_model_.item_count, 0};
     recording_archive_service::Snapshot archive_ = {};
+    int agenda_today_count_ = 0;
     // Random welcome-message phase, chosen once per boot; the day count is added on top so
     // the greeting also rotates daily (see BuildState).
     uint32_t welcome_seed_ = 0;

@@ -1,5 +1,10 @@
 #include "dashboard_page_runtime.h"
 
+#include <ctime>
+
+#include "agenda_page_coordinator.h"
+#include "calendar_service.h"
+
 #include "i18n.h"
 
 #include <climits>
@@ -199,6 +204,8 @@ esp_err_t SyncFromService(bool request_refresh_if_active)
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         s_coordinator.RefreshFromArchive(recording_archive_service::GetSnapshot());
+        s_coordinator.SetAgendaTodayCount(CountEventsLeftToday(
+            calendar_service::GetSnapshot(), static_cast<int64_t>(time(nullptr))));
         // Re-baseline the rotation so RefreshWelcomeIfRotated only fires on later rollovers.
         s_last_welcome_period = DashboardPageCoordinator::WelcomePeriodsSinceEpoch();
         s_welcome_period_valid = true;

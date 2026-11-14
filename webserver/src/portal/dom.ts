@@ -42,6 +42,13 @@ export interface PortalDom {
   manualDateInput: ValidatableField;
   timezoneLocationClearBtn: HTMLButtonElement;
   timezoneLocationSaveBtn: HTMLButtonElement;
+  // Google Calendar
+  calendarCard: CardField;
+  calendarList: HTMLElement;
+  calendarUrlInput: ValidatableField;
+  calendarStatus: HTMLElement;
+  calendarAddBtn: HTMLElement & { disabled: boolean };
+  calendarRefreshBtn: HTMLElement & { disabled: boolean };
   // Firmware update (OTA)
   firmwareCard: CardField;
   firmwareVersionText: HTMLElement;
@@ -80,6 +87,12 @@ export function createPortalDom(): PortalDom {
     timezoneLocationClearBtn: getRequiredElement<HTMLButtonElement>('timezoneLocationClearBtn'),
     timezoneLocationSaveBtn: getRequiredElement<HTMLButtonElement>('timezoneLocationSaveBtn'),
 
+    calendarCard: getRequiredElement<CardField>('calendarCard'),
+    calendarList: getRequiredElement<HTMLElement>('calendarList'),
+    calendarUrlInput: getRequiredElement<ValidatableField>('calendarUrlInput'),
+    calendarStatus: getRequiredElement<HTMLElement>('calendarStatus'),
+    calendarAddBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('calendarAddBtn'),
+    calendarRefreshBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('calendarRefreshBtn'),
     firmwareCard: getRequiredElement<CardField>('firmwareCard'),
     firmwareVersionText: getRequiredElement<HTMLElement>('firmwareVersionText'),
     firmwareFileInput: getRequiredElement<FirmwareFileField>('firmwareFileInput'),

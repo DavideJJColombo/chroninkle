@@ -26,6 +26,7 @@
 #include "epaper_ui/topics_browse_page.h"
 #include "epaper_ui/topic_entries_page.h"
 #include "epaper_ui/topic_summary_page.h"
+#include "epaper_ui/agenda_page.h"
 #include "epaper_ui/wifi_page.h"
 #include "epaper_panel.h"
 #include "esp_check.h"
@@ -99,6 +100,7 @@ epaper_ui::DashboardPageState s_dashboard_page_state = {};
 epaper_ui::TopicsBrowsePageState s_topics_browse_page_state = {};
 epaper_ui::TopicEntriesPageState s_topic_entries_page_state = {};
 epaper_ui::TopicSummaryPageState s_topic_summary_page_state = {};
+epaper_ui::AgendaPageState s_agenda_page_state = {};
 epaper_ui::NotesPageState s_notes_page_state = {};
 epaper_ui::TodosPageState s_todos_page_state = {};
 epaper_ui::FollowUpPageState s_follow_up_page_state = {};
@@ -129,6 +131,7 @@ struct RenderSnapshot {
     epaper_ui::TopicsBrowsePageState topics_browse_page = {};
     epaper_ui::TopicEntriesPageState topic_entries_page = {};
     epaper_ui::TopicSummaryPageState topic_summary_page = {};
+    epaper_ui::AgendaPageState agenda_page = {};
     epaper_ui::NotesPageState notes_page = {};
     epaper_ui::TodosPageState todos_page = {};
     epaper_ui::FollowUpPageState follow_up_page = {};
@@ -211,6 +214,7 @@ const RenderSnapshot& CaptureRenderSnapshot()
     snapshot.topics_browse_page = s_topics_browse_page_state;
     snapshot.topic_entries_page = s_topic_entries_page_state;
     snapshot.topic_summary_page = s_topic_summary_page_state;
+    snapshot.agenda_page = s_agenda_page_state;
     snapshot.notes_page = s_notes_page_state;
     snapshot.todos_page = s_todos_page_state;
     snapshot.follow_up_page = s_follow_up_page_state;
@@ -569,6 +573,20 @@ void DrawTopicSummaryUnderlay(uint8_t* framebuffer, const RenderSnapshot& snapsh
                                     kPortraitWidth,
                                     kPortraitHeight,
                                     snapshot.topic_summary_page,
+                                    snapshot.status_bar,
+                                    snapshot.global_footer);
+}
+
+void DrawAgendaUnderlay(uint8_t* framebuffer, const RenderSnapshot& snapshot)
+{
+    EpaperPanel& panel = Panel();
+    panel.Clear(true);
+    epaper_ui::DrawAgendaPage(framebuffer,
+                                    WAVESHARE_EPD_WIDTH,
+                                    WAVESHARE_EPD_HEIGHT,
+                                    kPortraitWidth,
+                                    kPortraitHeight,
+                                    snapshot.agenda_page,
                                     snapshot.status_bar,
                                     snapshot.global_footer);
 }
@@ -1014,6 +1032,30 @@ esp_err_t ApplyTopicSummary(RefreshMode refresh_mode)
     return ESP_OK;
 }
 
+esp_err_t ApplyAgenda(RefreshMode refresh_mode)
+{
+    const RenderSnapshot& snapshot = CaptureRenderSnapshot();
+    EpaperPanel& panel = Panel();
+    DrawAgendaUnderlay(panel.framebuffer(), snapshot);
+    CaptureUnderlaySnapshot(panel.framebuffer());
+    DrawCurrentOverlays(panel.framebuffer(), snapshot);
+
+    // Publish the screen before driving the panel, not after. The drive takes
+    // seconds, and ScreenActiveForRefresh gates on this value: leaving it stale for
+    // the whole render means an async event arriving mid-transition sees the old
+    // screen, skips merging into this refresh, and lands afterwards as a separate
+    // partial-waveform drive over an image that was already correct.
+    s_current_screen.store(ScreenId::kAgenda, std::memory_order_relaxed);
+    RefreshBusyGuard refresh_busy;
+    const esp_err_t err = RefreshForMode(panel, refresh_mode);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    LogMetrics(panel.metrics());
+    return ESP_OK;
+}
+
 esp_err_t ApplyNotes(RefreshMode refresh_mode)
 {
     const RenderSnapshot& snapshot = CaptureRenderSnapshot();
@@ -1268,6 +1310,9 @@ esp_err_t RefreshCurrentScreenRegionLocked()
         case ScreenId::kTopicSummary:
             DrawTopicSummaryUnderlay(panel.framebuffer(), snapshot);
             break;
+        case ScreenId::kAgenda:
+            DrawAgendaUnderlay(panel.framebuffer(), snapshot);
+            break;
         case ScreenId::kNotes:
             DrawNotesUnderlay(panel.framebuffer(), snapshot);
             break;
@@ -1350,6 +1395,8 @@ esp_err_t RefreshCurrentScreenLocked(RefreshMode refresh_mode)
             return ApplyTopicEntries(refresh_mode);
         case ScreenId::kTopicSummary:
             return ApplyTopicSummary(refresh_mode);
+        case ScreenId::kAgenda:
+            return ApplyAgenda(refresh_mode);
         case ScreenId::kNotes:
             return ApplyNotes(refresh_mode);
         case ScreenId::kTodos:
@@ -1486,6 +1533,8 @@ void DisplayTask(void*)
                 err = ApplyTopicEntries(command.refresh_request.refresh_mode);
             } else if (command.screen == ScreenId::kTopicSummary) {
                 err = ApplyTopicSummary(command.refresh_request.refresh_mode);
+            } else if (command.screen == ScreenId::kAgenda) {
+                err = ApplyAgenda(command.refresh_request.refresh_mode);
             } else if (command.screen == ScreenId::kNotes) {
                 err = ApplyNotes(command.refresh_request.refresh_mode);
             } else if (command.screen == ScreenId::kTodos) {
@@ -1770,6 +1819,17 @@ esp_err_t SetTopicSummaryPageState(const epaper_ui::TopicSummaryPageState& state
 
     std::lock_guard<std::mutex> lock(s_state_mutex);
     s_topic_summary_page_state = state;
+    return ESP_OK;
+}
+
+esp_err_t SetAgendaPageState(const epaper_ui::AgendaPageState& state)
+{
+    if (!s_initialized) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    std::lock_guard<std::mutex> lock(s_state_mutex);
+    s_agenda_page_state = state;
     return ESP_OK;
 }
 

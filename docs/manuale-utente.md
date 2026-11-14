@@ -26,6 +26,7 @@ La versione inglese di questo manuale è in [user-manual.md](user-manual.md).
 - [Note, Da fare e Promemoria](#note-da-fare-e-promemoria)
 - [I dettagli di una registrazione](#i-dettagli-di-una-registrazione)
 - [Argomenti](#argomenti)
+- [Agenda (Calendario Google)](#agenda-calendario-google)
 - [Libri](#libri)
 - [Impostazioni](#impostazioni)
 - [Il portale web](#il-portale-web)
@@ -186,6 +187,8 @@ Sotto c'è il menu principale, in quest'ordine:
 - **Promemoria**: tutto quello che hai segnato per riprenderlo più avanti,
   qualunque sia il tipo (il numero indica quanti sono).
 - **Da fare** (con il numero): le tue cose da fare.
+- **Agenda** (con il numero di impegni rimasti oggi): gli impegni dei prossimi
+  giorni dal tuo [Calendario Google](#agenda-calendario-google).
 - **Note** (con il numero): le tue note e idee.
 - **Argomenti**: tutto quello che appartiene a un certo
   [argomento](#argomenti), compresi i riepiloghi scritti da Gemini.
@@ -301,6 +304,40 @@ eliminare. La voce **Argomenti** della Home serve a sfogliarli:
 
 Se a un argomento non è ancora collegato niente, compare "Ancora nessuna voce
 con questo argomento" e il pulsante Riassumi non c'è.
+
+## Agenda (Calendario Google)
+
+L'Agenda mostra gli impegni dei tuoi calendari Google di oggi e dei 7 giorni
+successivi. È solo in lettura: gli impegni si creano e si modificano come
+sempre dal telefono o dal computer.
+
+**Collegare un calendario** (una volta sola):
+1. Su un computer apri Google Calendar, vai nelle **Impostazioni** (la rotella),
+   scegli il calendario nella colonna di sinistra e cerca **Indirizzo segreto in
+   formato iCal**. Copialo.
+2. Apri il [portale web](#il-portale-web), scheda **Calendario Google**, incolla
+   il link e premi **Aggiungi**. Puoi aggiungere fino a 3 calendari (per esempio
+   personale, lavoro, famiglia).
+
+Il link è privato: chi lo ha può vedere il calendario, quindi non condividerlo.
+Se lo hai condiviso per errore, Google permette di reimpostarlo dalla stessa
+pagina (poi va incollato di nuovo nel portale).
+
+**Sul dispositivo**, in Home seleziona **Agenda**: gli impegni sono raggruppati
+per giorno (**OGGI**, **DOMANI**, poi gli altri giorni), con l'orario, il titolo
+e sotto il luogo; gli eventi di tutta la giornata sono indicati come **Tutto il
+giorno**. Gli impegni di oggi già finiti non compaiono più. Seleziona l'elenco
+per scorrerlo con il bilanciere (un tocco breve sul tasto Registra per uscire),
+**Aggiorna** per scaricarlo subito, **Indietro** per tornare alla Home. In alto
+vedi quando è stato aggiornato l'ultima volta. Il numero accanto ad Agenda in
+Home indica quanti impegni ti restano oggi.
+
+Il dispositivo scarica il calendario da solo quando si collega al Wi-Fi, ogni 30
+minuti mentre è connesso e quando apri l'Agenda. Mentre è in riposo profondo
+non scarica nulla: l'Agenda si aggiorna al risveglio. Gli eventi ricorrenti
+(riunioni settimanali, compleanni...) e quelli spostati o annullati vengono
+mostrati correttamente; gli orari sono letti nel fuso orario impostato sul
+dispositivo.
 
 ## Libri
 
@@ -472,6 +509,11 @@ Il portale usa la stessa lingua del dispositivo e contiene:
   richieste**, **non raggiungibile**...) con la risposta di Google o, se
   Google non risponde affatto, i dettagli dell'errore di connessione. Per cambiare chiave premi prima
   **Cancella**, poi inserisci la nuova e premi **Salva**.
+
+- **Calendario Google**: i calendari collegati (con il nome e il link
+  mascherato), un pulsante **Rimuovi** per ciascuno, il campo per aggiungerne
+  uno nuovo, **Aggiorna** per scaricarli subito e una riga con l'esito
+  dell'ultimo aggiornamento. Vedi [Agenda](#agenda-calendario-google).
 
 Se Gemini non è pronto, anche il dispositivo lo dice: dopo una registrazione
 compare per esempio "Salvata. Manca la chiave di Gemini", e premendo

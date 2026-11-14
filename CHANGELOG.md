@@ -8,6 +8,28 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-14
+
+### Added
+
+- **Agenda: read-only Google Calendar.** A new `calendar_service` downloads up
+  to 3 calendars from their "secret address in iCal format" (pasted in the
+  setup portal's new **Google Calendar** card, saved in NVS `calendar/urls`)
+  over HTTPS on its own task: when Wi-Fi connects, every 30 minutes while
+  online, when the Agenda opens and on **Refresh**. A streaming iCalendar
+  reader (`ics_calendar.*`, host-tested) keeps only today and the next 7 days,
+  expands recurring events (DAILY/WEEKLY/MONTHLY/YEARLY with INTERVAL, COUNT,
+  UNTIL, BYDAY, BYMONTHDAY), and applies EXDATE, moved/cancelled instances and
+  cancelled events.
+- **Home > Agenda** (new menu item, with a badge counting the events left
+  today; the menu rows shrink a little to fit six items) opens an Agenda page:
+  events grouped by day (Today, Tomorrow, then weekday and date), time range or
+  "All day", title and location, plus when it last updated, **Refresh** and
+  **Back**.
+- Portal routes `GET/PATCH /api/settings/calendar` and
+  `POST /api/calendar/refresh`; the portal lists the calendars masked, with
+  Remove, and the result of the last download.
+
 ## [1.7.6] - 2026-11-14
 
 ### Fixed

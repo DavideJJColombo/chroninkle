@@ -15,6 +15,7 @@ enum class NavigationScope : uint8_t {
     kTopicsBrowse,
     kTopicEntries,
     kTopicSummary,
+    kAgenda,
     kNotes,
     kTodos,
     kFollowUp,
@@ -38,6 +39,7 @@ enum class NavigationItemSection : uint8_t {
     kTopicEntriesPageTimelineGroups,
     kTopicEntriesPageControls,
     kTopicSummaryPageControls,
+    kAgendaPageControls,
     kNotesPageTimelineGroups,
     kTodosPageControls,
     kTodosPageTimelineGroups,
@@ -102,6 +104,9 @@ enum class NavigationItemRole : uint8_t {
     kTopicSummaryPageScrollContainer,
     kTopicSummaryPageBackButton,
     kTopicSummaryPageGetSummaryButton,
+    kAgendaPageScrollContainer,
+    kAgendaPageBackButton,
+    kAgendaPageRefreshButton,
     kNotesPageTimelineGroup,
     kTodosPageSegmentControl,
     kTodosPageTimelineGroup,
@@ -148,6 +153,7 @@ NavigationModel BuildTopicsBrowsePageNavigationModel(int topic_count);
 NavigationModel BuildTopicEntriesPageNavigationModel(int timeline_group_count,
                                                      bool with_summarize = false);
 NavigationModel BuildTopicSummaryPageNavigationModel();
+NavigationModel BuildAgendaPageNavigationModel();
 NavigationModel BuildNotesPageNavigationModel(int timeline_group_count);
 NavigationModel BuildTodosPageNavigationModel(int timeline_group_count);
 NavigationModel BuildFollowUpPageNavigationModel(int timeline_group_count);

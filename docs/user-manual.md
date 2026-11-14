@@ -71,7 +71,8 @@ To actually get set up, Taccuino opens its own WiFi hotspot named
 **`Taccuino-XXXXXX`** (the last few characters are unique to your device)
 whenever it doesn't have saved WiFi credentials yet. The hotspot is protected
 by an 8-digit password, which the device shows on screen when the hotspot
-comes up (and always under Settings → Network, below Access Point). It is a
+comes up (the message goes away once a phone joins; the password is always
+under Settings → Network, below Access Point). It is a
 new random number on each day the hotspot is first turned on (WPA2 needs at
 least 8 characters); a hotspot left on past midnight keeps its password until
 it is turned off. Connect a phone or laptop to that hotspot with it, and your

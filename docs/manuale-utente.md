@@ -453,8 +453,8 @@ computer. Per raggiungerlo:
    (alla prima accensione, senza reti salvate, si accende da solo).
 2. Collega il telefono o il computer alla rete **`Taccuino-XXXXXX`** con la
    password di 8 cifre che compare sullo schermo del dispositivo (in un
-   messaggio quando la rete si accende, e sempre nella pagina Rete, sotto
-   l'interruttore Access point).
+   messaggio quando la rete si accende, che sparisce appena il telefono si
+   collega, e sempre nella pagina Rete, sotto l'interruttore Access point).
 3. La pagina si apre da sola; altrimenti visita `http://192.168.4.1`.
 
 Il portale usa la stessa lingua del dispositivo e contiene:

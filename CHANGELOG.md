@@ -8,6 +8,16 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.7.6] - 2026-11-14
+
+### Fixed
+
+- **The hotspot name/password message stayed on screen** for its full two
+  minutes, covering Home even after the phone had joined. It now goes away as
+  soon as a phone or computer joins the setup hotspot (`WIFI_EVENT_AP_STACONNECTED`,
+  new `UiState::ap_clients`) or the hotspot is turned off. The password stays
+  under the Access point toggle on Settings > Network.
+
 ## [1.7.5] - 2026-11-14
 
 ### Fixed

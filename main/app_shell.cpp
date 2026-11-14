@@ -1583,10 +1583,31 @@ void HandleGeminiEvent(const gemini_service::Event& event, void*)
 // The setup hotspot is password-protected: whenever it comes up (by hand, or at first boot with
 // no saved network), show how to join it; it is also kept on Settings > Network. Not before the
 // first full paint of the boot screen (boot refresh policy) -- Run() calls this again then.
+// True while the toast on screen is the hotspot name/password one shown below.
+std::atomic<bool> s_access_point_toast_shown{false};
+
+void HideAccessPointToast()
+{
+    if (s_access_point_toast_shown.exchange(false, std::memory_order_relaxed)) {
+        const esp_err_t err = overlay_runtime::ClearToast();
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(kTag, "Hide hotspot toast failed: %s", esp_err_to_name(err));
+        }
+    }
+}
+
 void MaybeShowAccessPointToast(const wifi_service::UiState& ui_state)
 {
     if (!ui_state.access_point_mode) {
         s_access_point_active.store(false, std::memory_order_relaxed);
+        HideAccessPointToast();  // hotspot turned off
+        return;
+    }
+    if (ui_state.ap_clients > 0) {
+        HideAccessPointToast();  // the phone has joined: name and password are no longer needed
+        if (s_startup_complete.load(std::memory_order_relaxed)) {
+            s_access_point_active.store(true, std::memory_order_relaxed);
+        }
         return;
     }
     if (!s_startup_complete.load(std::memory_order_relaxed) || ui_state.ap_ssid.empty() ||
@@ -1599,6 +1620,7 @@ void MaybeShowAccessPointToast(const wifi_service::UiState& ui_state)
                                       : std::string(" - Password ") + ui_state.ap_password);
     const esp_err_t err = overlay_runtime::ShowToastForDuration(
         BuildToast(text.c_str(), EmbeddedIconId::kWifiConfig), 2 * 60 * 1000);
+    s_access_point_toast_shown.store(err == ESP_OK, std::memory_order_relaxed);
     FlushOverlayFeedback();
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         ESP_LOGW(kTag, "Show hotspot toast failed: %s", esp_err_to_name(err));

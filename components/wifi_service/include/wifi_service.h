@@ -55,6 +55,8 @@ struct UiState {
     std::string ap_password;
     std::string ap_url;
     int rssi = 0;
+    // Phones/computers currently joined to the setup hotspot.
+    int ap_clients = 0;
 };
 
 struct Event {

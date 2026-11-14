@@ -179,6 +179,8 @@ std::string CurrentApPassword()
     return s_ap_password;
 }
 
+std::atomic<int> s_ap_clients{0};
+
 UiState BuildUiStateLocked()
 {
     return UiState{
@@ -194,6 +196,7 @@ UiState BuildUiStateLocked()
         .ap_password = CurrentApPassword(),
         .ap_url = s_ap_url,
         .rssi = s_rssi,
+        .ap_clients = s_ap_clients.load(std::memory_order_relaxed),
     };
 }
 
@@ -1062,6 +1065,7 @@ void StartConfigPortal()
     if (s_portal_server != nullptr) {
         return;
     }
+    s_ap_clients.store(0, std::memory_order_relaxed);  // a fresh hotspot has nobody joined yet
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     // Root + WiFi API (scan/configure/status/language/disconnect) + portal assets (index.js/index.css) plus
@@ -1872,6 +1876,21 @@ void HandleWifiEvent(int32_t event_id, void* event_data)
 {
     if (event_id == WIFI_EVENT_SCAN_DONE) {
         HandleScanDoneEvent(event_data);
+        return;
+    }
+
+    // A phone joining or leaving the setup hotspot: the app hides the hotspot name/password
+    // toast once someone has joined.
+    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+        s_ap_clients.fetch_add(1, std::memory_order_relaxed);
+        Notify(State::kAccessPointMode, "AP_CLIENT_CONNECTED");
+        return;
+    }
+    if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        if (s_ap_clients.fetch_sub(1, std::memory_order_relaxed) <= 0) {
+            s_ap_clients.store(0, std::memory_order_relaxed);
+        }
+        Notify(State::kAccessPointMode, "AP_CLIENT_DISCONNECTED");
         return;
     }
 

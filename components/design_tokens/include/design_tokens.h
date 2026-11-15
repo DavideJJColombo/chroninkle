@@ -211,6 +211,8 @@ inline constexpr int kCheckboxTextGap = spacing::k12;
 // Extra leading between a single todo's own wrapped lines.
 inline constexpr int kWrapLineGap = spacing::k4;
 inline constexpr int kMaxWrapLinesPerTodo = 3;
+// Space between the agenda section and the todo heading below it.
+inline constexpr int kSectionGap = spacing::k24;
 
 inline constexpr int kLockIconSize = spacing::k72;
 inline constexpr int kLockIconBottomMargin = spacing::k48;

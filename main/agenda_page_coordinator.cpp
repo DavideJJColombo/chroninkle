@@ -136,6 +136,72 @@ int CountEventsLeftToday(const calendar_service::Snapshot& calendar, int64_t now
     return count;
 }
 
+LockScreenAgenda BuildLockScreenAgenda(const calendar_service::Snapshot& calendar, int64_t now)
+{
+    LockScreenAgenda agenda;
+    if (!calendar.has_data) {
+        return agenda;
+    }
+    const int64_t today = LocalDayNumber(now);
+    const ics::Occurrence* next_later = nullptr;  // fallback: the first event after tomorrow
+    for (const ics::Occurrence& event : calendar.events) {
+        const bool timed = !event.all_day;
+        const int64_t end = event.end > event.start ? event.end : event.start + 1;
+        if (end <= now) {
+            continue;  // over
+        }
+        const int64_t first_day = LocalDayNumber(event.start);
+        const int64_t last_day = LocalDayNumber(end - 1);
+        const bool covers_today = first_day <= today && last_day >= today;
+        const bool covers_tomorrow = first_day <= today + 1 && last_day >= today + 1;
+        if (!covers_today && !covers_tomorrow) {
+            if (next_later == nullptr && first_day > today + 1) {
+                next_later = &event;
+            }
+            continue;
+        }
+        epaper_ui::LockScreenEvent row;
+        row.title_text = event.title.empty() ? i18n::Tr("(no title)", "(senza titolo)") : event.title;
+        if (covers_today) {
+            ++agenda.today_count;
+            if (timed && event.start <= now) {
+                row.when_text = i18n::Tr("Now", "Ora");
+                row.happening_now = true;
+                const std::tm end_tm = LocalTm(end);
+                row.title_text += std::string(i18n::Tr(" (until ", " (fino alle ")) +
+                                  i18n::FormatClock(end_tm.tm_hour, end_tm.tm_min) + ")";
+            } else if (timed) {
+                const std::tm start_tm = LocalTm(event.start);
+                row.when_text = i18n::FormatClock(start_tm.tm_hour, start_tm.tm_min);
+            } else {
+                row.when_text.clear();  // all-day: no time, the title spans the row
+            }
+        } else {
+            const std::tm start_tm = LocalTm(event.start);
+            row.day_label = i18n::Tr("Tomorrow", "Domani");
+            row.when_text = timed ? i18n::FormatClock(start_tm.tm_hour, start_tm.tm_min)
+                                  : std::string();
+        }
+        agenda.events.push_back(std::move(row));
+    }
+    if (agenda.events.empty() && next_later != nullptr) {
+        const std::tm start_tm = LocalTm(next_later->start);
+        epaper_ui::LockScreenEvent row;
+        // "Tuesday 17" / "Martedì 17" as the day label, the time in the column.
+        std::string label = i18n::WeekdayName(start_tm.tm_wday);
+        label += " " + std::to_string(start_tm.tm_mday);
+        row.day_label = label;
+        row.when_text = next_later->all_day
+                            ? std::string()
+                            : i18n::FormatClock(start_tm.tm_hour, start_tm.tm_min);
+        row.title_text = next_later->title.empty()
+                             ? i18n::Tr("(no title)", "(senza titolo)")
+                             : next_later->title;
+        agenda.events.push_back(std::move(row));
+    }
+    return agenda;
+}
+
 AgendaPageCoordinator::AgendaPageCoordinator()
 {
     focus_.Configure(navigation_model_.item_count,

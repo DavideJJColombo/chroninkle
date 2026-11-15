@@ -1,5 +1,8 @@
 #include "lock_screen_runtime.h"
 
+#include "agenda_page_coordinator.h"
+#include "calendar_service.h"
+
 #include "i18n.h"
 
 #include <algorithm>
@@ -80,8 +83,18 @@ bool RebuildDateStateLocked(bool force)
         date_text = i18n::FormatLongDate(local_tm);
     }
 
-    const bool changed =
-        force || weekday_text != s_state.weekday_text || date_text != s_state.date_text;
+    // The agenda follows the clock too: an event starting ("Now"), ending (dropped) or the day
+    // rolling over changes it. It is compared each minute but rarely changes, so the e-paper is
+    // repainted only at those moments.
+    LockScreenAgenda agenda;
+    if (now >= kMinValidEpoch) {
+        agenda = BuildLockScreenAgenda(calendar_service::GetSnapshot(), static_cast<int64_t>(now));
+    }
+
+    const bool changed = force || weekday_text != s_state.weekday_text ||
+                         date_text != s_state.date_text ||
+                         agenda.events != s_state.agenda_events ||
+                         agenda.today_count != s_state.agenda_today_count;
     if (!changed) {
         s_last_minute_key = minute_key;
         return false;
@@ -89,6 +102,8 @@ bool RebuildDateStateLocked(bool force)
 
     s_state.weekday_text = std::move(weekday_text);
     s_state.date_text = std::move(date_text);
+    s_state.agenda_events = std::move(agenda.events);
+    s_state.agenda_today_count = agenda.today_count;
     s_last_minute_key = minute_key;
     return true;
 }
@@ -416,7 +431,9 @@ esp_err_t SyncClockState(bool request_refresh_if_active)
         state = s_state;
     }
 
-    return PushState(state, active, request_refresh_if_active);
+    // Something visible changed (the date at midnight, an event starting or ending, a new
+    // calendar download): repaint if the lock screen is showing.
+    return PushState(state, active, request_refresh_if_active || active);
 }
 
 esp_err_t RefreshTodoSummary()

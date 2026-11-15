@@ -517,6 +517,16 @@ on the Home screen in one step rather than needing a second press.
 
 **The lock screen itself** shows, at a glance:
 - The current weekday and date.
+- With a [Google Calendar](#agenda-google-calendar) connected, an
+  **"AGENDA - N TODAY"** section: the event happening now (marked **Now**,
+  with its end time), the rest of today's events and tomorrow's (under a
+  **Tomorrow** label); with none of those, just the next event (under its
+  day, e.g. "Tuesday 17"). All-day events have no time. Times are absolute
+  ("15:00"), since the screen keeps showing them while asleep. The space is
+  shared with the todos below by how many of each there are: the busier
+  section gets more rows, the quieter fewer, and the nearest event always
+  shows; what doesn't fit becomes "+N more today". It updates when an event
+  starts or ends and after each calendar download.
 - A **"TO-DO"** heading — or **"TO-DO - N PENDING"** if you have pending
   Todos — followed by up to five of them (anything flagged as a
   follow-up is shown first). If there are more than five, you'll see a

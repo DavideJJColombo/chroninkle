@@ -275,6 +275,22 @@ sospeso mettendo prima quelle segnate come promemoria e, all'interno di ogni
 gruppo, quelle con la scadenza più vicina (per esempio "Domani · Comprare il
 latte"). Vedi [Blocco, riposo e batteria](#blocco-riposo-e-batteria).
 
+Se hai collegato un [Calendario Google](#agenda-calendario-google), sopra le
+attività compare anche la sezione **AGENDA - N OGGI**:
+- l'impegno in corso, segnato **Ora** e con l'orario di fine;
+- gli altri impegni di oggi e quelli di domani (sotto l'etichetta
+  **Domani**);
+- se non ce ne sono, solo il prossimo impegno, sotto il suo giorno (per
+  esempio "Martedì 17").
+
+Gli eventi di tutta la giornata non hanno orario. Gli orari sono sempre
+indicati per esteso ("15:00"), mai come "tra 20 minuti", perché lo schermo li
+mostra anche mentre il dispositivo riposa. Lo spazio si divide da solo tra
+impegni e attività in base a quanti sono: la sezione più piena ottiene più
+righe e quella più vuota meno, ma l'impegno più vicino c'è sempre; quello che
+non ci sta diventa "+N altri oggi". La sezione si aggiorna quando un impegno
+inizia o finisce e dopo ogni aggiornamento del calendario.
+
 ## I dettagli di una registrazione
 
 **Vedi dettagli** mostra la trascrizione completa, che si può scorrere se è

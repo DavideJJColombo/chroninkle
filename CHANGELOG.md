@@ -8,6 +8,23 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-15
+
+### Added
+
+- **Agenda on the lock screen.** Above the todos, an "AGENDA - N TODAY" section
+  lists the event in progress ("Now", with its end time, emphasized), the rest
+  of today and tomorrow (under a "Tomorrow" label), or, with none of those,
+  just the next event under its day ("Tuesday 17") -- built by
+  `BuildLockScreenAgenda` with absolute times only, since the e-paper keeps
+  showing them while asleep. `DrawLockScreen` shares the height between agenda
+  and todos (`PlanSections`): each section starts with its first row (the
+  nearest event always shows, even before the first todo when space is
+  tight), then each further row goes to the section with more still hidden;
+  what doesn't fit becomes "+N more today". The lock screen repaints when the
+  agenda changes (an event starts or ends, the day rolls over, a calendar
+  download finishes).
+
 ## [1.10.2] - 2026-11-14
 
 ### Changed

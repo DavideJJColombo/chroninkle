@@ -1567,6 +1567,8 @@ void HandleCalendarEvent(const calendar_service::Event& event, void*)
     if (!event.snapshot.fetching) {
         (void)dashboard_page_runtime::SyncFromService(
             startup_complete && ScreenActiveForRefresh(display_service::ScreenId::kHome));
+        // The lock screen's agenda: rebuilt now, repainted only if it is showing and changed.
+        (void)lock_screen_runtime::SyncClockState(false);
     }
 }
 

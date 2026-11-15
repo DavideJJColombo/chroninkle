@@ -6,6 +6,7 @@
 
 #include "calendar_service.h"
 #include "epaper_ui/agenda_page.h"
+#include "epaper_ui/lock_screen.h"
 #include "page_navigation/navigation_model.h"
 #include "page_navigation/roving_focus.h"
 
@@ -46,5 +47,14 @@ private:
 std::string FormatAgendaText(const calendar_service::Snapshot& calendar, int64_t now);
 // Events still to come or in progress today (Home menu badge).
 int CountEventsLeftToday(const calendar_service::Snapshot& calendar, int64_t now);
+
+// Lock screen agenda: what is happening now, the rest of today and tomorrow, nearest first;
+// when none of those exist, just the next event (within the agenda's days). Times are absolute
+// ("15:00", "Sun 09:00"), never relative: the e-paper keeps showing them while asleep.
+struct LockScreenAgenda {
+    std::vector<epaper_ui::LockScreenEvent> events;
+    int today_count = 0;
+};
+LockScreenAgenda BuildLockScreenAgenda(const calendar_service::Snapshot& calendar, int64_t now);
 
 #endif  // AGENDA_PAGE_COORDINATOR_H_

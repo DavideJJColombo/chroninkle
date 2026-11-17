@@ -180,6 +180,44 @@
             </ui-button>
         </ui-card>
 
+        <ui-card id="bridgeCard" title="Calendar: add events">
+            <p id="bridgeHelp" class="form-helper-text">
+              To let the device add the appointments you record to a "Taccuino" calendar, install
+              the small bridge script in your Google account (see the manual, "Adding events to
+              the calendar"), then paste its web-app address and the secret word you chose.
+            </p>
+            <ui-input
+              id="bridgeUrlInput"
+              label="Bridge address (ends with /exec)"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              autocomplete="off"
+              inputmode="url"
+            ></ui-input>
+            <ui-input
+              id="bridgeSecretInput"
+              variant="password"
+              label="Secret word"
+              placeholder="The SECRET written in the script"
+              autocomplete="off"
+            ></ui-input>
+            <p id="bridgeStatus" class="form-helper-text" hidden></p>
+
+            <ui-button
+              slot="footer"
+              id="bridgeTestBtn"
+              variant="secondary"
+            >
+              Test
+            </ui-button>
+            <ui-button
+              slot="footer"
+              id="bridgeSaveBtn"
+              variant="primary"
+            >
+              Save
+            </ui-button>
+        </ui-card>
+
         <ui-card id="firmwareCard" title="Firmware Update">
             <p id="firmwareVersionText" class="form-helper-text"></p>
 

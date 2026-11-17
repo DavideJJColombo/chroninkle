@@ -6,6 +6,7 @@
 #include <array>
 #include <atomic>
 #include <cctype>
+#include <cstdlib>
 #include <ctime>
 #include <memory>
 #include <mutex>
@@ -14,6 +15,7 @@
 
 #include "app_state_service.h"
 #include "auto_classify.h"
+#include "calendar_service.h"
 
 #include "esp_log.h"
 #include "chroninkle_task_config.h"
@@ -616,6 +618,10 @@ std::string AutoClassifiedStatus(const auto_classify::Result& result, bool has_t
         case auto_classify::Kind::kIdea:
             text = i18n::Tr("Saved as Idea", "Salvato come Idea");
             break;
+        case auto_classify::Kind::kEvent:
+            text = std::string(i18n::Tr("Appointment: ", "Appuntamento: ")) +
+                   (result.events.empty() ? std::string() : result.events.front().title);
+            break;
         case auto_classify::Kind::kNote:
         case auto_classify::Kind::kNewTopic:
         default:
@@ -626,6 +632,45 @@ std::string AutoClassifiedStatus(const auto_classify::Result& result, bool has_t
         text += " - " + result.topic;
     }
     return text;
+}
+
+}  // namespace
+
+namespace {
+
+// Appointments (and todos with a day and a time) found in the answer become calendar proposals,
+// confirmed one by one on the device (calendar_service ignores them when adding events isn't set
+// up). Dates and times are local.
+void ProposeCalendarItems(const auto_classify::Result& result)
+{
+    std::vector<calendar_service::Proposal> proposals;
+    for (const auto_classify::CalendarItem& item : auto_classify::CalendarItems(result)) {
+        std::tm local = {};
+        local.tm_year = std::atoi(item.date.substr(0, 4).c_str()) - 1900;
+        local.tm_mon = std::atoi(item.date.substr(5, 2).c_str()) - 1;
+        local.tm_mday = std::atoi(item.date.substr(8, 2).c_str());
+        local.tm_isdst = -1;
+        calendar_service::Proposal proposal;
+        proposal.title = item.title;
+        proposal.date = item.date;
+        if (item.start_time.empty()) {
+            proposal.all_day = true;
+            proposal.start = static_cast<int64_t>(std::mktime(&local));
+            std::tm next = local;
+            next.tm_mday += 1;
+            next.tm_isdst = -1;
+            proposal.end = static_cast<int64_t>(std::mktime(&next));
+        } else {
+            local.tm_hour = std::atoi(item.start_time.substr(0, 2).c_str());
+            local.tm_min = std::atoi(item.start_time.substr(3, 2).c_str());
+            proposal.start = static_cast<int64_t>(std::mktime(&local));
+            proposal.end = proposal.start + static_cast<int64_t>(item.duration_minutes) * 60;
+        }
+        if (proposal.start > 0 && proposal.end > proposal.start) {
+            proposals.push_back(std::move(proposal));
+        }
+    }
+    calendar_service::AddProposals(proposals);
 }
 
 }  // namespace
@@ -692,11 +737,17 @@ ClassifiedAnswerOutcome ApplyClassifiedAnswer(const std::string& recording_id,
         case auto_classify::Kind::kIdea:
             classification.tag = RecordingTag::kIdea;
             break;
+        case auto_classify::Kind::kEvent:
+            // Filed as a Note named after the appointment; the event itself goes to the calendar.
+            classification.tag = RecordingTag::kNote;
+            classification.display_text = result.events.front().title;
+            break;
         default:
             classification.tag = RecordingTag::kNote;
             break;
     }
     (void)recording_archive_service::ApplyClassification(recording_id, classification);
+    ProposeCalendarItems(result);
     for (size_t i = 1; i < result.tasks.size(); ++i) {
         recording_archive_service::Classification extra = classification;
         extra.display_text.clear();  // the entry's own text is the task

@@ -44,8 +44,9 @@ std::array<std::string_view, 4> WrapLines(std::string_view text, int max_width, 
 
         size_t segment_end = line_start;
         size_t last_fit_end = line_start;
+        bool hard_break = false;  // '\n' in the text: end the line there
         while (segment_end < text.size()) {
-            size_t next_space = text.find(' ', segment_end);
+            size_t next_space = text.find_first_of(" \n", segment_end);
             if (next_space == std::string_view::npos) {
                 next_space = text.size();
             }
@@ -56,6 +57,10 @@ std::array<std::string_view, 4> WrapLines(std::string_view text, int max_width, 
             }
 
             last_fit_end = next_space;
+            if (next_space < text.size() && text[next_space] == '\n') {
+                hard_break = true;
+                break;
+            }
             if (next_space == text.size()) {
                 segment_end = next_space;
                 break;
@@ -89,7 +94,7 @@ std::array<std::string_view, 4> WrapLines(std::string_view text, int max_width, 
         lines[static_cast<size_t>(*line_count)] =
             text.substr(line_start, last_fit_end - line_start);
         ++(*line_count);
-        line_start = last_fit_end;
+        line_start = last_fit_end + (hard_break ? 1 : 0);
         while (line_start < text.size() && text[line_start] == ' ') {
             ++line_start;
         }

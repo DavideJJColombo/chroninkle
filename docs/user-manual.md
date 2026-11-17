@@ -306,8 +306,9 @@ with this topic yet" and no Summarize button.
 ## Agenda (Google Calendar)
 
 Agenda shows the events of your Google calendars for today and the next 7
-days. It is read-only: you create and edit events on your phone or computer as
-usual.
+days. You edit events on your phone or computer as usual; the device can also
+**add** the ones you dictate (see
+[Adding events to the calendar](#adding-events-to-the-calendar)).
 
 To connect a calendar (once): in Google Calendar on a computer open
 **Settings**, pick the calendar on the left, find **Secret address in iCal
@@ -325,6 +326,55 @@ are left today. The device downloads the calendars when it joins Wi-Fi, every
 30 minutes while online and when you open Agenda (not while in light sleep).
 Recurring, moved and cancelled events are handled; times are read in the
 device's time zone.
+
+## Adding events to the calendar
+
+When you dictate an appointment ("dentist on Thursday at three", "dinner at
+Mark's Friday the 20th at 8pm") or a todo with both a day **and** a time,
+Gemini spots it and the device asks whether to put it in your calendar: a
+card **Add to calendar?** with the title, the day and time and "Calendar:
+Taccuino", and the buttons **No** / **Add**. **Add** shows the event in
+Agenda (and on the lock screen) right away and creates it in the Google
+calendar **Taccuino**; **No** forgets it. The recording is saved either way
+(as a Note for an appointment, or as todos). Several appointments in one
+recording are asked one after the other. Length: what you said, otherwise 1
+hour for an appointment, 30 minutes for a todo, all day if you only gave the
+day.
+
+The question appears when the device is free (not while recording or with
+another menu open), after unlocking if it was locked, and for recordings made
+offline once Gemini sorts them. Accepted events made while offline wait in a
+queue and are sent when Wi-Fi is back (retried every 10 minutes); they are
+never created twice.
+
+**Setting it up** (once, on a computer). A small script in your Google
+account, the "bridge", receives the events and writes them to the calendar;
+the device only knows its address and a secret word, not your account.
+
+1. Open [script.google.com](https://script.google.com) and press **New
+   project**.
+2. Replace the editor's text with the whole `Code.gs` file (in the firmware
+   package and in the project's `tools/calendar-bridge/`).
+3. In the line `const SECRET = 'cambia-questa-parola';` put your own secret
+   word between the quotes (8 characters or more, no spaces) and save.
+4. Run the `setup` function once: Google asks for permissions (it's your own
+   script) and creates the **Taccuino** calendar.
+5. **Deploy** > **New deployment**, type **Web app**, **Execute as: Me**,
+   **Who has access: Anyone**; deploy and copy the **Web app URL** (it ends
+   with `/exec`).
+6. In the [setup portal](#first-time-setup)'s **Calendar: add events** card,
+   paste the address and the secret word and press **Save**. The device tests
+   the bridge at once and shows "Working: events go to the "Taccuino"
+   calendar" or what is wrong (wrong word, wrong address, access not set to
+   Anyone). **Test** checks again.
+
+"Anyone" means anyone with the address can reach the script, but without the
+secret word it does nothing; still keep both private. To keep seeing the added
+events after they are sent, add the **Taccuino** calendar's secret iCal
+address to the **Google Calendar** card (until then the device shows its own
+copy). To turn the feature off, empty both fields and press **Save /
+Remove**. If you edit the script later, use **Manage deployments** > edit >
+**New version** so the address stays the same.
 
 ## Books
 

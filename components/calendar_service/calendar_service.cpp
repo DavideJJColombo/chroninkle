@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstring>
 #include <ctime>
 #include <mutex>
 
@@ -42,6 +43,35 @@ std::atomic<bool> s_network_connected{false};
 TaskHandle_t s_task = nullptr;
 esp_timer_handle_t s_periodic_timer = nullptr;
 esp_timer_handle_t s_connect_timer = nullptr;
+
+// What the task should do on its next wake-up.
+std::atomic<bool> s_want_refresh{false};
+std::atomic<bool> s_want_send{false};
+std::atomic<bool> s_want_notify{false};
+std::atomic<bool> s_want_test{false};
+
+// Adding events through the Apps Script bridge.
+constexpr const char* kNvsBridgeUrlKey = "bridge_url";
+constexpr const char* kNvsBridgeSecretKey = "bridge_sec";
+constexpr const char* kNvsWriteStateKey = "write";
+constexpr const char* kPortalBridgeUri = "/api/settings/calendar-bridge";
+constexpr const char* kPortalBridgeTestUri = "/api/calendar-bridge/test";
+constexpr size_t kMaxProposals = 8;
+constexpr size_t kMaxOutbox = 16;
+constexpr size_t kMaxLocal = 24;
+constexpr uint64_t kSendRetryUs = 10ULL * 60 * 1000 * 1000;
+std::string s_bridge_url;
+std::string s_bridge_secret;
+std::vector<Proposal> s_proposals;   // waiting for yes/no
+std::vector<Proposal> s_outbox;      // accepted, not yet sent
+std::vector<Proposal> s_local;       // accepted: shown in the agenda until a download has them
+uint32_t s_next_proposal_id = 1;
+std::vector<ics::Occurrence> s_fetched;  // last successful download
+bool s_fetched_ok = false;
+esp_timer_handle_t s_send_retry_timer = nullptr;
+// Result of the portal's "Test" button.
+std::string s_test_state = "idle";  // idle | running | ok | error
+std::string s_test_message;
 
 std::string TrimCopy(const std::string& value)
 {
@@ -107,6 +137,167 @@ esp_err_t SaveUrls(const std::vector<std::string>& urls)
     }
     nvs_close(handle);
     return err;
+}
+
+// --- Adding events: persistence ------------------------------------------------------------
+
+std::string ReadNvsStr(nvs_handle_t handle, const char* key)
+{
+    size_t size = 0;
+    if (nvs_get_str(handle, key, nullptr, &size) != ESP_OK || size <= 1) {
+        return {};
+    }
+    std::string value(size, '\0');
+    if (nvs_get_str(handle, key, value.data(), &size) != ESP_OK) {
+        return {};
+    }
+    value.resize(size - 1);
+    return value;
+}
+
+cJSON* ProposalToJson(const Proposal& proposal)
+{
+    cJSON* item = cJSON_CreateObject();
+    cJSON_AddNumberToObject(item, "id", proposal.id);
+    cJSON_AddStringToObject(item, "title", proposal.title.c_str());
+    cJSON_AddBoolToObject(item, "all_day", proposal.all_day);
+    cJSON_AddStringToObject(item, "date", proposal.date.c_str());
+    cJSON_AddNumberToObject(item, "start", static_cast<double>(proposal.start));
+    cJSON_AddNumberToObject(item, "end", static_cast<double>(proposal.end));
+    return item;
+}
+
+void ProposalsFromJson(const cJSON* array, std::vector<Proposal>* out)
+{
+    out->clear();
+    const cJSON* item = nullptr;
+    cJSON_ArrayForEach(item, array)
+    {
+        Proposal proposal;
+        const cJSON* id = cJSON_GetObjectItemCaseSensitive(item, "id");
+        const cJSON* title = cJSON_GetObjectItemCaseSensitive(item, "title");
+        const cJSON* date = cJSON_GetObjectItemCaseSensitive(item, "date");
+        const cJSON* start = cJSON_GetObjectItemCaseSensitive(item, "start");
+        const cJSON* end = cJSON_GetObjectItemCaseSensitive(item, "end");
+        if (!cJSON_IsNumber(id) || !cJSON_IsString(title) || !cJSON_IsNumber(start) ||
+            !cJSON_IsNumber(end)) {
+            continue;
+        }
+        proposal.id = static_cast<uint32_t>(id->valuedouble);
+        proposal.title = title->valuestring;
+        proposal.all_day = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(item, "all_day"));
+        proposal.date = cJSON_IsString(date) ? date->valuestring : "";
+        proposal.start = static_cast<int64_t>(start->valuedouble);
+        proposal.end = static_cast<int64_t>(end->valuedouble);
+        out->push_back(std::move(proposal));
+    }
+}
+
+void SaveWriteStateLocked()
+{
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, "next", s_next_proposal_id);
+    for (const auto& [key, list] : {std::pair<const char*, const std::vector<Proposal>*>{
+                                        "proposals", &s_proposals},
+                                    {"outbox", &s_outbox},
+                                    {"local", &s_local}}) {
+        cJSON* array = cJSON_AddArrayToObject(root, key);
+        for (const Proposal& proposal : *list) {
+            cJSON_AddItemToArray(array, ProposalToJson(proposal));
+        }
+    }
+    char* raw = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (raw == nullptr) {
+        return;
+    }
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READWRITE, &handle) == ESP_OK) {
+        if (nvs_set_blob(handle, kNvsWriteStateKey, raw, std::strlen(raw)) == ESP_OK) {
+            (void)nvs_commit(handle);
+        }
+        nvs_close(handle);
+    }
+    cJSON_free(raw);
+}
+
+void LoadWriteStateLocked()
+{
+    nvs_handle_t handle = 0;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) != ESP_OK) {
+        return;
+    }
+    s_bridge_url = ReadNvsStr(handle, kNvsBridgeUrlKey);
+    s_bridge_secret = ReadNvsStr(handle, kNvsBridgeSecretKey);
+    size_t size = 0;
+    if (nvs_get_blob(handle, kNvsWriteStateKey, nullptr, &size) == ESP_OK && size > 0) {
+        std::string json(size, '\0');
+        if (nvs_get_blob(handle, kNvsWriteStateKey, json.data(), &size) == ESP_OK) {
+            cJSON* root = cJSON_ParseWithLength(json.c_str(), json.size());
+            if (root != nullptr) {
+                const cJSON* next = cJSON_GetObjectItemCaseSensitive(root, "next");
+                if (cJSON_IsNumber(next)) {
+                    s_next_proposal_id = static_cast<uint32_t>(next->valuedouble);
+                }
+                ProposalsFromJson(cJSON_GetObjectItemCaseSensitive(root, "proposals"),
+                                  &s_proposals);
+                ProposalsFromJson(cJSON_GetObjectItemCaseSensitive(root, "outbox"), &s_outbox);
+                ProposalsFromJson(cJSON_GetObjectItemCaseSensitive(root, "local"), &s_local);
+                cJSON_Delete(root);
+            }
+        }
+    }
+    nvs_close(handle);
+}
+
+bool BridgeConfiguredLocked()
+{
+    return !s_bridge_url.empty() && !s_bridge_secret.empty();
+}
+
+// Snapshot.events = the download + events added here that the download doesn't have yet (the
+// secret iCal address lags behind, sometimes by hours). An added event leaves the local list
+// once a download shows it, or a day after it ended.
+void RebuildEventsLocked()
+{
+    const int64_t now = static_cast<int64_t>(time(nullptr));
+    bool changed = false;
+    std::vector<ics::Occurrence> events = s_fetched;
+    for (auto it = s_local.begin(); it != s_local.end();) {
+        bool seen = false;
+        for (const ics::Occurrence& fetched : s_fetched) {
+            seen = seen || (fetched.title == it->title && fetched.start == it->start);
+        }
+        if ((seen && s_fetched_ok) || (now > kMinValidEpoch && it->end < now - 86400)) {
+            it = s_local.erase(it);
+            changed = true;
+            continue;
+        }
+        ics::Occurrence occurrence;
+        occurrence.start = it->start;
+        occurrence.end = it->end;
+        occurrence.all_day = it->all_day;
+        occurrence.title = it->title;
+        events.push_back(std::move(occurrence));
+        ++it;
+    }
+    std::sort(events.begin(), events.end(), [](const ics::Occurrence& a, const ics::Occurrence& b) {
+        if (a.start != b.start) {
+            return a.start < b.start;
+        }
+        if (a.all_day != b.all_day) {
+            return a.all_day;
+        }
+        return a.title < b.title;
+    });
+    s_snapshot.events = std::move(events);
+    s_snapshot.has_data = s_fetched_ok || !s_local.empty();
+    s_snapshot.bridge_configured = BridgeConfiguredLocked();
+    s_snapshot.pending_proposals = static_cast<int>(s_proposals.size());
+    s_snapshot.outbox_count = static_cast<int>(s_outbox.size());
+    if (changed) {
+        SaveWriteStateLocked();
+    }
 }
 
 void Notify()
@@ -258,11 +449,12 @@ void RunRefresh()
         std::lock_guard<std::mutex> lock(s_mutex);
         urls = s_urls;
         if (urls.empty()) {
-            s_snapshot.events.clear();
+            s_fetched.clear();
+            s_fetched_ok = false;
             s_snapshot.calendar_names.clear();
-            s_snapshot.has_data = false;
             s_snapshot.last_error.clear();
             s_snapshot.fetching = false;
+            RebuildEventsLocked();
         } else {
             s_snapshot.fetching = true;
         }
@@ -316,12 +508,192 @@ void RunRefresh()
         s_snapshot.last_error = error;
         if (ok_count > 0) {
             // Keep what downloaded; a calendar that failed this time is simply missing.
-            s_snapshot.events = std::move(merged);
-            s_snapshot.has_data = true;
+            s_fetched = std::move(merged);
+            s_fetched_ok = true;
             if (error.empty()) {
                 s_snapshot.last_success_epoch = static_cast<int64_t>(time(nullptr));
             }
         }
+        RebuildEventsLocked();
+    }
+    Notify();
+}
+
+// --- Adding events: the bridge --------------------------------------------------------------
+
+struct BridgeReply {
+    bool ok = false;
+    bool temporary = false;  // worth retrying later (no answer, Google busy)
+    std::string error;       // English, short
+    std::string calendar;
+};
+
+// POSTs `body` to the Apps Script web app. Apps Script answers a POST with a 302 to
+// script.googleusercontent.com, where the result is fetched with a GET.
+BridgeReply BridgePost(const std::string& url, const std::string& body)
+{
+    BridgeReply reply;
+    esp_http_client_config_t config = {};
+    config.url = url.c_str();
+    config.method = HTTP_METHOD_POST;
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.timeout_ms = kHttpTimeoutMs;
+    config.buffer_size = 2048;
+    config.buffer_size_tx = 1024;
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == nullptr) {
+        reply.error = "HTTP client init failed";
+        reply.temporary = true;
+        return reply;
+    }
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+
+    std::string answer;
+    int status = 0;
+    esp_err_t err = esp_http_client_open(client, static_cast<int>(body.size()));
+    if (err == ESP_OK) {
+        const int written = esp_http_client_write(client, body.data(), static_cast<int>(body.size()));
+        if (written != static_cast<int>(body.size())) {
+            err = ESP_FAIL;
+        }
+    }
+    for (int hop = 0; err == ESP_OK && hop < 4; ++hop) {
+        (void)esp_http_client_fetch_headers(client);
+        status = esp_http_client_get_status_code(client);
+        if (status < 300 || status >= 400) {
+            break;
+        }
+        // Follow the redirect with a GET (that's where Apps Script serves the result).
+        esp_http_client_set_redirection(client);
+        esp_http_client_close(client);
+        esp_http_client_set_method(client, HTTP_METHOD_GET);
+        esp_http_client_delete_header(client, "Content-Type");
+        err = esp_http_client_open(client, 0);
+    }
+    if (err == ESP_OK) {
+        std::array<char, 512> buffer = {};
+        while (answer.size() < 4096) {
+            const int read = esp_http_client_read(client, buffer.data(), buffer.size());
+            if (read <= 0) {
+                break;
+            }
+            answer.append(buffer.data(), static_cast<size_t>(read));
+        }
+    }
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+
+    if (err != ESP_OK) {
+        reply.error = std::string("Connection failed (") + esp_err_to_name(err) + ")";
+        reply.temporary = true;
+        return reply;
+    }
+    cJSON* root = cJSON_ParseWithLength(answer.c_str(), answer.size());
+    if (root == nullptr) {
+        // An HTML page instead of JSON: wrong address, or the web app isn't open to "Anyone".
+        reply.error = status == 200 ? "Not the Taccuino bridge (check the address and access)"
+                                    : "HTTP " + std::to_string(status);
+        reply.temporary = status == 0 || status == 429 || status >= 500;
+        return reply;
+    }
+    reply.ok = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(root, "ok"));
+    const cJSON* error = cJSON_GetObjectItemCaseSensitive(root, "error");
+    const cJSON* calendar = cJSON_GetObjectItemCaseSensitive(root, "calendar");
+    if (cJSON_IsString(calendar)) {
+        reply.calendar = calendar->valuestring;
+    }
+    if (!reply.ok) {
+        const std::string code = cJSON_IsString(error) ? error->valuestring : "error";
+        reply.error = code == "wrong_secret" ? "Wrong secret word" : "Bridge error: " + code;
+        reply.temporary = false;
+    }
+    cJSON_Delete(root);
+    return reply;
+}
+
+std::string BridgeBody(const std::string& secret, const char* action, const Proposal* proposal)
+{
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "secret", secret.c_str());
+    cJSON_AddStringToObject(root, "action", action);
+    if (proposal != nullptr) {
+        cJSON_AddStringToObject(root, "title", proposal->title.c_str());
+        cJSON_AddBoolToObject(root, "all_day", proposal->all_day);
+        cJSON_AddStringToObject(root, "date", proposal->date.c_str());
+        cJSON_AddNumberToObject(root, "start", static_cast<double>(proposal->start));
+        cJSON_AddNumberToObject(root, "end", static_cast<double>(proposal->end));
+    }
+    char* raw = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    std::string body = raw != nullptr ? raw : "{}";
+    if (raw != nullptr) {
+        cJSON_free(raw);
+    }
+    return body;
+}
+
+void RunSend()
+{
+    std::string url;
+    std::string secret;
+    std::vector<Proposal> outbox;
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        if (!BridgeConfiguredLocked() || s_outbox.empty()) {
+            return;
+        }
+        url = s_bridge_url;
+        secret = s_bridge_secret;
+        outbox = s_outbox;
+    }
+    bool retry_later = false;
+    for (const Proposal& proposal : outbox) {
+        const BridgeReply reply = BridgePost(url, BridgeBody(secret, "create", &proposal));
+        std::lock_guard<std::mutex> lock(s_mutex);
+        if (reply.ok) {
+            ESP_LOGI(kTag, "Added to the Taccuino calendar: %s", proposal.title.c_str());
+            s_outbox.erase(std::remove_if(s_outbox.begin(), s_outbox.end(),
+                                          [&](const Proposal& p) { return p.id == proposal.id; }),
+                           s_outbox.end());
+            s_snapshot.last_write_error.clear();
+            RebuildEventsLocked();
+            SaveWriteStateLocked();
+            continue;
+        }
+        ESP_LOGW(kTag, "Adding '%s' failed: %s", proposal.title.c_str(), reply.error.c_str());
+        s_snapshot.last_write_error = reply.error;
+        retry_later = reply.temporary;
+        break;  // same problem for the rest: try them all again later
+    }
+    if (retry_later && s_send_retry_timer != nullptr) {
+        (void)esp_timer_stop(s_send_retry_timer);
+        (void)esp_timer_start_once(s_send_retry_timer, kSendRetryUs);
+    }
+    Notify();
+}
+
+void RunTest()
+{
+    std::string url;
+    std::string secret;
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        url = s_bridge_url;
+        secret = s_bridge_secret;
+    }
+    const BridgeReply reply = BridgePost(url, BridgeBody(secret, "ping", nullptr));
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_test_state = reply.ok ? "ok" : "error";
+        s_test_message = reply.ok ? reply.calendar : reply.error;
+        if (reply.ok) {
+            s_snapshot.last_write_error.clear();
+        }
+    }
+    ESP_LOGI(kTag, "Bridge test: %s %s", reply.ok ? "ok" : "failed",
+             reply.ok ? reply.calendar.c_str() : reply.error.c_str());
+    if (reply.ok) {
+        s_want_send.store(true, std::memory_order_relaxed);  // queued events can go now
     }
     Notify();
 }
@@ -330,28 +702,50 @@ void CalendarTask(void*)
 {
     while (true) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        if (!s_network_connected.load(std::memory_order_relaxed)) {
+        if (s_want_notify.exchange(false, std::memory_order_relaxed)) {
+            Notify();
+        }
+        const bool online = s_network_connected.load(std::memory_order_relaxed) &&
+                            time(nullptr) >= kMinValidEpoch;
+        if (s_want_test.exchange(false, std::memory_order_relaxed)) {
+            if (online) {
+                RunTest();
+            } else {
+                std::lock_guard<std::mutex> lock(s_mutex);
+                s_test_state = "error";
+                s_test_message = "Device not connected to Wi-Fi";
+            }
+        }
+        if (!online) {
+            // Without Wi-Fi, or the right date (no "today", and TLS can't check certificates),
+            // nothing to do: the next connection / time sync asks again.
             continue;
         }
-        if (time(nullptr) < kMinValidEpoch) {
-            // Without the right date there is no "today" (and TLS can't check certificates):
-            // the next time sync / connection asks again.
-            ESP_LOGI(kTag, "Clock not set yet: calendar download postponed");
-            continue;
+        if (s_want_send.exchange(false, std::memory_order_relaxed)) {
+            RunSend();
         }
-        RunRefresh();
+        if (s_want_refresh.exchange(false, std::memory_order_relaxed)) {
+            RunRefresh();
+        }
     }
 }
 
-void Kick()
+void Wake()
 {
     if (s_task != nullptr) {
         xTaskNotifyGive(s_task);
     }
 }
 
+void Kick()
+{
+    s_want_refresh.store(true, std::memory_order_relaxed);
+    Wake();
+}
+
 void TimerKick(void*)
 {
+    s_want_send.store(true, std::memory_order_relaxed);  // retry anything still queued
     Kick();
 }
 
@@ -524,6 +918,141 @@ esp_err_t HandleRefresh(httpd_req_t* request)
     return SendJson(request, root);
 }
 
+std::string MaskBridgeUrl(const std::string& url)
+{
+    // ".../macros/s/AKfy...xyz/exec" -> "script.google.com/...xyz/exec"
+    const size_t scheme = url.find("://");
+    const size_t host_start = scheme == std::string::npos ? 0 : scheme + 3;
+    const size_t host_end = url.find('/', host_start);
+    const std::string host = url.substr(host_start, host_end == std::string::npos
+                                                         ? std::string::npos
+                                                         : host_end - host_start);
+    const std::string tail = url.size() > 9 ? url.substr(url.size() - 9) : url;
+    return host + "/..." + tail;
+}
+
+void AppendBridgeStatus(cJSON* root)
+{
+    cJSON_AddBoolToObject(root, "success", true);
+    std::lock_guard<std::mutex> lock(s_mutex);
+    cJSON* settings = cJSON_AddObjectToObject(root, "settings");
+    cJSON_AddBoolToObject(settings, "configured", BridgeConfiguredLocked());
+    cJSON_AddStringToObject(settings, "masked_url",
+                            s_bridge_url.empty() ? "" : MaskBridgeUrl(s_bridge_url).c_str());
+    cJSON* runtime = cJSON_AddObjectToObject(root, "runtime");
+    cJSON_AddNumberToObject(runtime, "outbox_count", static_cast<double>(s_outbox.size()));
+    cJSON_AddNumberToObject(runtime, "pending_proposals", static_cast<double>(s_proposals.size()));
+    cJSON_AddStringToObject(runtime, "last_write_error", s_snapshot.last_write_error.c_str());
+    cJSON_AddStringToObject(runtime, "test_state", s_test_state.c_str());
+    cJSON_AddStringToObject(runtime, "test_message", s_test_message.c_str());
+    cJSON_AddBoolToObject(runtime, "network_connected",
+                          s_network_connected.load(std::memory_order_relaxed));
+}
+
+esp_err_t HandleBridgeGet(httpd_req_t* request)
+{
+    cJSON* root = cJSON_CreateObject();
+    AppendBridgeStatus(root);
+    cJSON_AddStringToObject(root, "message", "Calendar bridge loaded");
+    return SendJson(request, root);
+}
+
+esp_err_t HandleBridgePatch(httpd_req_t* request)
+{
+    if (request->content_len <= 0 || request->content_len > 2048) {
+        return SendError(request, "Invalid calendar bridge payload");
+    }
+    std::string body(static_cast<size_t>(request->content_len), '\0');
+    size_t received_total = 0;
+    while (received_total < body.size()) {
+        const int received =
+            httpd_req_recv(request, body.data() + received_total, body.size() - received_total);
+        if (received <= 0) {
+            return SendError(request, "Invalid calendar bridge payload");
+        }
+        received_total += static_cast<size_t>(received);
+    }
+    cJSON* json = cJSON_ParseWithLength(body.c_str(), body.size());
+    if (json == nullptr) {
+        return SendError(request, "Invalid JSON body");
+    }
+    const cJSON* url_item = cJSON_GetObjectItemCaseSensitive(json, "url");
+    const cJSON* secret_item = cJSON_GetObjectItemCaseSensitive(json, "secret");
+    const std::string url = cJSON_IsString(url_item) ? TrimCopy(url_item->valuestring) : "";
+    const std::string secret =
+        cJSON_IsString(secret_item) ? TrimCopy(secret_item->valuestring) : "";
+    cJSON_Delete(json);
+    const bool clear = url.empty() && secret.empty();
+    if (!clear) {
+        if (url.rfind("https://script.google.com/", 0) != 0 || url.size() > kMaxUrlLength) {
+            return SendError(request, "Bridge address not valid");
+        }
+        if (secret.size() < 8) {
+            return SendError(request, "Secret word too short");
+        }
+    }
+    nvs_handle_t handle = 0;
+    esp_err_t err = nvs_open(kNvsNamespace, NVS_READWRITE, &handle);
+    if (err == ESP_OK) {
+        if (clear) {
+            (void)nvs_erase_key(handle, kNvsBridgeUrlKey);
+            (void)nvs_erase_key(handle, kNvsBridgeSecretKey);
+        } else {
+            err = nvs_set_str(handle, kNvsBridgeUrlKey, url.c_str());
+            if (err == ESP_OK) {
+                err = nvs_set_str(handle, kNvsBridgeSecretKey, secret.c_str());
+            }
+        }
+        if (err == ESP_OK) {
+            err = nvs_commit(handle);
+        }
+        nvs_close(handle);
+    }
+    if (err != ESP_OK) {
+        return SendError(request, "Failed to save calendar bridge");
+    }
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_bridge_url = url;
+        s_bridge_secret = secret;
+        s_test_state = "idle";
+        s_test_message.clear();
+        s_snapshot.last_write_error.clear();
+        if (clear) {
+            s_proposals.clear();  // nothing can be added any more
+        }
+        RebuildEventsLocked();
+        SaveWriteStateLocked();
+    }
+    if (!clear) {
+        s_want_test.store(true, std::memory_order_relaxed);  // check it straight away
+        Wake();
+    }
+    cJSON* root = cJSON_CreateObject();
+    AppendBridgeStatus(root);
+    cJSON_AddStringToObject(root, "message", clear ? "Calendar bridge removed"
+                                                   : "Calendar bridge saved");
+    return SendJson(request, root);
+}
+
+esp_err_t HandleBridgeTest(httpd_req_t* request)
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        if (!BridgeConfiguredLocked()) {
+            return SendError(request, "Calendar bridge not set up");
+        }
+        s_test_state = "running";
+        s_test_message.clear();
+    }
+    s_want_test.store(true, std::memory_order_relaxed);
+    Wake();
+    cJSON* root = cJSON_CreateObject();
+    AppendBridgeStatus(root);
+    cJSON_AddStringToObject(root, "message", "Calendar bridge test started");
+    return SendJson(request, root);
+}
+
 }  // namespace
 
 esp_err_t Init()
@@ -533,7 +1062,9 @@ esp_err_t Init()
         return ESP_OK;
     }
     LoadUrlsLocked();
+    LoadWriteStateLocked();
     s_snapshot.calendar_count = static_cast<int>(s_urls.size());
+    RebuildEventsLocked();
     if (xTaskCreatePinnedToCore(CalendarTask, "calendar", kTaskStackBytes, nullptr,
                                 chroninkle_task_config::kPriorityCalendar, &s_task,
                                 chroninkle_task_config::kSystemCore) != pdPASS) {
@@ -543,6 +1074,7 @@ esp_err_t Init()
     }
     s_periodic_timer = MakeTimer("calendar_refresh");
     s_connect_timer = MakeTimer("calendar_connect");
+    s_send_retry_timer = MakeTimer("calendar_send_retry");
     if (s_periodic_timer != nullptr) {
         (void)esp_timer_start_periodic(s_periodic_timer, kRefreshPeriodUs);
     }
@@ -619,6 +1151,82 @@ esp_err_t SetUrls(const std::vector<std::string>& urls)
     return ESP_OK;
 }
 
+void AddProposals(const std::vector<Proposal>& proposals)
+{
+    if (proposals.empty()) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        if (!BridgeConfiguredLocked()) {
+            return;  // adding events isn't set up: nothing to ask about
+        }
+        for (Proposal proposal : proposals) {
+            if (s_proposals.size() >= kMaxProposals) {
+                s_proposals.erase(s_proposals.begin());  // the oldest question goes
+            }
+            proposal.id = s_next_proposal_id++;
+            ESP_LOGI(kTag, "Calendar proposal %u: %s", static_cast<unsigned>(proposal.id),
+                     proposal.title.c_str());
+            s_proposals.push_back(std::move(proposal));
+        }
+        RebuildEventsLocked();
+        SaveWriteStateLocked();
+    }
+    // Called from transcription callbacks: report it from the calendar task instead.
+    s_want_notify.store(true, std::memory_order_relaxed);
+    Wake();
+}
+
+bool PeekProposal(Proposal* proposal)
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    if (s_proposals.empty() || proposal == nullptr) {
+        return false;
+    }
+    *proposal = s_proposals.front();
+    return true;
+}
+
+void AcceptProposal(uint32_t id)
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        auto it = std::find_if(s_proposals.begin(), s_proposals.end(),
+                               [id](const Proposal& p) { return p.id == id; });
+        if (it == s_proposals.end()) {
+            return;
+        }
+        if (s_outbox.size() < kMaxOutbox) {
+            s_outbox.push_back(*it);
+        }
+        if (s_local.size() >= kMaxLocal) {
+            s_local.erase(s_local.begin());
+        }
+        s_local.push_back(*it);  // in the agenda right away
+        s_proposals.erase(it);
+        RebuildEventsLocked();
+        SaveWriteStateLocked();
+    }
+    s_want_send.store(true, std::memory_order_relaxed);
+    s_want_notify.store(true, std::memory_order_relaxed);
+    Wake();
+}
+
+void DeclineProposal(uint32_t id)
+{
+    {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        s_proposals.erase(std::remove_if(s_proposals.begin(), s_proposals.end(),
+                                         [id](const Proposal& p) { return p.id == id; }),
+                          s_proposals.end());
+        RebuildEventsLocked();
+        SaveWriteStateLocked();
+    }
+    s_want_notify.store(true, std::memory_order_relaxed);
+    Wake();
+}
+
 void RegisterPortalRoutes(httpd_handle_t server)
 {
     if (server == nullptr) {
@@ -630,6 +1238,12 @@ void RegisterPortalRoutes(httpd_handle_t server)
         {.uri = kPortalSettingsUri, .method = HTTP_PATCH, .handler = HandleSettingsPatch,
          .user_ctx = nullptr},
         {.uri = kPortalRefreshUri, .method = HTTP_POST, .handler = HandleRefresh,
+         .user_ctx = nullptr},
+        {.uri = kPortalBridgeUri, .method = HTTP_GET, .handler = HandleBridgeGet,
+         .user_ctx = nullptr},
+        {.uri = kPortalBridgeUri, .method = HTTP_PATCH, .handler = HandleBridgePatch,
+         .user_ctx = nullptr},
+        {.uri = kPortalBridgeTestUri, .method = HTTP_POST, .handler = HandleBridgeTest,
          .user_ctx = nullptr},
     };
     for (const httpd_uri_t& route : routes) {

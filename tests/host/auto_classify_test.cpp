@@ -58,6 +58,39 @@ int main()
         const auto p = Parse("  just some text  ");
         CHECK(!p.parsed && p.transcript == "just some text" && p.kind == Kind::kNote);
     }
+    // Appointments: events with/without time and end, a timed todo, invalid items dropped.
+    {
+        const auto r = Parse(
+            "{\"transcript\":\"martedi dentista alle 15, giovedi riunione dalle 10 alle 12, "
+            "domenica compleanno di Marco, domani chiamare Luca alle 9\",\"type\":\"event\","
+            "\"tasks\":[{\"text\":\"Chiamare Luca\",\"due_date\":\"2026-11-18\",\"due_time\":\"09:00\"}],"
+            "\"events\":[{\"title\":\"Dentista\",\"date\":\"2026-11-17\",\"start_time\":\"15:00\"},"
+            "{\"title\":\"Riunione\",\"date\":\"2026-11-19\",\"start_time\":\"10:00\",\"end_time\":\"12:00\"},"
+            "{\"title\":\"Compleanno di Marco\",\"date\":\"2026-11-22\",\"start_time\":\"\"},"
+            "{\"title\":\"\",\"date\":\"2026-11-22\"},{\"title\":\"Senza data\",\"date\":\"domani\"}]}");
+        CHECK(r.kind == Kind::kEvent);
+        CHECK(r.events.size() == 3);
+        CHECK(r.tasks.empty());  // tasks only belong to type task
+        const auto items = auto_classify::CalendarItems(r);
+        CHECK(items.size() == 3);
+        if (items.size() == 3) {
+            CHECK(items[0].title == "Dentista" && items[0].start_time == "15:00" &&
+                  items[0].duration_minutes == 60);
+            CHECK(items[1].duration_minutes == 120);
+            CHECK(items[2].start_time.empty() && items[2].duration_minutes == 0);
+        }
+        // A task with day and time becomes a 30-minute item; one without a time does not.
+        const auto t = Parse(
+            "{\"transcript\":\"x\",\"type\":\"task\",\"tasks\":["
+            "{\"text\":\"Chiamare Marco\",\"due_date\":\"2026-11-20\",\"due_time\":\"15:00\"},"
+            "{\"text\":\"Comprare il latte\",\"due_date\":\"2026-11-18\",\"due_time\":\"\"}]}");
+        const auto task_items = auto_classify::CalendarItems(t);
+        CHECK(task_items.size() == 1 && task_items[0].title == "Chiamare Marco" &&
+              task_items[0].duration_minutes == 30);
+        // "event" with no usable event falls back to a note.
+        const auto e = Parse("{\"transcript\":\"x\",\"type\":\"event\",\"events\":[]}");
+        CHECK(e.kind == Kind::kNote);
+    }
     // Validators.
     CHECK(auto_classify::IsValidDate("2026-02-28"));
     CHECK(!auto_classify::IsValidDate("2026-2-28"));

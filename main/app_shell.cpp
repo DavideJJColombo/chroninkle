@@ -1553,6 +1553,84 @@ void RegisterWifiBackendRoutes(httpd_handle_t server, void*)
     calendar_service::RegisterPortalRoutes(server);
 }
 
+// --- Calendar proposals: "Add to calendar?" ---------------------------------------------------
+
+std::atomic<uint32_t> s_shown_calendar_proposal{0};
+
+std::string CalendarProposalText(const calendar_service::Proposal& proposal)
+{
+    static const char* kMonthsEn[] = {"January", "February", "March", "April", "May", "June",
+                                      "July", "August", "September", "October", "November",
+                                      "December"};
+    static const char* kMonthsIt[] = {"gennaio", "febbraio", "marzo", "aprile", "maggio",
+                                      "giugno", "luglio", "agosto", "settembre", "ottobre",
+                                      "novembre", "dicembre"};
+    const time_t start = static_cast<time_t>(proposal.start);
+    const time_t end = static_cast<time_t>(proposal.end);
+    std::tm start_tm = {};
+    std::tm end_tm = {};
+    localtime_r(&start, &start_tm);
+    localtime_r(&end, &end_tm);
+    std::string when = std::string(i18n::WeekdayName(start_tm.tm_wday)) + " " +
+                       std::to_string(start_tm.tm_mday) + " " +
+                       (i18n::IsItalian() ? kMonthsIt[start_tm.tm_mon] : kMonthsEn[start_tm.tm_mon]);
+    if (proposal.all_day) {
+        when += i18n::Tr(", all day", ", tutto il giorno");
+    } else {
+        when += ", " + i18n::FormatClock(start_tm.tm_hour, start_tm.tm_min) + "-" +
+                i18n::FormatClock(end_tm.tm_hour, end_tm.tm_min);
+    }
+    return proposal.title + "\n" + when + "\n" +
+           i18n::Tr("Calendar: Taccuino", "Calendario: Taccuino");
+}
+
+// Shows the next "Add to calendar?" question when the device is free: unlocked, no other
+// overlay, not recording. Called after calendar events and button presses, so a question that
+// arrived in the background (e.g. a recording sorted later, offline) is asked when the user is
+// next using the device.
+void MaybeShowCalendarProposal()
+{
+    if (!s_startup_complete.load(std::memory_order_relaxed) || lock_screen_runtime::IsActive() ||
+        overlay_runtime::IsInputCaptured()) {
+        return;
+    }
+    const recording_session_service::Phase phase = recording_session_service::GetSnapshot().phase;
+    if (phase != recording_session_service::Phase::kIdle &&
+        phase != recording_session_service::Phase::kComplete &&
+        phase != recording_session_service::Phase::kFailed) {
+        return;
+    }
+    calendar_service::Proposal proposal;
+    if (!calendar_service::PeekProposal(&proposal)) {
+        return;
+    }
+    s_shown_calendar_proposal.store(proposal.id, std::memory_order_relaxed);
+    const esp_err_t err = overlay_runtime::ShowCalendarProposalModal(CalendarProposalText(proposal));
+    FlushOverlayFeedback();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(kTag, "Show calendar proposal failed: %s", esp_err_to_name(err));
+    }
+}
+
+void HandleCalendarProposalAnswer(bool accepted)
+{
+    const uint32_t id = s_shown_calendar_proposal.exchange(0, std::memory_order_relaxed);
+    if (id == 0) {
+        return;
+    }
+    if (accepted) {
+        calendar_service::AcceptProposal(id);
+        (void)overlay_runtime::ShowToastForDuration(
+            BuildToast(i18n::Tr("Added to the Taccuino calendar",
+                                "Aggiunto al calendario Taccuino"),
+                       EmbeddedIconId::kCheck),
+            3000);
+    } else {
+        calendar_service::DeclineProposal(id);
+    }
+    FlushOverlayFeedback();
+}
+
 // A calendar download started or finished: refresh the Agenda page if it is showing, and the
 // Home menu's "events left today" badge.
 void HandleCalendarEvent(const calendar_service::Event& event, void*)
@@ -1569,6 +1647,9 @@ void HandleCalendarEvent(const calendar_service::Event& event, void*)
             startup_complete && ScreenActiveForRefresh(display_service::ScreenId::kHome));
         // The lock screen's agenda: rebuilt now, repainted only if it is showing and changed.
         (void)lock_screen_runtime::SyncClockState(false);
+    }
+    if (event.snapshot.pending_proposals > 0) {
+        MaybeShowCalendarProposal();
     }
 }
 
@@ -1795,6 +1876,9 @@ void HandleDispatchedButtonEvent(const button_service::ButtonEventInfo& event)
     if (overlay_result.request_delete_book) {
         (void)book_list_page_runtime::DeleteConfirmedBook();
     }
+    if (overlay_result.calendar_proposal_answered) {
+        HandleCalendarProposalAnswer(overlay_result.calendar_proposal_accepted);
+    }
     if (overlay_result.request_format_sd_card) {
         const esp_err_t err = storage_service::RequestFormatSdCard();
         if (err != ESP_OK) {
@@ -1967,6 +2051,9 @@ void HandlePowerKeyPress(power_key_runtime::Press press, void*)
     }
     PlayFeedback(was_active ? feedback_service::FeedbackEvent::kUnlock
                             : feedback_service::FeedbackEvent::kLock);
+    if (was_active) {
+        MaybeShowCalendarProposal();  // unlocked: ask any pending calendar question
+    }
 }
 
 void HandleButtonEvent(const button_service::ButtonEventInfo& event, void*)
@@ -1975,6 +2062,12 @@ void HandleButtonEvent(const button_service::ButtonEventInfo& event, void*)
         event,
         [](const button_service::ButtonEventInfo& dispatched_event) {
             HandleDispatchedButtonEvent(dispatched_event);
+            // A calendar question that arrived in the background is asked once the user is
+            // using the device again (never mid-press).
+            if (dispatched_event.event == button_service::ButtonEvent::kSingleClick ||
+                dispatched_event.event == button_service::ButtonEvent::kPressUp) {
+                MaybeShowCalendarProposal();
+            }
         });
 }
 

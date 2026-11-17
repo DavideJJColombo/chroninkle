@@ -36,6 +36,7 @@ enum class CardModalPurpose : uint8_t {
     kStorageFormatError,
     kTopicsConfirmDelete,
     kBookListConfirmDelete,
+    kCalendarProposal,  // text set by ShowCalendarProposalModal
 };
 
 std::mutex s_state_mutex;
@@ -142,6 +143,10 @@ epaper_ui::CardModalState BuildCardModalState(CardModalPurpose purpose)
                                      "Non si può annullare.");
             state.action_labels = {i18n::Tr("Cancel", "Annulla"), i18n::Tr("Delete", "Elimina")};
             break;
+        case CardModalPurpose::kCalendarProposal:
+            state.title_text = i18n::Tr("Add to calendar?", "Aggiungere al calendario?");
+            state.action_labels = {i18n::Tr("No", "No"), i18n::Tr("Add", "Aggiungi")};
+            break;
         case CardModalPurpose::kNone:
         default:
             state.visible = false;
@@ -149,6 +154,8 @@ epaper_ui::CardModalState BuildCardModalState(CardModalPurpose purpose)
     }
     return state;
 }
+
+std::string s_calendar_proposal_body;
 
 void AdvanceOverlayInteractionGenerationLocked()
 {
@@ -550,6 +557,9 @@ esp_err_t ShowCardModal(CardModalPurpose purpose, const char* log_label)
         if (s_card_modal_purpose != purpose || !s_card_modal_state.visible) {
             const OverlayRefreshSnapshot before = CaptureOverlayRefreshSnapshotLocked();
             s_card_modal_state = BuildCardModalState(purpose);
+            if (purpose == CardModalPurpose::kCalendarProposal) {
+                s_card_modal_state.body_text = s_calendar_proposal_body;
+            }
             s_card_modal_purpose = purpose;
             s_card_modal_focus.Configure(
                 epaper_ui::CardModalActionCount(s_card_modal_state), 0);
@@ -671,6 +681,21 @@ esp_err_t ShowStorageModalFormatError()
 esp_err_t ShowTopicsModalConfirmDelete()
 {
     return ShowCardModal(CardModalPurpose::kTopicsConfirmDelete, "topics_confirm_delete");
+}
+
+esp_err_t ShowCalendarProposalModal(const std::string& body)
+{
+    {
+        std::lock_guard<std::mutex> lock(s_state_mutex);
+        s_calendar_proposal_body = body;
+    }
+    return ShowCardModal(CardModalPurpose::kCalendarProposal, "calendar_proposal");
+}
+
+bool IsCardModalVisible()
+{
+    std::lock_guard<std::mutex> lock(s_state_mutex);
+    return s_card_modal_state.visible;
 }
 
 esp_err_t ShowBookListModalConfirmDelete()
@@ -1051,6 +1076,11 @@ app_interaction::InputResult HandleButtonEvent(const button_service::ButtonEvent
                                 } else {
                                     play_click = true;
                                 }
+                                break;
+                            case CardModalPurpose::kCalendarProposal:
+                                result.calendar_proposal_answered = true;
+                                result.calendar_proposal_accepted = index == 1;
+                                play_click = true;
                                 break;
                             case CardModalPurpose::kStorageNoSdCard:
                             case CardModalPurpose::kStorageFormatSuccess:

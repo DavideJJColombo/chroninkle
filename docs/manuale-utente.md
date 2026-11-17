@@ -340,8 +340,9 @@ con questo argomento" e il pulsante Riassumi non c'è.
 ## Agenda (Calendario Google)
 
 L'Agenda mostra gli impegni dei tuoi calendari Google di oggi e dei 7 giorni
-successivi. È solo in lettura: gli impegni si creano e si modificano come
-sempre dal telefono o dal computer.
+successivi. Gli impegni si modificano come sempre dal telefono o dal computer;
+il dispositivo può anche **aggiungere** quelli che detti (vedi
+[Aggiungere eventi al calendario](#aggiungere-eventi-al-calendario)).
 
 **Collegare un calendario** (una volta sola):
 1. Su un computer apri Google Calendar, vai nelle **Impostazioni** (la rotella),
@@ -370,6 +371,66 @@ non scarica nulla: l'Agenda si aggiorna al risveglio. Gli eventi ricorrenti
 (riunioni settimanali, compleanni...) e quelli spostati o annullati vengono
 mostrati correttamente; gli orari sono letti nel fuso orario impostato sul
 dispositivo.
+
+## Aggiungere eventi al calendario
+
+Se detti un appuntamento («giovedì alle tre ho il dentista», «venerdì 20 cena
+da Marco alle 20») o un'attività con giorno **e** ora precisi, Gemini lo
+riconosce e il dispositivo ti chiede se metterlo nel calendario:
+
+> **Aggiungere al calendario?**
+> Dentista
+> Giovedì 19 novembre, 15:00-16:00
+> Calendario: Taccuino
+> [No] [Aggiungi]
+
+Con **Aggiungi** l'evento compare subito nell'Agenda (e nella schermata di
+blocco) e viene creato nel calendario Google **Taccuino**; con **No** viene
+dimenticato. La registrazione resta comunque salvata tra le Note (per un
+appuntamento) o tra le cose da fare. Se nella stessa registrazione ci sono più
+appuntamenti, le domande arrivano una dopo l'altra. Durata: quella che hai
+detto; altrimenti 1 ora per un appuntamento, 30 minuti per un'attività, e
+tutto il giorno se hai detto solo il giorno.
+
+La domanda appare quando il dispositivo è libero (non durante una
+registrazione o con un altro menu aperto) e, se era bloccato, dopo lo sblocco.
+Per le registrazioni fatte senza rete arriva quando Gemini le smista, una volta
+connesso. Se dopo **Aggiungi** non c'è rete, l'evento resta in coda e viene
+inviato appena il Wi-Fi torna (riprova ogni 10 minuti); non viene mai creato
+due volte.
+
+**Come si attiva** (una volta sola, da un computer): serve un piccolo script
+nel tuo account Google, il «ponte», che riceve gli eventi dal dispositivo e li
+scrive nel calendario. Il dispositivo non ha accesso al tuo account: conosce
+solo l'indirizzo del ponte e una parola segreta.
+
+1. Apri [script.google.com](https://script.google.com) con il tuo account
+   Google e premi **Nuovo progetto**.
+2. Cancella il testo che c'è e incolla tutto il file `Code.gs` (si trova nel
+   pacchetto del firmware e in `tools/calendar-bridge/` del progetto).
+3. Nella riga `const SECRET = 'cambia-questa-parola';` scrivi tra gli apici una
+   parola segreta tua (almeno 8 caratteri, senza spazi). Salva (icona del
+   dischetto).
+4. Premi **Esegui** una volta con la funzione `setup` selezionata: Google chiede
+   le autorizzazioni (conferma: è il tuo script) e crea il calendario
+   **Taccuino**.
+5. Premi **Esegui il deployment** > **Nuovo deployment**, tipo **App web**.
+   **Esegui come: Me**, **Chi ha accesso: Chiunque**. Premi **Esegui il
+   deployment** e copia l'**URL dell'app web** (finisce con `/exec`).
+6. Nel [portale web](#il-portale-web), scheda **Calendario: aggiungere eventi**,
+   incolla l'indirizzo e la parola segreta e premi **Salva**: il dispositivo
+   prova subito il ponte e mostra «Funziona: gli eventi vanno nel calendario
+   "Taccuino"» oppure il problema (parola sbagliata, indirizzo sbagliato,
+   accesso non impostato su «Chiunque»). **Prova** ripete il controllo.
+
+«Chiunque» significa che chiunque abbia l'indirizzo può contattare lo script,
+ma senza la parola segreta non può fare nulla; tieni comunque riservati sia
+l'indirizzo sia la parola. Per vedere gli eventi aggiunti anche dopo che sono
+stati inviati, aggiungi l'indirizzo segreto iCal del calendario **Taccuino**
+alla scheda **Calendario Google** (fino ad allora il dispositivo li mostra
+dalla sua copia). Per disattivare la funzione svuota i due campi e premi
+**Salva / Rimuovi**. Se modifichi lo script, ricordati di fare **Gestisci
+deployment** > modifica > **Nuova versione**, così l'indirizzo resta lo stesso.
 
 ## Libri
 

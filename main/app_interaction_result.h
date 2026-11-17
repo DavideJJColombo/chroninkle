@@ -26,6 +26,9 @@ struct InputResult {
     bool request_delete_topic = false;
     // Set by the Book list delete-confirm modal's "Delete" action.
     bool request_delete_book = false;
+    // Calendar proposal card: "Add" (true) or "No" (false) was chosen.
+    bool calendar_proposal_answered = false;
+    bool calendar_proposal_accepted = false;
     bool select_modal_submitted = false;
     int select_modal_selected_index = -1;
     // Populated only when the submitted modal was multi_select -- the final checked state of

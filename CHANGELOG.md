@@ -8,6 +8,25 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-17
+
+### Added
+
+- **Adding events to Google Calendar.** Automatic sorting now also asks Gemini
+  for the appointments in a recording (`events`, new `event` type filed as a
+  Note); every appointment and every todo with a day and a time becomes a
+  proposal (`auto_classify::CalendarItems`: 1 hour / 30 minutes / all day by
+  default). The device asks "Add to calendar?" with a card modal
+  (`kCalendarProposal`, hard line breaks now honored by `card_modal`) when it
+  is idle and unlocked; accepted events show in Agenda at once (local copy
+  until the download has them) and go to an outbox persisted in NVS, sent to
+  the user's own Apps Script bridge (`tools/calendar-bridge/Code.gs`, creates
+  a "Taccuino" calendar, deduplicates retried sends) with a secret word,
+  retried every 10 minutes while it fails. Portal card "Calendar: add events"
+  (bridge address, secret word, Test, status, queued count);
+  `GET/PATCH /api/settings/calendar-bridge`, `POST /api/calendar-bridge/test`.
+  HTTP server URI handler limit raised to 40.
+
 ## [1.11.0] - 2026-11-15
 
 ### Added

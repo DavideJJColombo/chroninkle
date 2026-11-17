@@ -15,10 +15,27 @@ struct Task {
     std::string due_time = {};  // "HH:MM" or empty
 };
 
+// An appointment the speaker mentioned (a visit, a meeting, a booking, a birthday party...).
+struct Event {
+    std::string title = {};
+    std::string date = {};        // "YYYY-MM-DD" (always set)
+    std::string start_time = {};  // "HH:MM", empty = all day
+    std::string end_time = {};    // "HH:MM" or empty
+};
+
+// Something to put in the calendar: an appointment, or a todo with a day and a time.
+struct CalendarItem {
+    std::string title = {};
+    std::string date = {};        // "YYYY-MM-DD"
+    std::string start_time = {};  // "HH:MM", empty = all day
+    int duration_minutes = 0;     // 0 for all day
+};
+
 enum class Kind {
     kNote,
     kIdea,
     kTask,
+    kEvent,     // mainly an appointment: filed as a Note, its events go to the calendar
     kNewTopic,  // the speaker asked to create a topic; `topic` is its name
 };
 
@@ -28,7 +45,12 @@ struct Result {
     Kind kind = Kind::kNote;
     std::string topic = {};      // an existing topic name, or the new topic for kNewTopic
     std::vector<Task> tasks = {};  // kTask only; at least one when kind is kTask
+    std::vector<Event> events = {};  // any kind except kNewTopic
 };
+
+// The calendar proposals in a result: every event (1 hour when no end time is said, all day
+// without a time) and every todo with both a day and a time (30 minutes).
+std::vector<CalendarItem> CalendarItems(const Result& result);
 
 struct PromptContext {
     bool italian = false;

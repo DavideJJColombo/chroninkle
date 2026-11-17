@@ -49,6 +49,13 @@ export interface PortalDom {
   calendarStatus: HTMLElement;
   calendarAddBtn: HTMLElement & { disabled: boolean };
   calendarRefreshBtn: HTMLElement & { disabled: boolean };
+  // Calendar bridge (adding events)
+  bridgeCard: CardField;
+  bridgeUrlInput: ValidatableField;
+  bridgeSecretInput: ValidatableField;
+  bridgeStatus: HTMLElement;
+  bridgeTestBtn: HTMLElement & { disabled: boolean };
+  bridgeSaveBtn: HTMLElement & { disabled: boolean };
   // Firmware update (OTA)
   firmwareCard: CardField;
   firmwareVersionText: HTMLElement;
@@ -93,6 +100,12 @@ export function createPortalDom(): PortalDom {
     calendarStatus: getRequiredElement<HTMLElement>('calendarStatus'),
     calendarAddBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('calendarAddBtn'),
     calendarRefreshBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('calendarRefreshBtn'),
+    bridgeCard: getRequiredElement<CardField>('bridgeCard'),
+    bridgeUrlInput: getRequiredElement<ValidatableField>('bridgeUrlInput'),
+    bridgeSecretInput: getRequiredElement<ValidatableField>('bridgeSecretInput'),
+    bridgeStatus: getRequiredElement<HTMLElement>('bridgeStatus'),
+    bridgeTestBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('bridgeTestBtn'),
+    bridgeSaveBtn: getRequiredElement<HTMLElement & { disabled: boolean }>('bridgeSaveBtn'),
     firmwareCard: getRequiredElement<CardField>('firmwareCard'),
     firmwareVersionText: getRequiredElement<HTMLElement>('firmwareVersionText'),
     firmwareFileInput: getRequiredElement<FirmwareFileField>('firmwareFileInput'),

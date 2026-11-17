@@ -28,6 +28,7 @@ import clockIcon from './assets/clock.svg?raw';
 import firmwareIcon from './assets/firmware_update.svg?raw';
 import calendarIcon from './assets/calendar.svg?raw';
 import { createCalendarController } from './portal/calendar';
+import { createCalendarBridgeController } from './portal/calendarBridge';
 import {
   fetchGeminiModuleJson,
   fetchPortalJson,
@@ -171,6 +172,16 @@ const calendarController = createCalendarController({
   notify: setCalendarNotification,
 });
 
+const setBridgeNotification = createCardNotifier(dom.bridgeCard);
+const bridgeController = createCalendarBridgeController({
+  urlInput: dom.bridgeUrlInput,
+  secretInput: dom.bridgeSecretInput,
+  statusText: dom.bridgeStatus,
+  saveButton: dom.bridgeSaveBtn,
+  testButton: dom.bridgeTestBtn,
+  notify: setBridgeNotification,
+});
+
 const savedNetworksController = createSavedNetworksController({
   container: dom.savedNetworks,
   notify: setNotification,
@@ -240,6 +251,7 @@ function initialize() {
   dom.wifiStatusCard.iconSvg = wifiIcon;
   dom.geminiCard.iconSvg = apiKeyIcon;
   dom.calendarCard.iconSvg = calendarIcon;
+  dom.bridgeCard.iconSvg = calendarIcon;
   dom.timezoneLocationCard.iconSvg = clockIcon;
   dom.firmwareCard.iconSvg = firmwareIcon;
   dom.wifiStatusCard.addEventListener('settings', () => {
@@ -262,6 +274,8 @@ function initialize() {
   }
   dom.calendarAddBtn.addEventListener('click', () => void calendarController.addCalendar());
   dom.calendarRefreshBtn.addEventListener('click', () => void calendarController.refresh());
+  dom.bridgeSaveBtn.addEventListener('click', () => void bridgeController.save());
+  dom.bridgeTestBtn.addEventListener('click', () => void bridgeController.test());
   dom.firmwareCodeBtn.addEventListener('click', () => {
     void firmwareController.requestCode();
   });
@@ -332,6 +346,7 @@ async function loadInitialStatus() {
     savedNetworksController.load(),
     loadGeminiSettings(),
     calendarController.load(),
+    bridgeController.load(),
     firmwareController.loadStatus(),
   ]);
 }

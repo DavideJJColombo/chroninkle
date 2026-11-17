@@ -75,13 +75,17 @@ const char* ResponseSchemaJson()
 {
     return R"({"type":"OBJECT","properties":{)"
            R"("transcript":{"type":"STRING"},)"
-           R"("type":{"type":"STRING","enum":["note","idea","task","new_topic"]},)"
+           R"("type":{"type":"STRING","enum":["note","idea","task","event","new_topic"]},)"
            R"("topic":{"type":"STRING"},)"
            R"("tasks":{"type":"ARRAY","items":{"type":"OBJECT","properties":{)"
            R"("text":{"type":"STRING"},"due_date":{"type":"STRING"},"due_time":{"type":"STRING"}},)"
-           R"("required":["text"]}}},)"
+           R"("required":["text"]}},)"
+           R"("events":{"type":"ARRAY","items":{"type":"OBJECT","properties":{)"
+           R"("title":{"type":"STRING"},"date":{"type":"STRING"},)"
+           R"("start_time":{"type":"STRING"},"end_time":{"type":"STRING"}},)"
+           R"("required":["title","date"]}}},)"
            R"("required":["transcript","type"],)"
-           R"("propertyOrdering":["transcript","type","topic","tasks"]})";
+           R"("propertyOrdering":["transcript","type","topic","tasks","events"]})";
 }
 
 std::string BuildPrompt(const PromptContext& context)
@@ -99,7 +103,8 @@ std::string BuildPrompt(const PromptContext& context)
     prompt +=
         "- type: \"task\" if the speaker says one or more things to do (an action, an errand, a "
         "reminder, something to buy, call, pay, send...); \"idea\" for an idea, a proposal or a "
-        "creative thought; \"new_topic\" ONLY if the speaker explicitly asks to create a new "
+        "creative thought; \"event\" if it is mainly about an appointment (a visit, a meeting, "
+        "a booking, a dinner, a party... at a given day); \"new_topic\" ONLY if the speaker explicitly asks to create a new "
         "topic or project (e.g. \"new topic kitchen renovation\", \"nuovo argomento cucina\"); "
         "otherwise \"note\".\n"
         "- topic: for new_topic, the name of the topic to create (at most 4 words, only words "
@@ -110,7 +115,13 @@ std::string BuildPrompt(const PromptContext& context)
         "\"Call Marco\"), keeping names and details. due_date is YYYY-MM-DD when a day is said "
         "(resolve relative days such as \"domani\", \"venerdì\", \"tomorrow\", \"next Monday\" "
         "against today), otherwise empty. due_time is HH:MM (24-hour) when a time is said, "
-        "otherwise empty. For other types, an empty list.\n\n";
+        "otherwise empty. For other types, an empty list.\n"
+        "- events: every appointment mentioned with a day, whatever the type (a doctor's visit, "
+        "a meeting, a call booked at a set time, a dinner, a trip...): title is a short name in "
+        "the speaker's language (e.g. \"Dentista\", \"Cena da Luca\"), date YYYY-MM-DD (resolve "
+        "relative days against today), start_time HH:MM (24-hour) or empty when no time is "
+        "said, end_time HH:MM only when an end or a duration is said. Errands and things to do "
+        "are tasks, not events; an empty list when there are none.\n\n";
     if (context.time_valid) {
         prompt += "Today is " + context.today_weekday + " " + context.today_date + ", local time " +
                   context.now_time + ".\n";
@@ -165,6 +176,27 @@ Result Parse(const std::string& text)
             result.tasks.push_back(std::move(task));
         }
     }
+    const cJSON* events = cJSON_GetObjectItemCaseSensitive(root, "events");
+    if (cJSON_IsArray(events)) {
+        const cJSON* item = nullptr;
+        cJSON_ArrayForEach(item, events)
+        {
+            Event event = {};
+            event.title = StringField(item, "title");
+            event.date = StringField(item, "date");
+            if (event.title.empty() || !IsValidDate(event.date)) {
+                continue;  // an appointment needs at least a name and a day
+            }
+            const std::string start = StringField(item, "start_time");
+            const std::string end = StringField(item, "end_time");
+            event.start_time = IsValidTime(start) ? start : std::string();
+            event.end_time =
+                !event.start_time.empty() && IsValidTime(end) && end > event.start_time
+                    ? end
+                    : std::string();
+            result.events.push_back(std::move(event));
+        }
+    }
     cJSON_Delete(root);
 
     if (type == "task") {
@@ -174,6 +206,8 @@ Result Parse(const std::string& text)
         }
     } else if (type == "idea") {
         result.kind = Kind::kIdea;
+    } else if (type == "event" && !result.events.empty()) {
+        result.kind = Kind::kEvent;
     } else if (type == "new_topic" && !result.topic.empty()) {
         result.kind = Kind::kNewTopic;
     } else {
@@ -185,7 +219,50 @@ Result Parse(const std::string& text)
     if (result.kind == Kind::kTask && result.tasks.empty()) {
         result.kind = Kind::kNote;  // nothing usable to file as a task
     }
+    if (result.kind == Kind::kNewTopic) {
+        result.events.clear();
+    }
     return result;
+}
+
+std::vector<CalendarItem> CalendarItems(const Result& result)
+{
+    std::vector<CalendarItem> items;
+    for (const Event& event : result.events) {
+        CalendarItem item = {};
+        item.title = event.title;
+        item.date = event.date;
+        item.start_time = event.start_time;
+        if (!event.start_time.empty()) {
+            item.duration_minutes = 60;
+            if (!event.end_time.empty()) {
+                const int start = std::atoi(event.start_time.substr(0, 2).c_str()) * 60 +
+                                  std::atoi(event.start_time.substr(3, 2).c_str());
+                const int end = std::atoi(event.end_time.substr(0, 2).c_str()) * 60 +
+                                std::atoi(event.end_time.substr(3, 2).c_str());
+                item.duration_minutes = end - start;
+            }
+        }
+        items.push_back(std::move(item));
+    }
+    for (const Task& task : result.tasks) {
+        if (task.due_date.empty() || task.due_time.empty()) {
+            continue;
+        }
+        // Skip a todo that repeats an event already proposed for the same moment.
+        bool duplicate = false;
+        for (const CalendarItem& item : items) {
+            duplicate = duplicate ||
+                        (item.date == task.due_date && item.start_time == task.due_time);
+        }
+        if (!duplicate) {
+            items.push_back({.title = task.text,
+                             .date = task.due_date,
+                             .start_time = task.due_time,
+                             .duration_minutes = 30});
+        }
+    }
+    return items;
 }
 
 }  // namespace auto_classify

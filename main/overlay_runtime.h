@@ -52,6 +52,10 @@ esp_err_t ShowStorageModalUsbError();
 esp_err_t DismissStorageModal();
 esp_err_t ShowTopicsModalConfirmDelete();
 esp_err_t ShowBookListModalConfirmDelete();
+// "Add to calendar?" with the event in `body` ("Dentist\nTuesday 17 November, 15:00-16:00");
+// the answer comes back as InputResult::calendar_proposal_answered/_accepted.
+esp_err_t ShowCalendarProposalModal(const std::string& body);
+bool IsCardModalVisible();
 esp_err_t ShowSelectModal(const epaper_ui::SelectModalState& state);
 esp_err_t DismissSelectModal();
 esp_err_t ShowKeyboard(const epaper_ui::KeyboardState& state,

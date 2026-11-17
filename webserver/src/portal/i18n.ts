@@ -125,12 +125,26 @@ const SERVER_MESSAGES: Record<string, string> = {
   'Secret address not found: it may have been reset (HTTP 404)':
     'Google non trova questo indirizzo segreto: forse è stato reimpostato (HTTP 404)',
   'HTTP client init failed': 'Errore interno di rete',
+  'Calendar bridge loaded': 'Ponte del calendario caricato',
+  'Calendar bridge saved': 'Ponte del calendario salvato',
+  'Calendar bridge removed': 'Ponte del calendario rimosso',
+  'Calendar bridge test started': 'Prova del ponte avviata',
+  'Calendar bridge not set up': 'Il ponte del calendario non è configurato',
+  'Bridge address not valid': 'Indirizzo del ponte non valido (deve iniziare con https://script.google.com/)',
+  'Secret word too short': 'Parola segreta troppo corta (almeno 8 caratteri)',
+  'Failed to save calendar bridge': 'Impossibile salvare il ponte del calendario',
+  'Invalid calendar bridge payload': 'Dati del ponte non validi',
+  'Wrong secret word': 'Parola segreta sbagliata (deve essere uguale a SECRET nello script)',
+  'Not the Taccuino bridge (check the address and access)':
+    'Non risponde il ponte di Taccuino: controlla l’indirizzo e che l’accesso sia «Chiunque»',
+  'Device not connected to Wi-Fi': 'Il dispositivo non è connesso al Wi-Fi',
 };
 
 const SERVER_MESSAGE_PREFIXES: Array<[string, string]> = [
   ['Disconnected and cleared credentials for ', 'Disconnesso, credenziali cancellate per '],
   ['Connecting to ', 'Connessione a '],
   ['Link not valid (', 'Link non valido ('],
+  ['Bridge error: ', 'Errore del ponte: '],
   ['Connection failed (', 'Connessione non riuscita ('],
 ];
 
@@ -238,6 +252,20 @@ export function applyStaticTranslations(): void {
   );
   setText('calendarRefreshBtn', 'Aggiorna');
   setText('calendarAddBtn', 'Aggiungi');
+
+  setAttr('bridgeCard', 'title', 'Calendario: aggiungere eventi');
+  setText(
+    'bridgeHelp',
+    'Per far aggiungere al dispositivo gli appuntamenti che registri a un calendario ' +
+      '«Taccuino», installa il piccolo script ponte nel tuo account Google (vedi il manuale, ' +
+      '«Aggiungere eventi al calendario»), poi incolla qui il suo indirizzo e la parola segreta ' +
+      'che hai scelto.'
+  );
+  setAttr('bridgeUrlInput', 'label', 'Indirizzo del ponte (finisce con /exec)');
+  setAttr('bridgeSecretInput', 'label', 'Parola segreta');
+  setAttr('bridgeSecretInput', 'placeholder', 'La parola SECRET scritta nello script');
+  setText('bridgeTestBtn', 'Prova');
+  setText('bridgeSaveBtn', 'Salva');
 
   setAttr('firmwareCard', 'title', 'Aggiornamento firmware');
   setAttr('firmwareFileInput', 'label', 'File del firmware (.bin)');

@@ -13,9 +13,9 @@
 
 namespace epaper_ui {
 
-// The dashboard's main menu has six fixed items; Follow up / Todos / Agenda / Notes can show a
-// badge.
-inline constexpr int kDashboardMenuItemCount = 6;
+// The dashboard's main menu has four fixed items, each of which can show a badge. (Topics and
+// Books were removed from Home in 1.13.0; their pages are no longer reachable from here.)
+inline constexpr int kDashboardMenuItemCount = 4;
 
 // Fixed slot order of the dashboard menu (must match kMenuLabels in dashboard_page.cpp).
 enum class DashboardMenuItem : int {
@@ -23,8 +23,6 @@ enum class DashboardMenuItem : int {
     kTodos,
     kAgenda,  // Google Calendar events of the next days (calendar_service)
     kNotes,
-    kTopics,
-    kBooks,
 };
 
 struct DashboardPageMenuState {

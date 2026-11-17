@@ -27,7 +27,6 @@ La versione inglese di questo manuale è in [user-manual.md](user-manual.md).
 - [I dettagli di una registrazione](#i-dettagli-di-una-registrazione)
 - [Argomenti](#argomenti)
 - [Agenda (Calendario Google)](#agenda-calendario-google)
-- [Libri](#libri)
 - [Impostazioni](#impostazioni)
 - [Il portale web](#il-portale-web)
 - [Aggiornare il firmware](#aggiornare-il-firmware)
@@ -206,9 +205,6 @@ Sotto c'è il menu principale, in quest'ordine:
 - **Agenda** (con il numero di impegni rimasti oggi): gli impegni dei prossimi
   giorni dal tuo [Calendario Google](#agenda-calendario-google).
 - **Note** (con il numero): le tue note e idee.
-- **Argomenti**: tutto quello che appartiene a un certo
-  [argomento](#argomenti), compresi i riepiloghi scritti da Gemini.
-- **Libri**: per leggere file `.txt` dalla [cartella dei libri](#libri).
 
 Spostati inclinando il bilanciere e premilo per **Selezionare**.
 
@@ -314,28 +310,10 @@ Gli argomenti sono etichette, per esempio il nome di un progetto, che puoi
 assegnare a qualsiasi nota, idea o attività, indipendentemente dal tipo. Si
 creano a voce (vedi [Registrare un pensiero](#registrare-un-pensiero)) oppure
 dalle [Impostazioni](#argomenti-1), dove si possono anche rinominare ed
-eliminare. La voce **Argomenti** della Home serve a sfogliarli:
-
-1. Scegli un argomento dall'elenco.
-2. Vedi tutto quello che gli appartiene, note, idee e attività insieme,
-   raggruppato per giorno come nelle altre liste. Ogni riga indica il tipo
-   (Nota/Idea/Da fare).
-3. Seleziona una voce per aprirne i [dettagli](#i-dettagli-di-una-registrazione).
-4. Quando l'argomento ha almeno una voce, accanto a **Indietro** compare
-   **Riassumi**: un riepilogo scritto da Gemini di tutto quello che è stato
-   collegato all'argomento, senza limiti di tempo (un argomento si può
-   riprendere anche a mesi di distanza). Premi **Ottieni riepilogo** per
-   generarlo; il risultato compare nell'area di testo, scorrevole come nella
-   pagina dei dettagli. Tornando più tardi trovi il riepilogo già fatto; premi
-   **Aggiorna** per farne uno nuovo. I riepiloghi sono scritti in italiano;
-   quelli creati quando il dispositivo era in inglese restano in inglese
-   finché non li aggiorni. Se Gemini non è ancora collegato, compare l'invito a
-   configurarlo.
-5. **Indietro** riporta all'elenco degli argomenti, oppure, dal riepilogo,
-   alle voci di quell'argomento.
-
-Se a un argomento non è ancora collegato niente, compare "Ancora nessuna voce
-con questo argomento" e il pulsante Riassumi non c'è.
+eliminare; a una registrazione si assegnano dai suoi
+[dettagli](#i-dettagli-di-una-registrazione) (**Modifica argomenti**) o li
+sceglie Gemini con lo smistamento automatico. Le voci con un argomento restano
+nelle solite liste (Note, Da fare, Promemoria).
 
 ## Agenda (Calendario Google)
 
@@ -431,30 +409,6 @@ alla scheda **Calendario Google** (fino ad allora il dispositivo li mostra
 dalla sua copia). Per disattivare la funzione svuota i due campi e premi
 **Salva / Rimuovi**. Se modifichi lo script, ricordati di fare **Gestisci
 deployment** > modifica > **Nuova versione**, così l'indirizzo resta lo stesso.
-
-## Libri
-
-La voce **Libri** della Home apre un semplice lettore di file di testo
-`.txt`: copiali nella cartella `books` della scheda SD (via USB, da
-Impostazioni → Memoria) e li troverai qui.
-
-- Selezionando **Libri** vedi l'elenco dei file `.txt` di quella cartella.
-  Spostati con il bilanciere e selezionane uno per aprire un menu con:
-  - **Continua a leggere**: riapre il libro all'ultima pagina letta;
-  - **Ricomincia dall'inizio**: riparte da pagina uno, sovrascrivendo la
-    posizione salvata;
-  - **Elimina**: cancella il libro (e la posizione salvata) dalla scheda SD,
-    dopo una conferma. Non si può annullare.
-- Durante la lettura, inclinando il bilanciere giri pagina avanti (giù) o
-  indietro (su). Ogni libro ricorda l'ultima pagina, quindi uscendo e
-  rientrando riprendi da lì.
-- Un tocco sul tasto Registra chiude la lettura e torna all'elenco.
-- Puoi tornare indietro fino all'inizio del libro in qualsiasi momento, anche
-  subito dopo averlo riaperto. Un libro letto molto avanti può metterci un
-  attimo ad aprirsi, mentre ricostruisce dove iniziavano le pagine precedenti.
-- Il lettore guarda solo in quella cartella (non nelle sottocartelle) e legge
-  solo file `.txt`. Le lettere accentate si vedono correttamente, anche nei
-  file salvati con la vecchia codifica Latin-1.
 
 ## Impostazioni
 

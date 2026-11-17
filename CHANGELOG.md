@@ -8,6 +8,17 @@ via `git log`, not backfilled here.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-17
+
+### Removed
+
+- **Topics and Books on Home.** The Home menu now has four items (Follow up,
+  Todos, Agenda, Notes). Topics stay as labels (Settings > Topics, Edit topics
+  in Details, automatic sorting) and tagged recordings stay in the usual
+  lists; the topic browser/summary and the `.txt` book reader are no longer
+  reachable. The dashboard navigation model now walks 4 items (it still
+  walked 5 since Agenda was added, so Books was unreachable by buttons).
+
 ## [1.12.0] - 2026-11-17
 
 ### Added

@@ -18,10 +18,10 @@ constexpr int kMiddleMenuGap = design::spacing::k8;
 constexpr auto kProgressLabelRole = design::TypographyRole::kLabelSmallBlack;
 
 constexpr std::array<const char*, kDashboardMenuItemCount> kMenuLabels = {
-    "Follow up", "Todos", "Agenda", "Notes", "Topics", "Books",
+    "Follow up", "Todos", "Agenda", "Notes",
 };
 constexpr std::array<const char*, kDashboardMenuItemCount> kMenuLabelsItalian = {
-    "Promemoria", "Da fare", "Agenda", "Note", "Argomenti", "Libri",
+    "Promemoria", "Da fare", "Agenda", "Note",
 };
 
 int PageWidth(int portrait_width)

@@ -1009,20 +1009,6 @@ app_interaction::InputResult HandleFooterActivate(footer_runtime::FooterFocusIte
 // page does not exist yet, letting dashboard_page_runtime fall back to its "coming soon" toast.
 bool HandleDashboardMenuItem(int menu_index, void*)
 {
-    if (menu_index == static_cast<int>(epaper_ui::DashboardMenuItem::kTopics)) {
-        const esp_err_t err = ShowTopicsBrowseScreen(display_service::RefreshMode::kPartial);
-        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-            ESP_LOGW(kTag, "Show topics browse screen failed: %s", esp_err_to_name(err));
-        }
-        return true;
-    }
-    if (menu_index == static_cast<int>(epaper_ui::DashboardMenuItem::kBooks)) {
-        const esp_err_t err = ShowBookListScreen(display_service::RefreshMode::kPartial);
-        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-            ESP_LOGW(kTag, "Show book list screen failed: %s", esp_err_to_name(err));
-        }
-        return true;
-    }
     if (menu_index == static_cast<int>(epaper_ui::DashboardMenuItem::kAgenda)) {
         const esp_err_t err = ShowAgendaScreen(display_service::RefreshMode::kPartial);
         if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
